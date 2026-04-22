@@ -2129,6 +2129,48 @@ window.addEventListener('DOMContentLoaded', () => {
       });
   }
 });
+ // Deze functie plaatsen we helemaal onderaan zodat alle andere functies (zoals createNodeEl) al geladen zijn
+const ladenVanUitUrl = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataFile = urlParams.get('data');
+
+    if (dataFile) {
+        fetch(dataFile)
+            .then(response => {
+                if (!response.ok) throw new Error("Bestand niet gevonden");
+                return response.json();
+            })
+            .then(jsonData => {
+                if (!jsonData.nodes || !jsonData.arrows) return;
+
+                // 1. Maak het bord leeg
+                nodes.forEach(n => n.el && n.el.remove());
+                arrows.forEach(a => {
+                    if(a.pathEl) a.pathEl.remove();
+                    if(a.bgPathEl) a.bgPathEl.remove();
+                    if(a.dotEl) a.dotEl.remove();
+                    if(a.labelEl) a.labelEl.remove();
+                });
+
+                // 2. Reset data
+                nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
+                arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
+                nodeId = jsonData.nodeId || 0;
+                arrowId = jsonData.arrowId || 0;
+
+                // 3. Teken alles (nu zijn createNodeEl en createArrowEl wel bekend!)
+                nodes.forEach(n => createNodeEl(n));
+                arrows.forEach(a => createArrowEl(a));
+                updateArrows();
+                
+                if(typeof showToast === "function") showToast("Project geladen!");
+            })
+            .catch(err => console.error("Fout bij laden:", err));
+    }
+};
+
+// Start de check na een korte vertraging om zeker te zijn dat alles klaar staat
+setTimeout(ladenVanUitUrl, 100);
 </script>
 </body>
 </html>
