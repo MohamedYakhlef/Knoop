@@ -1968,10 +1968,16 @@ window.addEventListener('DOMContentLoaded', () => {
     const dataFile = urlParams.get('data');
 
     if (dataFile) {
-        fetch(dataFile)
+        // Maak van de bestandsnaam een volledige URL
+        const fullPath = window.location.origin + window.location.pathname.replace('index.html', '') + dataFile;
+        
+        fetch(fullPath)
             .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden");
+                if (!response.ok) throw new Error("Bestand niet gevonden op: " + fullPath);
                 return response.json();
+            })
+            .then(jsonData => {
+                // ... rest van de code die we eerder hadden ...
             })
             .then(jsonData => {
                 // Hier roepen we de bestaande import-logica van je tool aan
