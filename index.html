@@ -2134,10 +2134,13 @@ const ladenVanUitUrl = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const dataFile = urlParams.get('data');
 
-    if (dataFile) {
-        fetch(dataFile)
+if (dataFile) {
+        // Dit zorgt dat hij altijd in de /Knoop/ map zoekt:
+        const fullUrl = window.location.href.split('?')[0].replace('index.html', '') + dataFile;
+
+        fetch(fullUrl)
             .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden");
+                if (!response.ok) throw new Error("Bestand niet gevonden: " + dataFile);
                 return response.json();
             })
             .then(jsonData => {
