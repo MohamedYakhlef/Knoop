@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visual Board</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f9fc; --surface: #ffffff; --surface2: #f1f2f7; --border: #d0d4e0;
+    --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
+    --text: #1a1a2e; --text-dim: #6b6b8a; --shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+
+  body.dark {
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27; --border: #2a2a3d;
+    --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
+    --text: #e8e8f0; --text-dim: #a0a0c0; --shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg); font-family: 'Syne', sans-serif; color: var(--text); user-select: none;
+  }
+
+
+  /* ── TOOLBARS ── */
+  #toolbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 52px;
+    background: rgba(248,249,252,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; padding: 0 16px; z-index: 1000;
+  }
+  body.dark #toolbar { background: rgba(13,13,20,0.95); }
+
+  #toolbar .logo { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; margin-right: 12px; }
+  #toolbar .logo span { color: var(--accent); }
+
+  .tb-btn {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: all .15s;
+  }
+  .tb-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+  
+  #search-bar {
+    margin-left: auto; width: 200px; padding: 6px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s;
+  }
+  #search-bar:focus { border-color: var(--accent); }
+
+  /* LEFT TOOLBAR */
+  #left-toolbar {
+    position: fixed; top: 68px; left: 16px; width: 44px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px;
+    z-index: 1000; box-shadow: var(--shadow);
+  }
+  .lt-btn {
+    width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;
+    border-radius: 6px; cursor: pointer; color: var(--text); position: relative;
+    transition: all 0.15s; border: 1px solid transparent; font-size: 14px;
+  }
+  .lt-btn:hover { background: var(--surface2); border-color: var(--border); }
+  .lt-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  
+  /* Dropdown voor add button */
+  .lt-dropdown {
+    position: absolute; left: 40px; top: 0; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
+    display: none; flex-direction: row; gap: 4px; padding: 4px; z-index: 1001;
+  }
+  .lt-dropdown.show { display: flex; }
+  .lt-dropdown-item {
+    padding: 6px 10px; font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer;
+    border-radius: 4px; color: var(--text); white-space: nowrap; transition: background 0.1s;
+  }
+  .lt-dropdown-item:hover { background: var(--surface2); color: var(--accent); }
+
+  /* ── CANVAS ── */
+  #canvas {
+    position: fixed; top: 52px; left: 0; right: 0; bottom: 0;
+    overflow: hidden; cursor: default;
+  }
+  #canvas.tool-text { cursor: text; }
+  #canvas.tool-select { cursor: crosshair; }
+  #canvas.tool-text .node { cursor: text !important; }
+  #canvas.tool-eraser { cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') 12 12, pointer; }
+
+  #canvas::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, #d0d4e0 1px, transparent 1px); background-size: 28px 28px; pointer-events: none;
+  }
+  body.dark #canvas::before { background-image: radial-gradient(circle, #2a2a3d 1px, transparent 1px); }
+
+  #world { position: absolute; top: 0; left: 0; width: 4000px; height: 4000px; transform-origin: 0 0; }
+
+  /* Selectie Box */
+  #selection-box {
+    position: absolute; border: 1px solid var(--accent); background: rgba(124, 92, 252, 0.2);
+    pointer-events: none; display: none; z-index: 9999;
+  }
+
+/* ── SVG ARROWS ── */
+#svg-layer {
+  position: absolute; 
+  top: 0; left: 0; 
+  width: 4000px; 
+  height: 4000px; 
+  pointer-events: none; 
+  overflow: visible;
+  z-index: 5;                    /* pijlen boven Gebied */
+}
+
+#temp-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 4000px; 
+  height: 4000px; 
+  pointer-events: none; 
+  overflow: visible;
+  z-index: 20;                   /* tijdelijke lijn bij het tekenen van pijlen */
+}
+
+#anchors-svg {
+  /* blijft al op z-index:999 (inline) → blijft altijd bovenaan */
+}
+  #svg-layer .arrow-path {
+    fill: none; stroke: var(--accent); stroke-width: 2.5; marker-end: url(#arrowhead);
+    pointer-events: stroke; cursor: pointer; transition: stroke .15s;
+  }
+  #svg-layer .arrow-path:hover { stroke: var(--accent2); }
+  #svg-layer .arrow-path.selected { stroke: var(--accent2); stroke-width: 3; }
+  .arrow-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+  #svg-layer .arrow-bg { fill: none; stroke: var(--surface); stroke-width: 7; stroke-linejoin: round; pointer-events: none; }
+
+.anchor-point {
+    fill: #fff; stroke: var(--accent); stroke-width: 2; r: 5px;
+    pointer-events: all; cursor: crosshair; transition: r 0.15s, fill 0.15s;
+  }
+  .anchor-point:hover { r: 8px; fill: var(--accent3); stroke: #000; }
+
+  /* ── WAYPOINT HANDLES (Vrije Lijnbewerking) ── */
+  .waypoint-handle {
+    fill: #fff; stroke: var(--accent2); stroke-width: 2.5;
+    pointer-events: all; cursor: grab; transition: fill 0.15s, r 0.1s;
+  }
+  .waypoint-handle:hover { fill: var(--accent2); }
+  .waypoint-handle.dragging { cursor: grabbing; fill: var(--accent2); }
+  .waypoint-seg-hit {
+    fill: none; stroke: transparent; stroke-width: 18;
+    pointer-events: stroke; cursor: cell;
+  }
+  /* Route mode toggle buttons */
+  .route-btn {
+    flex: 1; justify-content: center; font-size: 11px;
+    padding: 7px 6px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text); font-family: 'DM Mono', monospace;
+    cursor: pointer; transition: all .15s; text-align: center;
+  }
+  .route-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .route-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── NODE CARDS ── */
+  .node {
+    position: absolute; width: 220px; min-height: 50px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; cursor: grab; transition: border-color .15s, box-shadow .15s, filter .3s ease;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden;
+  }
+/* Basis stijlen voor vormen */
+/* --- VORM DEFINITIES --- */
+
+  /* 1. Ovaal */
+.node.shape-oval { 
+    border-radius: 100px; 
+    padding: 10px 20px; 
+    align-items: center; 
+    justify-content: center; 
+  }
+  
+  /* Zet het icoontje binnen het gekleurde vlak van de ovaal */
+  .node.shape-oval .resize-handle {
+    right: 20px !important;
+    bottom: 5px !important;
+  }
+
+  .node.shape-area { border: 2px dashed var(--border) !important; z-index: 1 !important; }
+  
+  /* Zorg dat het icoon altijd zichtbaar is voor ovaal en gebied bij hover */
+  .node.shape-oval:hover .resize-handle, 
+  .node.shape-area:hover .resize-handle { 
+    opacity: 1 !important; 
+  }
+
+node.shape-text { 
+    background: transparent !important; 
+    border: 1px dashed transparent; 
+    box-shadow: none; 
+    min-height: unset; 
+    cursor: text; 
+  }
+  .node.shape-text:hover { border-color: var(--border); }
+
+  /* Zorg dat de aanwijzer een tekst-streepje blijft boven alle vormen als de T-tool aan staat */
+  #canvas.tool-text .node { cursor: text !important; }
+
+  /* --- RESIZE ICOONTJES VOOR DEZE VORMEN --- */
+  
+/* ── RESIZE ICOONTJES VOOR SPECIALE VORMEN ── */
+
+/* Positie en zichtbaarheid basis voor ovaal en gebied */
+.node.shape-oval .resize-handle,
+.node.shape-area .resize-handle {
+    display: block !important;      /* altijd aanwezig in DOM */
+    visibility: visible !important;
+    right: 32px !important;         /* verder naar binnen (binnen de ronding) */
+    bottom: 18px !important;
+    z-index: 20 !important;
+}
+
+/* Hover: alleen dan zichtbaar (zoals bij normale vierkanten) */
+.node:hover .resize-handle,
+.node.shape-oval:hover .resize-handle,
+.node.shape-area:hover .resize-handle {
+    opacity: 1 !important;
+}
+
+/* Zorg dat hij standaard onzichtbaar is (ook bij ovaal) */
+.node .resize-handle {
+    opacity: 0;
+    transition: opacity .2s;
+}
+
+  /* Zorg dat alle normale vakjes BOVEN het Gebied blijven */
+  .node:not(.shape-area) { z-index: 10; }
+
+  .node:hover { border-color: var(--accent); }
+  .node.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
+  .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
+.node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
+.node.connected-highlight {
+  border-color: var(--accent3) !important;
+  box-shadow: 0 0 0 2px rgba(92,248,200,0.25), 0 8px 28px rgba(92,248,200,0.12) !important;
+}
+#svg-layer .arrow-path.active-connection { stroke-width: 3.5 !important; opacity: 1; }
+#svg-layer .arrow-path.arrow-dimmed { opacity: 0.12; }
+  .node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
+
+  .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
+  .node-thumb.has-img { display: block; }
+  .node-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .node-body { padding: 12px 12px 10px; flex: 2 1 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .node.shape-oval .node-body { text-align: center; }
+
+  .node-title { font-size: 14px; font-weight: 600; color: #1a1a2e !important; word-break: break-word; line-height: 1.3; }
+.node.shape-text .node-title { 
+  font-size: 16px; 
+  color: inherit !important; /* Neemt de kleur van de node over */
+}
+#f-title {
+  color: inherit;
+}
+
+.node-note {
+  font-size: 11px;
+  margin-top: 8px;
+  color: var(--text-dim);
+  display: none; 
+  pointer-events: none;
+  white-space: pre-wrap; /* Zorgt dat enters in de tekst werken */
+}
+
+/* Deze class wordt door JS toegevoegd als de switch aan staat */
+.node-note.visible {
+  display: block !important;
+}
+  .node-note.has-note { display: -webkit-box; }
+
+  .node-link {
+    position: absolute; top: 8px; right: 8px; background: var(--accent); color: white;
+    width: 20px; height: 20px; border-radius: 4px; display: none; align-items: center; justify-content: center;
+    font-size: 10px; text-decoration: none; cursor: pointer; z-index: 10;
+  }
+  .node-link:hover { background: var(--accent2); }
+
+.node-footer {
+    display: flex; justify-content: flex-start; gap: 4px; padding: 6px 10px 8px;
+    border-top: none; margin-top: auto; flex: 0 0 auto;
+  }
+ .node.shape-oval .node-footer, .node.shape-text .node-footer { display: none; }
+
+/* Gebied: geen onderste lijn */
+.node.shape-area .node-footer {
+    border-top: none !important;
+    padding: 8px 10px 8px;
+}
+  
+.node-btn {
+    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all .15s;
+    opacity: 0;
+  }
+  .node:hover .node-btn { opacity: 1; }
+  .node-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .node-btn.del:hover { background: var(--accent2); border-color: var(--accent2); }
+
+  .node .resize-handle {
+    position: absolute; bottom: 8px; right: 8px; width: 18px; height: 18px; cursor: nwse-resize; opacity: 0; transition: opacity .2s; z-index: 10;
+  }
+  .node.shape-text .resize-handle { bottom: -5px; right: -5px; }/* Zorg dat het icoontje bij tekst iets groter en beter zichtbaar is */
+  .node.shape-text .resize-handle { 
+    bottom: 2px !important; 
+    right: 2px !important; 
+    background: rgba(124, 92, 252, 0.1); /* Een heel licht paars vlekje */
+    border-radius: 4px;
+    padding: 2px;
+  }
+  .node:hover .resize-handle { opacity: 1; }
+  .node .resize-handle::after {
+    content: ''; position: absolute; bottom: 4px; right: 4px; width: 10px; height: 10px;
+    border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent);
+  }
+
+  /* Export Opschoning */
+  body.exporting .node-btn, body.exporting .resize-handle, body.exporting .anchor-point { display: none !important; }
+
+  /* ── TOGGLE SWITCH ── */
+  .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+  .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+  input:checked + .slider { background-color: #5cf8c8; }
+  input:checked + .slider:before { transform: translateX(24px); }
+
+  /* ── PANEL ── */
+.color-palette-grid {
+  display: none; /* Verbergt het raster standaard */
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+  background: var(--surface2);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.color-palette-grid.open {
+    display: grid;
+  }
+
+  /* De 'knop' die de huidige kleur laat zien */
+  .current-color-preview {
+    width: 100%;
+    height: 34px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 12px;
+    background: var(--surface);
+    justify-content: space-between;
+  }
+
+  .current-color-preview::after {
+    content: '▼';
+    font-size: 8px;
+    color: var(--text-dim);
+  }
+
+.color-swatch {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.1);
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+  border-color: var(--accent);
+}
+
+.color-swatch.active {
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+  #panel {
+    position: fixed; top: 52px; right: -380px; width: 340px; bottom: 0;
+    background: var(--surface); border-left: 1px solid var(--border); z-index: 900;
+    padding: 24px; transition: right .3s cubic-bezier(.4,0,.2,1); overflow-y: auto;
+  }
+  #panel.open { right: 0; }
+  #panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  #panel-close { width: 28px; height: 28px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all .15s; }
+  #panel-close:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 9px 12px; outline: none; resize: vertical; transition: border-color .15s; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+
+.view-line { margin-bottom: 16px; }
+.view-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.view-value { font-size: 15px; color: var(--text); margin-top: 3px; word-break: break-word; line-height: 1.5; }
+.view-value a { color: var(--accent); text-decoration: underline; }
+.view-img { width: 100%; border-radius: 8px; object-fit: cover; margin-bottom: 16px; border: 1px solid var(--border); }
+#panel-view { padding-bottom: 16px; }
+
+  .btn-action { width: 100%; padding: 13px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; margin-bottom: 10px; }
+  .btn-save { background: #10b981; color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+  .btn-save:hover { background: #059669; transform: translateY(-1px); }
+  .btn-edit-mode { background: var(--accent); color: white; }
+  .btn-edit-mode:hover { background: #6243db; }
+  .btn-del-panel { background: transparent; border: 2px solid #ef4444; color: #ef4444; }
+  .btn-del-panel:hover { background: #ef4444; color: #fff; }
+
+  #temp-line { position: absolute; pointer-events: none; stroke: var(--accent3); stroke-width: 2; stroke-dasharray: 6 4; fill: none; marker-end: url(#arrowhead-temp); overflow: visible; }
+  
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 2000; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* ── LABEL FILTER DROPDOWN ── */
+#label-filter-wrapper { position: relative; }
+#label-filter-dropdown {
+  position: absolute; top: 40px; left: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: var(--shadow);
+  display: none; flex-direction: column;
+  padding: 8px; z-index: 2000;
+  min-width: 200px; max-height: 300px; overflow-y: auto;
+}
+#label-filter-dropdown.show { display: flex; }
+#label-filter-dropdown .lf-header {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--text-dim); text-transform: uppercase;
+  padding: 2px 4px 6px; letter-spacing: .5px;
+}
+.lf-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 4px; cursor: pointer;
+  font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text);
+  transition: background 0.1s;
+}
+.lf-item:hover { background: var(--surface2); }
+.lf-item input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; }
+#lf-empty { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); padding: 6px 8px; }
+#lf-clear {
+  margin-top: 6px; padding: 6px 8px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text-dim); font-family: 'DM Mono', monospace;
+  font-size: 11px; cursor: pointer; text-align: center; transition: all .15s;
+}
+#lf-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+#lf-badge {
+  background: var(--accent); color: white;
+  border-radius: 10px; padding: 1px 6px;
+  font-size: 10px; margin-left: 2px; display: none;
+}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="logo">Visual<span>Board</span></div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
+  <button class="tb-btn" id="btn-export-json" title="Exporteer als Project">💾 Export</button>
+  <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
+  
+<div id="label-filter-wrapper">
+    <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
+      🏷️ Filter <span id="lf-badge">0</span>
+    </button>
+    <div id="label-filter-dropdown">
+      <div class="lf-header">Filter op label</div>
+      <div id="lf-list"><div id="lf-empty">Geen labels aangemaakt</div></div>
+      <button id="lf-clear">✕ Filter wissen</button>
+    </div>
+  </div>
+  <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
+  <button class="tb-btn" id="btn-export" title="Exporteer als Afbeelding" style="margin-left: 8px;">🖼️ Export Image</button>
+</div>
+
+<div id="left-toolbar">
+  <div class="lt-btn active" id="tool-pointer" title="Aanwijzer / Selectie">👆</div>
+  <div class="lt-btn" id="tool-add" title="Toevoegen">
+    ➕
+<div class="lt-dropdown">
+  <div class="lt-dropdown-item" id="add-square">🟥 Vierkant</div>
+  <div class="lt-dropdown-item" id="add-oval">⭕ Ovaal</div>
+  <div class="lt-dropdown-item" id="add-area">⬜ Gebied</div>
+</div>
+  </div>
+  <div class="lt-btn" id="tool-arrow" title="Pijl">↗️</div>
+  <div class="lt-btn" id="tool-select" title="Selecteer meerdere (Box)">⬚</div>
+  <div class="lt-btn" id="tool-text" title="Tekstveld toevoegen">T</div>
+  <div class="lt-btn" id="tool-eraser" title="Gum (Verwijderen)">🗑️</div>
+  <div style="width: 24px; height: 1px; background: var(--border); margin: 4px 0;"></div>
+  <div class="lt-btn" id="tool-undo" title="Ongedaan maken">↶</div>
+  <div class="lt-btn" id="tool-redo" title="Opnieuw uitvoeren">↷</div>
+</div>
+
+<div id="canvas">
+  <div id="world">
+
+<svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7c5cfc"/></marker>
+        <marker id="arrowhead-sel" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#fc5c7d"/></marker>
+        <marker id="arrowhead-temp" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#5cf8c8"/></marker>
+      </defs>
+      <g id="arrows-group"></g>
+    </svg>
+    <svg id="temp-svg" style="position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;overflow:visible;">
+      <path id="temp-line" d=""/>
+    </svg>
+    <svg id="anchors-svg" style="position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;overflow:visible;z-index:999;">
+      <g id="anchors-group"></g>
+      <g id="waypoints-group" style="pointer-events:all;"></g>
+    </svg>
+
+    <div id="selection-box"></div>
+  </div>
+</div>
+
+<div id="panel">
+  <h2 id="panel-title">Informatie <button id="panel-close">✕</button></h2>
+
+  <div id="panel-view" style="display:none;">
+    <div id="view-content"></div>
+   <button class="btn-action btn-edit-mode" id="btn-to-edit">Bewerken ✎</button>
+    <button class="btn-action btn-del-panel" id="btn-view-delete" style="display:none;">Verwijderen 🗑</button>
+  </div>
+
+  <div id="panel-edit" style="display:none;">
+    <div id="panel-node-fields">
+      <div class="field"><label>Titel / Tekst</label><input type="text" id="f-title" placeholder="Naam..."></div>
+
+<div class="field" id="wrap-node-color">
+  <label>Kleur (Achtergrond)</label>
+  <div id="preview-node-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-node')">
+    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9;" id="swatch-node-color"></div>
+    <span>Kies kleur</span>
+  </div>
+  <div id="color-grid-node" class="color-palette-grid"></div>
+  <input type="hidden" id="f-node-color" value="#f1f5f9">
+</div>
+
+<div id="title-style-options" style="margin-bottom:16px;">
+  <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Titel opmaak</label>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button id="btn-text-bold" class="tb-btn" style="flex:1; justify-content:center;"><b>B</b></button>
+    <button id="btn-text-italic" class="tb-btn" style="flex:1; justify-content:center;"><i>I</i></button>
+    <select id="f-font-size" style="flex:2; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; padding:6px 8px; outline:none; cursor:pointer;">
+      <option value="11">11px</option>
+      <option value="13">13px</option>
+      <option value="14" selected>14px (standaard)</option>
+      <option value="16">16px</option>
+      <option value="18">18px</option>
+      <option value="20">20px</option>
+      <option value="24">24px</option>
+      <option value="28">28px</option>
+      <option value="32">32px</option>
+    </select>
+  </div>
+</div>
+
+<div id="text-node-options" style="display:none; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+  <label style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-top:8px;">Tekstkleur</label>
+  <div id="preview-text-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-text')">
+    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#1a1a2e;" id="swatch-text-color"></div>
+    <span>Kies kleur</span>
+  </div>
+  <div id="color-grid-text" class="color-palette-grid"></div>
+  <input type="hidden" id="f-text-color" value="#1a1a2e">
+</div>
+
+<div class="field" id="wrap-show-img">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Afbeelding Tonen</label><label class="switch"><input type="checkbox" id="f-show-image" checked><span class="slider"></span></label></div>
+        <div id="img-preview" onclick="document.getElementById('f-img-upload').click()" style="width:100%;height:80px;background:var(--surface2);border:1px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px;cursor:pointer;">
+          <span id="img-preview-text" style="font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">📁 Klik om afbeelding te uploaden</span>
+          <img id="img-preview-img" style="width:100%;height:100%;object-fit:cover;display:none;">
+        </div>
+        <input type="file" id="f-img-upload" accept="image/*" style="display:none;">
+        <button type="button" id="btn-img-remove" class="tb-btn" style="width:100%;justify-content:center;display:none;color:#ef4444;border-color:#ef4444;">🗑 Afbeelding verwijderen</button>
+      </div>
+
+      <div class="field"><label>URL</label><input type="url" id="f-url" placeholder="https://…"></div>
+      <div class="field">
+  
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <label style="margin:0;">Notitie</label>
+    <label class="switch" title="Notitie tonen op canvas">
+      <input type="checkbox" id="f-show-note">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <textarea id="f-note" rows="3"></textarea>
+</div>
+<div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
+      <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
+      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
+      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
+    </div>
+
+<div id="panel-arrow-fields" style="display:none">
+      <div class="field"><label>Label</label><input type="text" id="f-arrow-label" placeholder="Verbinding…"></div>
+      <div class="field"><label>URL</label><input type="url" id="f-arrow-url" placeholder="https://…"></div>
+      <div class="field"><label>Vorm</label><select id="f-arrow-shape"><option value="straight">Recht</option><option value="curve">Gebogen</option></select></div>
+
+      <!-- Lijn modus: Vaste vorm vs Vrije vorm -->
+      <div class="field" id="wrap-arrow-route">
+        <label>Lijn modus</label>
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+          <button id="btn-route-auto" class="route-btn active">📐 Vaste vorm</button>
+          <button id="btn-route-custom" class="route-btn">✏️ Vrije vorm</button>
+        </div>
+        <div id="waypoint-hint" style="display:none; font-size:10px; color:var(--text-dim); font-family:'DM Mono',monospace; padding:8px; background:var(--surface2); border-radius:6px; line-height:1.6;">
+          💡 <b>Klik op de lijn</b> om een punt toe te voegen.<br>
+          <b>Sleep punten</b> om de route te vormen.<br>
+          <b>Dubbelklik</b> op een punt om het te verwijderen.
+        </div>
+      </div>
+      <div class="field"><label>Animatie snelheid</label><select id="f-arrow-anim"><option value="none">Uit</option><option value="normal" selected>Normaal</option><option value="fast">Snel</option></select></div>
+      <div class="field"><label>Stijl</label><select id="f-arrow-style"><option value="dot">Groen Balletje</option><option value="dashed">Bewegende Streepjes</option></select></div>
+<div class="field" id="wrap-arrow-color">
+  <label>Kleur pijl</label>
+  <div id="preview-arrow-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-arrow')">
+    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#7c5cfc;" id="swatch-arrow-color"></div>
+    <span>Kies kleur</span>
+  </div>
+  <div id="color-grid-arrow" class="color-palette-grid"></div>
+  <input type="hidden" id="f-arrow-color" value="#7c5cfc">
+</div>
+<div class="field">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Notitie tonen op canvas</label><label class="switch"><input type="checkbox" id="f-arrow-show-note"><span class="slider"></span></label></div>
+        <textarea id="f-arrow-note" rows="4" placeholder="Voeg een notitie toe…"></textarea>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
+      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
+    </div>
+
+    <button class="btn-action btn-save" id="panel-save">Opslaan</button>
+    <button class="btn-action btn-del-panel" id="panel-delete">Verwijderen</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="json-import" accept=".json" style="display:none">
+
+<script>
+
+// --- HIER DE KLEUREN EN DE FUNCTIE PLAKKEN ---
+const presetColors = [
+  '#ffffff', '#f1f5f9', '#cbd5e1', '#64748b', '#334155', '#0f172a',
+  '#dbeafe', '#93c5fd', '#3b82f6', '#2563eb', '#1e40af', '#172554',
+  '#ffe4e6', '#fda4af', '#f43f5e', '#e11d48', '#9f1239', '#4c0519',
+  '#dcfce7', '#86efac', '#22c55e', '#16a34a', '#15803d', '#052e16',
+  '#fef9c3', '#fde047', '#eab308', '#ca8a04', '#854d0e', '#422006',
+  '#f3e8ff', '#d8b4fe', '#a855f7', '#9333ea', '#6b21a8', '#3b0764'
+];
+
+// Functie om het raster te tonen/verbergen
+function toggleColorGrid(gridId) {
+  const grid = document.getElementById(gridId);
+  grid.classList.toggle('open');
+}
+
+function renderColorGrid(containerId, hiddenInputId, node) {
+  const container = document.getElementById(containerId);
+  const input = document.getElementById(hiddenInputId);
+  if (!container || !input) return;
+  
+  const swatchId = hiddenInputId.replace('f-', 'swatch-');
+  const previewSwatch = document.getElementById(swatchId);
+  
+  // Zet de huidige kleur in de preview-balk
+  if(previewSwatch) {
+    previewSwatch.style.backgroundColor = input.value;
+    if(previewSwatch.nextElementSibling) previewSwatch.nextElementSibling.textContent = input.value.toUpperCase();
+  }
+
+  container.innerHTML = '';
+  presetColors.forEach(color => {
+    const swatch = document.createElement('div');
+    swatch.className = 'color-swatch';
+    // Check of dit de actieve kleur is
+    if(input.value.toLowerCase() === color.toLowerCase()) swatch.classList.add('active');
+    
+    swatch.style.backgroundColor = color;
+    swatch.onclick = (e) => {
+      e.stopPropagation(); 
+      input.value = color; // Update hidden input
+      
+      // Update de preview-balk direct
+      if(previewSwatch) {
+        previewSwatch.style.backgroundColor = color;
+        previewSwatch.nextElementSibling.textContent = color.toUpperCase();
+      }
+      
+      // Update het raster (active class verschuiven)
+// Update het raster (active class verschuiven)
+      container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      
+      // CHECK OF HET EEN PIJL OF EEN VAKJE IS
+      if (node.from !== undefined) {
+        node.color = color;
+        updateArrow(node); // Werk de pijl bij
+        updateAllDots();   // Werk de animatie bij
+      } else {
+        applyLiveNodeChanges(node); // Voer verandering direct door op vakje
+      }
+      
+      saveState();
+      container.classList.remove('open'); // Klap pallet in
+    };
+    container.appendChild(swatch);
+  });
+}
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let nodes = [], arrows = [];
+let nodeId = 0, arrowId = 0;
+let historyStack = [], historyIndex = -1;
+let isRestoring = false;
+
+let currentTool = 'pointer'; // pointer, select, eraser, text, arrow
+let arrowSource = null, arrowSourcePort = 0;
+let panelTarget = null;
+let selectedNodeId = null;
+let multiSelectedNodes = new Set();
+let zoomLevel = 1;
+let topZ = 10;
+
+const canvas = document.getElementById('canvas'), world = document.getElementById('world');
+const svgLayer = document.getElementById('svg-layer'), arrowsGroup = document.getElementById('arrows-group');
+const anchorsGroup = document.getElementById('anchors-group');
+const tempLine = document.getElementById('temp-line'), panel = document.getElementById('panel');
+const selectionBox = document.getElementById('selection-box');
+const searchBar = document.getElementById('search-bar');
+
+// ── UTILS ──────────────────────────────────────────────────────────────────────
+function showToast(msg, ms = 2000) { document.getElementById('toast').textContent = msg; document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), ms); }
+
+function saveState() {
+  if (isRestoring) return;
+  const state = JSON.stringify({ nodes: nodes.map(n => ({...n, el: null})), arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null})), nodeId, arrowId });
+  if (historyIndex < historyStack.length - 1) historyStack.splice(historyIndex + 1);
+  historyStack.push(state);
+  historyIndex++;
+}
+
+function loadState(stateStr) {
+  if (!stateStr) return;
+  isRestoring = true;
+  const data = JSON.parse(stateStr);
+  nodes.forEach(n => n.el.remove()); arrows.forEach(a => removeArrowEls(a));
+  nodes = []; arrows = [];
+  nodeId = data.nodeId; arrowId = data.arrowId;
+  
+data.nodes.forEach(nd => {
+    const n = createNode(nd.x, nd.y, nd.shape || 'square', nd.title, nd.id);
+    const savedEl = n.el;           // bewaar DOM-referentie
+    Object.assign(n, nd);           // laad opgeslagen data (overschrijft el met null)
+    n.el = savedEl;                 // herstel DOM-referentie
+    n.el.style.width  = n.width  + 'px';
+    n.el.style.height = n.height + 'px';
+    renderNode(n);                  // teken data op canvas (leest NIET uit formulier)
+});
+data.arrows.forEach(ad => {
+    const a = createArrow(ad.from, ad.to, ad.fromPort, ad.toPort, ad.id);
+    const savedEls = {
+        pathEl: a.pathEl, bgPathEl: a.bgPathEl, hitEl: a.hitEl,
+        dotEl: a.dotEl, labelEl: a.labelEl, noteEl: a.noteEl,
+        urlLinkEl: a.urlLinkEl, urlIconEl: a.urlIconEl,
+        markerEl: a.markerEl, markerPathEl: a.markerPathEl
+    };
+    Object.assign(a, ad);     // laad opgeslagen data (overschrijft SVG-refs met null)
+    Object.assign(a, savedEls); // herstel alle SVG-referenties
+    updateArrow(a);
+});
+  updateAllDots(); isRestoring = false;
+}
+
+document.getElementById('tool-undo').addEventListener('click', () => { if (historyIndex > 0) loadState(historyStack[--historyIndex]); });
+document.getElementById('tool-redo').addEventListener('click', () => { if (historyIndex < historyStack.length - 1) loadState(historyStack[++historyIndex]); });
+
+// ── TOOL SELECTION ─────────────────────────────────────────────────────────────
+function setTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.lt-btn').forEach(btn => btn.classList.remove('active'));
+  const btnId = tool === 'add' ? 'tool-add' : 'tool-' + tool;
+  if(document.getElementById(btnId)) document.getElementById(btnId).classList.add('active');
+  
+  canvas.className = '';
+  if (tool !== 'pointer') canvas.classList.add('tool-' + tool);
+  
+  arrowSource = null; tempLine.setAttribute('d', ''); anchorsGroup.innerHTML = '';
+  if (tool !== 'select' && tool !== 'pointer') clearMultiSelection();
+  if (tool === 'arrow') renderAnchors();
+}
+
+document.getElementById('tool-pointer').addEventListener('click', () => setTool('pointer'));
+document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
+document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
+document.getElementById('tool-text').addEventListener('click', () => setTool('text'));
+document.getElementById('tool-arrow').addEventListener('click', () => setTool('arrow'));
+
+// 1. Zoek de elementen op
+const toolAdd = document.getElementById('tool-add');
+const addDropdown = toolAdd.querySelector('.lt-dropdown');
+
+// 2. Open/sluit het menu als je op de + klikt
+toolAdd.addEventListener('click', (e) => {
+  e.stopPropagation();
+  addDropdown.classList.toggle('show');
+});
+
+// 3. Vierkant toevoegen EN menu direct sluiten
+document.getElementById('add-square').addEventListener('click', (e) => {
+  e.stopPropagation();
+  addDropdown.classList.remove('show');
+  addNewNode('square');
+});
+
+// 4. Ovaal toevoegen EN menu direct sluiten
+document.getElementById('add-oval').addEventListener('click', (e) => {
+  e.stopPropagation();
+  addDropdown.classList.remove('show');
+  addNewNode('oval');
+});
+
+document.getElementById('add-area').addEventListener('click', (e) => {
+  e.stopPropagation();
+  addDropdown.classList.remove('show');
+  addNewNode('area');
+});
+// 5. Sluit het menu als je naast het menu klikt
+window.addEventListener('click', () => {
+  addDropdown.classList.remove('show');
+});
+
+function addNewNode(shape) {
+  setTool('pointer');
+  const cx = (canvas.offsetWidth/2 - parseFloat(world.style.left||0)) / zoomLevel;
+  const cy = (canvas.offsetHeight/2 - parseFloat(world.style.top||0)) / zoomLevel;
+  const offset = (nodes.length % 6) * 25;
+  
+  // Instellingen voor Gebied vs Normaal
+  let defaultTitle = 'Nieuw vakje';
+  let offX = 110; // Helft van breedte
+  let offY = 95;  // Helft van hoogte
+
+  if (shape === 'area') {
+    defaultTitle = 'Gebied';
+    offX = 220; // Helft van 440
+    offY = 190; // Helft van 380
+  }
+  if (shape === 'oval') defaultTitle = 'Ovaal';
+
+  const n = createNode(cx - offX + offset, cy - offY + offset, shape, defaultTitle);
+  saveState();
+  openNodePanel(n.id, true);
+}
+
+// ── NODE CREATION ──────────────────────────────────────────────────────────────
+function createNode(x, y, shape = 'square', title = '', forceId = null) {
+  const id = forceId || ('n' + (++nodeId));
+  const el = document.createElement('div');
+  el.className = `node shape-${shape}`;
+  el.style.left = x + 'px'; el.style.top  = y + 'px';
+  el.dataset.id = id;
+
+  const isDark = document.body.classList.contains('dark');
+  const bgColor = shape === 'text' ? 'transparent' : (isDark ? '#1c1c27' : '#f1f5f9');
+  const initTitle = title || (shape === 'text' ? 'Typ hier...' : 'Nieuw vakje');
+
+  el.innerHTML = `
+    <a class="node-link" target="_blank">🔗</a>
+    <div class="node-thumb" id="thumb-${id}"></div>
+    <div class="node-body">
+      <div class="node-title" id="ntitle-${id}">${initTitle}</div>
+      <div class="node-note" id="nnote-${id}"></div>
+    </div>
+    <div class="node-footer">
+      <button class="node-btn edit" title="Bewerken" data-id="${id}">✎</button>
+    </div>
+    <div class="resize-handle"></div>`;
+  world.appendChild(el);
+
+const node = {
+    id, x, y, 
+    width: shape === 'text' ? 150 : (shape === 'area' ? 440 : 220), 
+    height: shape === 'text' ? 50 : (shape === 'area' ? 380 : 190),
+    shape, title: initTitle, url: '', note: '', bgColor, color: '#1a1a2e',
+    fontWeight: 'normal', fontStyle: 'normal', fontSize: 14,
+    showImg: true, img: '', 
+    showNote: true,                    // ← NIEUWE REGEL
+    behandelaarsgroep: '', leverancier: '', filterLabel: '', el
+  };
+  
+if (shape === 'text') { 
+    el.style.width = '150px'; el.style.minHeight = '50px'; el.style.height = 'auto'; 
+  } else if (shape === 'area') {
+    el.style.width = '440px'; el.style.height = '380px'; 
+  } else { 
+    el.style.width = '220px'; el.style.height = '190px'; 
+  }
+
+  nodes.push(node);
+  attachNodeEvents(node);
+  return node;
+}
+
+function attachNodeEvents(node) {
+  let isDragging = false, startPos = {}, dragOffsets = [];
+  
+node.el.addEventListener('mousedown', e => {
+    // CRUCIALE FIX: Als de tekst-tool aan staat, moet het vakje niks doen
+    // Hierdoor kan het canvas eronder de klik opvangen en tekst plaatsen.
+    if (currentTool === 'text') return;
+
+    if (e.button !== 0 || e.target.closest('.node-btn, .resize-handle, .node-link')) return;
+
+    if (currentTool === 'eraser') {
+      if (confirm('Verwijderen?')) { deleteNode(node.id); saveState(); }
+      return;
+    }
+    
+    if (currentTool === 'arrow') return; // afhandeling via anchors
+
+    isDragging = false;
+    node.el.style.zIndex = ++topZ;
+    const startX = e.clientX, startY = e.clientY;
+
+    if (!multiSelectedNodes.has(node.id) && !e.shiftKey) {
+      clearMultiSelection();
+      multiSelectedNodes.add(node.id);
+      node.el.classList.add('multi-selected');
+    }
+
+    dragOffsets = Array.from(multiSelectedNodes).map(id => {
+      const n = nodes.find(nn => nn.id === id);
+      n.el.classList.add('dragging');
+      return { node: n, ox: n.x, oy: n.y };
+    });
+
+    function onMove(ev) {
+      isDragging = true;
+      const dx = (ev.clientX - startX) / zoomLevel;
+      const dy = (ev.clientY - startY) / zoomLevel;
+      dragOffsets.forEach(d => {
+        d.node.x = d.ox + dx; d.node.y = d.oy + dy;
+        d.node.el.style.left = d.node.x + 'px'; d.node.el.style.top  = d.node.y + 'px';
+      });
+      updateArrows();
+    }
+    function onUp() {
+      dragOffsets.forEach(d => d.node.el.classList.remove('dragging'));
+      document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
+      if (isDragging) saveState();
+      else { clearMultiSelection(); selectNodeForAnim(node.id); openNodePanel(node.id, false); }
+    }
+    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    e.stopPropagation();
+  });
+
+  // Resize
+  node.el.querySelector('.resize-handle').addEventListener('mousedown', e => {
+    e.stopPropagation(); const startX = e.clientX, startY = e.clientY, startW = node.width, startH = node.height;
+    function onMove(ev) {
+      node.width = Math.max(50, startW + (ev.clientX - startX)/zoomLevel);
+      node.height = Math.max(30, startH + (ev.clientY - startY)/zoomLevel);
+      node.el.style.width = node.width+'px'; node.el.style.height = node.height+'px';
+      updateArrows(); if(currentTool==='arrow') renderAnchors();
+    }
+    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); saveState(); }
+    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+  });
+  
+  if(node.shape !== 'oval' && node.shape !== 'text') {
+    node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
+  }
+}
+
+// ── ANCHOR MATH (Voor pijlen) ────────────────────────────────────────────────
+function getAnchorPos(node, port) {
+  // port: 0=Top, 1=TR, 2=Right, 3=BR, 4=Bottom, 5=BL, 6=Left, 7=TL
+  let px = 0.5, py = 0.5;
+  if(port===0) { px=0.5; py=0; } else if(port===1) { px=1; py=0; }
+  else if(port===2) { px=1; py=0.5; } else if(port===3) { px=1; py=1; }
+  else if(port===4) { px=0.5; py=1; } else if(port===5) { px=0; py=1; }
+  else if(port===6) { px=0; py=0.5; } else if(port===7) { px=0; py=0; }
+
+  if (node.shape === 'oval') {
+    // Ellipse wiskunde benadering voor de 8 punten
+    const a = node.width/2, b = node.height/2;
+    const cx = node.x + a, cy = node.y + b;
+    const angle = (port * 45 - 90) * (Math.PI/180);
+    return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
+  }
+  return { x: node.x + node.width*px, y: node.y + node.height*py };
+}
+
+function renderAnchors() {
+  anchorsGroup.innerHTML = '';
+  if (currentTool !== 'arrow') return;
+  nodes.forEach(n => {
+    for(let i=0; i<8; i++) {
+      const pos = getAnchorPos(n, i);
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.classList.add('anchor-point'); 
+      c.setAttribute('cx', pos.x); 
+      c.setAttribute('cy', pos.y);
+      c.dataset.node = n.id; 
+      c.dataset.port = i;
+c.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!arrowSource) {
+          arrowSource = n.id;
+          arrowSourcePort = i;
+        } else {
+          if (n.id !== arrowSource) {
+            const newArrow = createArrow(arrowSource, n.id, arrowSourcePort, i);
+            saveState();
+            // --- DEZE REGEL IS NIEUW ---
+            setTool('pointer'); 
+            // ---------------------------
+            openArrowPanelEdit(newArrow.id);
+          }
+          arrowSource = null;
+          tempLine.setAttribute('d', '');
+        }
+      });
+      anchorsGroup.appendChild(c);
+    }
+  });
+}
+
+// ── ARROW CREATION ─────────────────────────────────────────────────────────────
+function createArrow(fromId, toId, fromPort=4, toPort=0, forceId=null) {
+  const id = forceId || ('a' + (++arrowId));
+  const bgPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path'); bgPathEl.classList.add('arrow-bg');
+  const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path'); pathEl.classList.add('arrow-path'); pathEl.id = 'path-'+id;
+  const hitEl = document.createElementNS('http://www.w3.org/2000/svg', 'path'); hitEl.classList.add('arrow-hit');
+  const dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dotEl.setAttribute('r','5'); dotEl.setAttribute('fill','#5cf8c8'); dotEl.style.display='none';
+  const labelEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); labelEl.setAttribute('fill','#b0b0d0'); labelEl.setAttribute('font-size','11'); labelEl.setAttribute('text-anchor','middle');
+  const noteEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); noteEl.setAttribute('fill','#a0a0c0'); noteEl.setAttribute('font-size','10'); noteEl.setAttribute('font-style','italic'); noteEl.setAttribute('text-anchor','middle'); noteEl.style.display='none';
+  const urlLinkEl = document.createElementNS('http://www.w3.org/2000/svg', 'a'); urlLinkEl.setAttribute('target','_blank');
+const urlIconEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); urlIconEl.setAttribute('font-size','12'); urlIconEl.setAttribute('fill','#7c5cfc'); urlIconEl.setAttribute('pointer-events','all'); urlIconEl.style.cursor='pointer'; urlIconEl.style.display='none'; urlIconEl.textContent='🔗';
+urlIconEl.addEventListener('click', e => { e.stopPropagation(); if(arrow.url) window.open(arrow.url, '_blank'); });
+      urlLinkEl.appendChild(urlIconEl);
+
+      [bgPathEl, pathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl].forEach(el => arrowsGroup.appendChild(el));
+
+      // --- NIEUW: Maak een unieke pijlpunt voor deze specifieke pijl ---
+      const markerId = 'arrowhead-' + id;
+      const markerEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      markerEl.setAttribute('id', markerId); markerEl.setAttribute('markerWidth', '8'); markerEl.setAttribute('markerHeight', '8'); markerEl.setAttribute('refX', '7'); markerEl.setAttribute('refY', '3'); markerEl.setAttribute('orient', 'auto');
+      const markerPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      markerPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+      markerPathEl.setAttribute('fill', '#7c5cfc');
+      markerEl.appendChild(markerPathEl);
+      document.querySelector('defs').appendChild(markerEl);
+      // -----------------------------------------------------------------
+
+      const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', routeMode: 'auto', waypoints: [], pathEl, bgPathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl };
+      arrows.push(arrow);
+
+  hitEl.addEventListener('click', e => {
+    if (currentTool === 'eraser') { if(confirm('Pijl wissen?')){ deleteArrow(id); saveState(); } }
+    else { e.stopPropagation(); openArrowPanel(id); }
+  });
+  updateArrow(arrow); startDotAnimation(arrow);
+  return arrow;
+}
+
+function updateArrow(arrow) {
+  const f = nodes.find(n => n.id === arrow.from), t = nodes.find(n => n.id === arrow.to);
+  if (!f || !t) return;
+  const p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
+
+  let d = '';
+  if (arrow.routeMode === 'custom' && arrow.waypoints && arrow.waypoints.length > 0) {
+    d = `M ${p1.x} ${p1.y}`;
+    arrow.waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
+    d += ` L ${p2.x} ${p2.y}`;
+  } else if (arrow.shape === 'straight') d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+  else {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy), offset = Math.min(60, len * 0.3);
+    const nx = -dy/len, ny = dx/len;
+    d = `M ${p1.x} ${p1.y} Q ${p1.x + dx/2 + nx*offset} ${p1.y + dy/2 + ny*offset} ${p2.x} ${p2.y}`;
+  }
+
+arrow.bgPathEl.setAttribute('d', d); arrow.pathEl.setAttribute('d', d); arrow.hitEl.setAttribute('d', d);
+  arrow.pathEl.style.stroke = arrow.color;
+  
+  // --- NIEUW: Kleur van de punt gelijktrekken met de pijl ---
+  if (arrow.markerPathEl) arrow.markerPathEl.setAttribute('fill', arrow.color);
+
+  const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+  arrow.labelEl.setAttribute('x', mx); arrow.labelEl.setAttribute('y', my - 10);
+  arrow.labelEl.textContent = arrow.label || '';
+  // Gebruik onze unieke pijlpunt (behalve als hij is geselecteerd, dan tijdelijk roze)
+  arrow.pathEl.setAttribute('marker-end', panelTarget && panelTarget.id===arrow.id ? 'url(#arrowhead-sel)' : `url(#${arrow.markerEl.id})`);
+
+  // Notitie tonen op canvas
+  if (arrow.noteEl) {
+    if (arrow.showNote && arrow.note) {
+      arrow.noteEl.style.display = ''; arrow.noteEl.setAttribute('x', mx); arrow.noteEl.setAttribute('y', my + 16);
+      arrow.noteEl.textContent = arrow.note;
+    } else { arrow.noteEl.style.display = 'none'; }
+  }
+
+  // URL-icoon naast label
+  if (arrow.urlIconEl && arrow.urlLinkEl) {
+    if (arrow.url) {
+      arrow.urlIconEl.style.display = '';
+      arrow.urlIconEl.setAttribute('x', mx + (arrow.label || '').length * 3.5 + 14);
+      arrow.urlIconEl.setAttribute('y', my - 10);
+      arrow.urlLinkEl.setAttribute('href', arrow.url);
+    } else { arrow.urlIconEl.style.display = 'none'; }
+  }
+
+  if (arrow.style === 'dashed') {
+    arrow.pathEl.style.strokeDasharray = "8,8"; arrow.dotEl.style.display = 'none';
+  } else {
+    arrow.pathEl.style.strokeDasharray = "none";
+  }
+}
+function updateArrows() { arrows.forEach(updateArrow); }
+
+function startDotAnimation(arrow) {
+  if (arrow._animFrame) cancelAnimationFrame(arrow._animFrame);
+  let t = 0;
+  function tick() {
+    if (arrow.anim === 'none') { arrow.dotEl.style.display = 'none'; return; }
+    const speed = arrow.anim === 'fast' ? 0.008 : 0.003;
+    
+    if (arrow.style === 'dashed') {
+      arrow.dashOffset -= speed * 200;
+      arrow.pathEl.style.strokeDashoffset = arrow.dashOffset;
+    } else {
+      t = (t + speed) % 1;
+      arrow.dotEl.style.display = '';
+      try { const pt = arrow.pathEl.getPointAtLength(t * arrow.pathEl.getTotalLength()); arrow.dotEl.setAttribute('cx', pt.x); arrow.dotEl.setAttribute('cy', pt.y); } catch(e){}
+    }
+    arrow._animFrame = requestAnimationFrame(tick);
+  }
+  tick();
+}
+function updateAllDots() {
+  arrows.forEach(a => {
+    if (a._animFrame) cancelAnimationFrame(a._animFrame);
+    a._animFrame = null;
+    a.dotEl.style.display = 'none';
+    if (a.style === 'dashed') {
+      a.pathEl.style.strokeDashoffset = '';
+    }
+  });
+  // Herstart animaties alleen voor pijlen van geselecteerd vakje
+  if (selectedNodeId) {
+    arrows.forEach(a => {
+      if (a.from === selectedNodeId || a.to === selectedNodeId) startDotAnimation(a);
+    });
+  }
+}
+
+function deleteNode(id) {
+  const node = nodes.find(n => n.id === id); if (!node) return; node.el.remove();
+  nodes = nodes.filter(n => n.id !== id);
+  arrows.filter(a => a.from === id || a.to === id).forEach(a => removeArrowEls(a));
+  arrows = arrows.filter(a => a.from !== id && a.to !== id);
+  if (panelTarget && panelTarget.id === id) panel.classList.remove('open');
+}
+function deleteArrow(id) {
+  const a = arrows.find(x => x.id === id); if(!a) return; removeArrowEls(a);
+  arrows = arrows.filter(x => x.id !== id);
+  if (panelTarget && panelTarget.id === id) panel.classList.remove('open');
+}
+function removeArrowEls(a) { if (a._animFrame) cancelAnimationFrame(a._animFrame); a.bgPathEl.remove(); a.pathEl.remove(); a.hitEl.remove(); a.dotEl.remove(); a.labelEl.remove(); if(a.noteEl) a.noteEl.remove(); if(a.urlLinkEl) a.urlLinkEl.remove(); if(a.markerEl) a.markerEl.remove(); }
+
+// ── VRIJE LIJNBEWERKING (Waypoints) ─────────────────────────────────────────
+const waypointsGroup = document.getElementById('waypoints-group');
+let draggingWaypoint = null; // { arrow, idx }
+let editingArrow = null;
+
+function clearWaypointHandles() {
+  waypointsGroup.innerHTML = '';
+  editingArrow = null;
+}
+
+function renderWaypointHandles(arrow) {
+  waypointsGroup.innerHTML = '';
+  if (!arrow || arrow.routeMode !== 'custom') return;
+  editingArrow = arrow;
+
+  const f = nodes.find(n => n.id === arrow.from);
+  const t = nodes.find(n => n.id === arrow.to);
+  if (!f || !t) return;
+
+  const p1 = getAnchorPos(f, arrow.fromPort);
+  const p2 = getAnchorPos(t, arrow.toPort);
+  const allPoints = [p1, ...arrow.waypoints, p2];
+
+  // Invisible hit segments between handles to click-add waypoints
+  for (let i = 0; i < allPoints.length - 1; i++) {
+    const seg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    seg.setAttribute('x1', allPoints[i].x);
+    seg.setAttribute('y1', allPoints[i].y);
+    seg.setAttribute('x2', allPoints[i+1].x);
+    seg.setAttribute('y2', allPoints[i+1].y);
+    seg.classList.add('waypoint-seg-hit');
+    seg.dataset.segIndex = i;
+    (function(segIdx) {
+      seg.addEventListener('click', e => {
+        e.stopPropagation();
+        const cRect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
+        const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
+        // segIdx: 0 = between p1 and first wp, 1 = between first/second wp, etc.
+        arrow.waypoints.splice(segIdx, 0, { x: mx, y: my });
+        updateArrow(arrow);
+        renderWaypointHandles(arrow);
+        saveState();
+      });
+    })(i);
+    waypointsGroup.appendChild(seg);
+  }
+
+  // Draggable handles for each waypoint
+  arrow.waypoints.forEach((wp, idx) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.classList.add('waypoint-handle');
+    c.setAttribute('cx', wp.x);
+    c.setAttribute('cy', wp.y);
+    c.setAttribute('r', 7);
+
+    c.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      arrow.waypoints.splice(idx, 1);
+      updateArrow(arrow);
+      renderWaypointHandles(arrow);
+      saveState();
+    });
+
+    c.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      draggingWaypoint = { arrow, idx };
+      c.classList.add('dragging');
+    });
+
+    waypointsGroup.appendChild(c);
+  });
+}
+
+function initDefaultWaypoints(arrow) {
+  const f = nodes.find(n => n.id === arrow.from);
+  const t = nodes.find(n => n.id === arrow.to);
+  if (!f || !t) return;
+  const p1 = getAnchorPos(f, arrow.fromPort);
+  const p2 = getAnchorPos(t, arrow.toPort);
+  // Start with two waypoints forming an orthogonal route
+  const midX = (p1.x + p2.x) / 2;
+  arrow.waypoints = [
+    { x: midX, y: p1.y },
+    { x: midX, y: p2.y }
+  ];
+}// ── MULTI-SELECT (Box) ─────────────────────────────────────────────────────────
+let selectBoxStart = null;
+canvas.addEventListener('mousedown', e => {
+
+if (currentTool === 'text') {
+    const rect = world.getBoundingClientRect();
+    const cx = (e.clientX - rect.left) / zoomLevel;
+    const cy = (e.clientY - rect.top) / zoomLevel;
+    
+    const n = createNode(cx, cy, 'text', 'Typ hier...');
+    saveState();
+    
+    // DIT IS DE BELANGRIJKSTE REGEL: 
+    // Meteen terug naar muis, nog voordat je begint met typen
+    setTool('pointer'); 
+
+    openNodePanel(n.id, true);
+    
+    setTimeout(() => {
+      const inputField = document.getElementById('f-title');
+      if (inputField) {
+        inputField.focus();
+        inputField.select();
+        
+        // Zorg dat Enter het paneel netjes sluit
+        inputField.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            panel.classList.remove('open');
+          }
+        };
+      }
+    }, 100);
+    return; 
+  }
+  if (currentTool !== 'select') return;
+  selectBoxStart = { x: e.clientX, y: e.clientY };
+  selectionBox.style.display = 'block'; selectionBox.style.left = selectBoxStart.x + 'px'; selectionBox.style.top = selectBoxStart.y + 'px'; selectionBox.style.width = '0px'; selectionBox.style.height = '0px';
+  clearMultiSelection();
+});
+document.addEventListener('mousemove', e => {
+  // Waypoint dragging
+  if (draggingWaypoint) {
+    const cRect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
+    const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
+    draggingWaypoint.arrow.waypoints[draggingWaypoint.idx] = { x: mx, y: my };
+    updateArrow(draggingWaypoint.arrow);
+    renderWaypointHandles(draggingWaypoint.arrow);
+    return;
+  }
+  if (arrowSource && currentTool === 'arrow') {
+    const cRect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
+    const my = (e.clientY - cRect.top - (parseFloat(world.style.top)||0)) / zoomLevel;
+    const sourceNode = nodes.find(n => n.id === arrowSource);
+    if (sourceNode) {
+      const p1 = getAnchorPos(sourceNode, arrowSourcePort);
+      tempLine.setAttribute('d', `M ${p1.x} ${p1.y} L ${mx} ${my}`);
+    }
+  }
+  if (!selectBoxStart) return;
+  const x = Math.min(e.clientX, selectBoxStart.x), y = Math.min(e.clientY, selectBoxStart.y);
+  const w = Math.abs(e.clientX - selectBoxStart.x), h = Math.abs(e.clientY - selectBoxStart.y);
+  selectionBox.style.left = x + 'px'; selectionBox.style.top = y + 'px'; selectionBox.style.width = w + 'px'; selectionBox.style.height = h + 'px';
+});
+document.addEventListener('mouseup', e => {
+  if (draggingWaypoint) { saveState(); draggingWaypoint = null; return; }
+  if (currentTool === 'arrow') {
+    const targetEl = document.elementFromPoint(e.clientX, e.clientY);
+    const isAnchor = targetEl && targetEl.classList.contains('anchor-point');
+    if (!isAnchor) {
+      // Klik naast een puntje: annuleer tekenen
+      arrowSource = null;
+      tempLine.setAttribute('d', '');
+    }
+    return;
+  }
+
+  // De rest van de code voor selecteren en pannen
+  if (selectBoxStart) {
+    const rx = Math.min(e.clientX, selectBoxStart.x), ry = Math.min(e.clientY, selectBoxStart.y);
+    const rw = Math.abs(e.clientX - selectBoxStart.x), rh = Math.abs(e.clientY - selectBoxStart.y);
+    const rRect = { left: rx, top: ry, right: rx+rw, bottom: ry+rh };
+    nodes.forEach(n => {
+      const nRect = n.el.getBoundingClientRect();
+      if (!(nRect.right < rRect.left || nRect.left > rRect.right || nRect.bottom < rRect.top || nRect.top > rRect.bottom)) {
+        multiSelectedNodes.add(n.id); n.el.classList.add('multi-selected');
+      }
+    });
+    selectionBox.style.display = 'none'; selectBoxStart = null; setTool('pointer');
+  }
+  if (panStart) { panStart = null; canvas.style.cursor = ''; }
+});
+
+
+function clearMultiSelection() { multiSelectedNodes.clear(); document.querySelectorAll('.multi-selected').forEach(el => el.classList.remove('multi-selected')); }
+
+function selectNodeForAnim(id) {
+  // Reset alles
+  document.querySelectorAll('.node').forEach(n => {
+    n.classList.remove('highlight', 'dimmed', 'connected-highlight');
+  });
+  arrows.forEach(a => {
+    if (a._animFrame) cancelAnimationFrame(a._animFrame);
+    a._animFrame = null;
+    a.dotEl.style.display = 'none';
+    a.pathEl.classList.remove('active-connection');
+    a.pathEl.style.strokeWidth = '';
+    if (a.style === 'dashed') a.pathEl.style.strokeDashoffset = '';
+  });
+
+  // Zelfde vakje nogmaals: deselecteer
+  if (selectedNodeId === id) { selectedNodeId = null; return; }
+  selectedNodeId = id;
+
+  // Highlight geselecteerd vakje
+  const selEl = document.querySelector(`.node[data-id="${id}"]`);
+  if (selEl) selEl.classList.add('highlight');
+
+  // Vind gekoppelde pijlen en vakjes
+  const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
+  const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
+
+// Glow op gekoppelde vakjes
+nodes.forEach(n => {
+  if (n.id === id) return;
+  if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
+});
+
+  // Highlight gekoppelde pijlen + animatie, dim de rest
+arrows.forEach(a => {
+  if (a.from === id || a.to === id) {
+    a.pathEl.classList.add('active-connection');
+    startDotAnimation(a);
+  }
+});
+}
+
+// ── SEARCH ─────────────────────────────────────────────────────────────────────
+searchBar.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('highlight'));
+  if(!q) return;
+  let match = null;
+  nodes.forEach(n => {
+    if (n.title.toLowerCase().includes(q) || n.behandelaarsgroep.toLowerCase().includes(q)) {
+      n.el.classList.add('highlight');
+      if(!match) match = n;
+    }
+  });
+  if (match) {
+    world.style.left = (-match.x * zoomLevel + canvas.offsetWidth/2 - match.width/2) + 'px';
+    world.style.top = (-match.y * zoomLevel + canvas.offsetHeight/2 - match.height/2) + 'px';
+  }
+});
+
+// ── PAN & ZOOM ─────────────────────────────────────────────────────────────────
+let panStart = null, panOrigin = null;
+canvas.addEventListener('wheel', e => {
+  if (currentTool === 'arrow') return;
+  e.preventDefault(); const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const newZ = Math.max(0.3, Math.min(4, zoomLevel * factor));
+  const cRect = canvas.getBoundingClientRect(), cx = e.clientX - cRect.left, cy = e.clientY - cRect.top;
+  const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
+  const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
+  zoomLevel = newZ; world.style.left = (cx - wx * zoomLevel) + 'px'; world.style.top = (cy - wy * zoomLevel) + 'px';
+  world.style.transform = `scale(${zoomLevel})`; if(currentTool==='arrow') renderAnchors();
+});
+canvas.addEventListener('mousedown', e => {
+  // NIEUWE LOGICA: met pointer-tool op de lege achtergrond → canvas slepen
+  if (currentTool === 'pointer' && e.button === 0 && !e.target.closest('.node')) {
+    panStart = {x: e.clientX, y: e.clientY};
+    panOrigin = {x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0};
+    canvas.style.cursor = 'grabbing';
+    return; // voorkom dat andere tools per ongeluk triggeren
+  }
+
+  // Middelste muisknop blijft altijd werken (handig bij andere tools)
+  if (e.button === 1) {
+    panStart = {x: e.clientX, y: e.clientY};
+    panOrigin = {x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0};
+    canvas.style.cursor = 'grabbing';
+  }
+});
+document.addEventListener('mousemove', e => { if (panStart) { world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px'; world.style.top = (panOrigin.y + e.clientY - panStart.y) + 'px'; } });
+document.addEventListener('mouseup', () => { if (panStart) { panStart = null; canvas.style.cursor = ''; } });
+
+// ── PANEL & LIVE UPDATES ───────────────────────────────────────────────────────
+function renderNode(n) {
+  const titleEl = document.getElementById('ntitle-'+n.id);
+  if (!titleEl) return;
+  titleEl.textContent = n.title || '';
+ titleEl.style.fontWeight = n.fontWeight || 'normal';
+  titleEl.style.fontStyle  = n.fontStyle  || 'normal';
+  titleEl.style.fontSize   = (n.fontSize  || 14) + 'px';
+  
+
+  if (n.shape === 'area') {
+    const hex = (n.bgColor || '#f1f5f9').replace('#','');
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    n.el.style.backgroundColor = `rgba(${r},${g},${b},0.15)`;
+  } else {
+    n.el.style.backgroundColor = n.bgColor || '#f1f5f9';
+  }
+  n.el.style.color = n.color || '#1a1a2e';
+
+  const linkEl = n.el.querySelector('.node-link');
+  if (n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
+  else { linkEl.style.display = 'none'; }
+
+  const noteEl = document.getElementById('nnote-'+n.id);
+  if (noteEl) {
+    noteEl.textContent = n.note || '';
+    noteEl.style.display = (n.showNote && n.note && n.note.trim()) ? 'block' : 'none';
+  }
+
+  const thumbEl = document.getElementById('thumb-'+n.id);
+  if (thumbEl) {
+    if (n.img && n.showImg) {
+      thumbEl.classList.add('has-img');
+      let imgEl = thumbEl.querySelector('img');
+      if (!imgEl) { imgEl = document.createElement('img'); thumbEl.appendChild(imgEl); }
+      imgEl.src = n.img;
+    } else {
+      thumbEl.classList.remove('has-img');
+    }
+  }
+}
+
+function applyLiveNodeChanges(n) {
+  n.title = document.getElementById('f-title').value; 
+  n.bgColor = document.getElementById('f-node-color').value; 
+  n.color = document.getElementById('f-text-color').value; 
+  n.url = document.getElementById('f-url').value; 
+  n.note = document.getElementById('f-note').value; 
+  n.behandelaarsgroep = document.getElementById('f-behandelaarsgroep').value; 
+  n.leverancier = document.getElementById('f-leverancier').value; 
+  n.showImg = document.getElementById('f-show-image').checked;
+  n.showNote = document.getElementById('f-show-note').checked;
+  n.filterLabel = document.getElementById('f-node-label').value;
+
+  
+const titleEl = document.getElementById('ntitle-'+n.id);
+ n.fontSize = parseInt(document.getElementById('f-font-size').value) || 14;
+  titleEl.textContent = n.title;
+  titleEl.style.fontWeight = n.fontWeight;
+  titleEl.style.fontStyle = n.fontStyle;
+  titleEl.style.fontSize = n.fontSize + 'px';
+  n.el.style.backgroundColor = n.bgColor;
+  n.el.style.color = n.color;
+
+if (n.shape === 'area') {
+    let r = parseInt(n.bgColor.slice(1, 3), 16);
+    let g = parseInt(n.bgColor.slice(3, 5), 16);
+    let b = parseInt(n.bgColor.slice(5, 7), 16);
+    n.el.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+  } else {
+    n.el.style.backgroundColor = n.bgColor;
+  }
+  n.el.style.color = n.color;
+  
+  const linkEl = n.el.querySelector('.node-link');
+  if(n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; } else { linkEl.style.display = 'none'; }
+  
+const noteEl = document.getElementById('nnote-'+n.id); 
+if (noteEl) {
+  noteEl.textContent = n.note;
+  if(n.showNote && n.note.trim() !== '') {
+    noteEl.style.display = 'block';
+  } else {
+    noteEl.style.display = 'none';
+  }
+}
+
+  const thumbEl = document.getElementById('thumb-'+n.id);
+  if (thumbEl) {
+    if (n.img && n.showImg) {
+      thumbEl.classList.add('has-img');
+      let imgEl = thumbEl.querySelector('img');
+      if (!imgEl) { imgEl = document.createElement('img'); thumbEl.appendChild(imgEl); }
+      imgEl.src = n.img;
+    } else {
+      thumbEl.classList.remove('has-img');
+    }
+  }
+  updateArrows();
+}
+
+document.getElementById('btn-text-bold').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.fontWeight = n.fontWeight==='bold'?'normal':'bold'; applyLiveNodeChanges(n); });
+document.getElementById('btn-text-italic').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.fontStyle = n.fontStyle==='italic'?'normal':'italic'; applyLiveNodeChanges(n); });
+
+function openNodePanel(id, editMode = false) {
+  const n = nodes.find(x => x.id === id); if(!n) return; panelTarget = { type: 'node', id }; panel.classList.add('open');
+  
+  if (editMode) {
+    document.getElementById('panel-view').style.display = 'none'; 
+    document.getElementById('panel-edit').style.display = 'block'; 
+    document.getElementById('panel-node-fields').style.display = 'block'; 
+    document.getElementById('panel-arrow-fields').style.display = 'none'; 
+    document.getElementById('panel-title').childNodes[0].textContent = 'Bewerken';
+
+    document.getElementById('f-title').value = n.title; 
+    document.getElementById('f-node-color').value = n.bgColor || '#f1f5f9'; 
+    document.getElementById('f-text-color').value = n.color || '#1a1a2e'; 
+    document.getElementById('f-url').value = n.url || ''; 
+    document.getElementById('f-note').value = n.note || ''; 
+    document.getElementById('f-behandelaarsgroep').value = n.behandelaarsgroep || ''; 
+    document.getElementById('f-leverancier').value = n.leverancier || ''; 
+   document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
+    document.getElementById('f-node-label').value = n.filterLabel || '';
+document.getElementById('f-font-size').value = n.fontSize || 14;
+
+// 2. Zorg dat de kleur-rasters gesloten zijn als je het paneel opent
+    const gNode = document.getElementById('color-grid-node');
+    const gText = document.getElementById('color-grid-text');
+    if (gNode) gNode.classList.remove('open'); // Gebruik de variabele met een check
+    if (gText) gText.classList.remove('open');
+
+    // 3. Teken de kleurtjes in de rasters voor de huidige node 'n'
+    renderColorGrid('color-grid-node', 'f-node-color', n);
+    renderColorGrid('color-grid-text', 'f-text-color', n);
+
+
+    if (n.shape === 'text') { document.getElementById('text-node-options').style.display = 'flex'; 
+                             document.getElementById('wrap-show-img').style.display = 'none'; 
+                             document.getElementById('wrap-behandelaar').style.display = 'none'; 
+                             document.getElementById('wrap-leverancier').style.display = 'none'; }
+    else { document.getElementById('text-node-options').style.display = 'none'; 
+          document.getElementById('wrap-show-img').style.display = 'block'; 
+          document.getElementById('wrap-behandelaar').style.display = 'block'; 
+          document.getElementById('wrap-leverancier').style.display = 'block'; }
+    const titleInput = document.getElementById('f-title');
+    if (titleInput) {
+      titleInput.onkeydown = (e) => {
+        if (e.key === 'Enter') { document.getElementById('panel-save').click(); }
+      };
+    }
+
+
+
+
+['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-leverancier','f-show-image','f-show-note','f-node-label','f-font-size'].forEach(fid => {
+  document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
+  document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
+});
+
+    const previewImg = document.getElementById('img-preview-img');
+    const previewText = document.getElementById('img-preview-text');
+    const btnRemove = document.getElementById('btn-img-remove');
+    if (n.img) {
+      previewImg.src = n.img; previewImg.style.display = 'block';
+      previewText.style.display = 'none'; btnRemove.style.display = 'block';
+    } else {
+      previewImg.style.display = 'none'; previewText.style.display = '';
+      btnRemove.style.display = 'none';
+    }
+    document.getElementById('f-img-upload').onchange = e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        n.img = ev.target.result;
+        previewImg.src = n.img; previewImg.style.display = 'block';
+        previewText.style.display = 'none'; btnRemove.style.display = 'block';
+        applyLiveNodeChanges(n); saveState();
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    };
+    document.getElementById('btn-img-remove').onclick = () => {
+      n.img = ''; previewImg.style.display = 'none';
+      previewText.style.display = ''; btnRemove.style.display = 'none';
+      applyLiveNodeChanges(n); saveState();
+    };
+} else {
+    document.getElementById('panel-view').style.display = 'block';
+    document.getElementById('panel-edit').style.display = 'none';
+    document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
+    document.getElementById('view-content').innerHTML = `
+      ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
+      <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.title}</div></div>
+      ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
+      ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
+      ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
+      ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
+      ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
+    `;
+    const btnViewDelete = document.getElementById('btn-view-delete');
+    if (btnViewDelete) {
+      btnViewDelete.style.display = 'block';
+      btnViewDelete.onclick = () => {
+        if (confirm('Weet je het zeker? Dit vakje wordt verwijderd.')) {
+          deleteNode(n.id); saveState(); panel.classList.remove('open');
+        }
+      };
+    }
+  }
+}
+
+
+function openArrowPanel(id) {
+  const a = arrows.find(x => x.id === id); if(!a) return; panelTarget = { type: 'arrow', id }; panel.classList.add('open');
+  arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)')); a.pathEl.setAttribute('marker-end', 'url(#arrowhead-sel)');
+
+  document.getElementById('panel-view').style.display = 'block';
+  document.getElementById('panel-edit').style.display = 'none';
+  document.getElementById('panel-title').childNodes[0].textContent = 'Pijl info';
+  document.getElementById('view-content').innerHTML = `
+    ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.label}</div></div>` : ''}
+    ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${a.url}" target="_blank">${a.url}</a></div></div>` : ''}
+    ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
+    <div class="view-line"><div class="view-label">Stijl</div><div class="view-value">${a.shape === 'curve' ? 'Gebogen' : 'Recht'} · ${a.style === 'dot' ? 'Balletje' : 'Streepjes'}</div></div>
+  `;
+}
+
+function openArrowPanelEdit(id) {
+  const a = arrows.find(x => x.id === id); if(!a) return; panelTarget = { type: 'arrow', id }; panel.classList.add('open');
+  arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)')); a.pathEl.setAttribute('marker-end', 'url(#arrowhead-sel)');
+
+  document.getElementById('panel-view').style.display = 'none';
+  document.getElementById('panel-edit').style.display = 'block';
+  document.getElementById('panel-node-fields').style.display = 'none';
+  document.getElementById('panel-arrow-fields').style.display = 'block';
+  document.getElementById('panel-title').childNodes[0].textContent = 'Pijl bewerken';
+  document.getElementById('f-arrow-label').value = a.label; 
+  document.getElementById('f-arrow-shape').value = a.shape; 
+  document.getElementById('f-arrow-anim').value = a.anim; 
+  document.getElementById('f-arrow-style').value = a.style; 
+  
+  // Zorg dat de kleur in het palet wordt geladen
+  document.getElementById('f-arrow-color').value = a.color; 
+  const gArrow = document.getElementById('color-grid-arrow');
+  if (gArrow) gArrow.classList.remove('open');
+  renderColorGrid('color-grid-arrow', 'f-arrow-color', a);
+  
+  document.getElementById('f-arrow-note').value = a.note || ''; 
+  document.getElementById('f-arrow-url').value = a.url || ''; 
+  document.getElementById('f-arrow-show-note').checked = a.showNote || false;
+  document.getElementById('f-arrow-filter-label').value = a.filterLabel || '';
+
+  // ── Route Mode Toggle ──────────────────────────────
+  const btnAuto   = document.getElementById('btn-route-auto');
+  const btnCustom = document.getElementById('btn-route-custom');
+  const hint      = document.getElementById('waypoint-hint');
+  const shapeField = document.getElementById('f-arrow-shape').closest('.field');
+
+  function setRouteMode(mode) {
+    a.routeMode = mode;
+    if (mode === 'custom') {
+      btnAuto.classList.remove('active'); btnCustom.classList.add('active');
+      hint.style.display = 'block';
+      shapeField.style.opacity = '0.4'; shapeField.style.pointerEvents = 'none';
+      if (!a.waypoints || a.waypoints.length === 0) initDefaultWaypoints(a);
+      updateArrow(a); renderWaypointHandles(a);
+    } else {
+      btnCustom.classList.remove('active'); btnAuto.classList.add('active');
+      hint.style.display = 'none';
+      shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
+      clearWaypointHandles(); updateArrow(a);
+    }
+    saveState();
+  }
+
+  // Init button state
+  if (a.routeMode === 'custom') {
+    setRouteMode('custom');
+  } else {
+    btnAuto.classList.add('active'); btnCustom.classList.remove('active');
+    hint.style.display = 'none';
+    shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
+    clearWaypointHandles();
+  }
+
+  btnAuto.onclick   = () => setRouteMode('auto');
+  btnCustom.onclick = () => setRouteMode('custom');
+  // ─────────────────────────────────────────────────
+
+  function syncArrow() {
+    a.label = document.getElementById('f-arrow-label').value;
+    a.shape = document.getElementById('f-arrow-shape').value;
+    a.anim  = document.getElementById('f-arrow-anim').value;
+    a.style = document.getElementById('f-arrow-style').value;
+    a.color = document.getElementById('f-arrow-color').value;
+    a.note  = document.getElementById('f-arrow-note').value;
+    a.url   = document.getElementById('f-arrow-url').value;
+    a.filterLabel = document.getElementById('f-arrow-filter-label').value;
+    a.showNote = document.getElementById('f-arrow-show-note').checked;
+    updateArrow(a); updateAllDots();
+  }
+
+['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label'].forEach(fid => {
+    document.getElementById(fid).oninput = syncArrow;
+    document.getElementById(fid).onchange = syncArrow;
+  });
+}
+
+// Paneel sluiten (Kruisje)
+document.getElementById('panel-close').onclick = () => {
+  panel.classList.remove('open');
+  panelTarget = null;
+  clearWaypointHandles();
+  arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)'));
+};
+
+// Opslaan & Sluiten
+document.getElementById('panel-save').onclick = () => {
+  panel.classList.remove('open');
+  panelTarget = null;
+  clearWaypointHandles();
+  saveState();
+  showToast('Opgeslagen ✓');
+};
+
+// Bewerken modus activeren
+document.getElementById('btn-to-edit').onclick = () => {
+  if (panelTarget?.type === 'node') openNodePanel(panelTarget.id, true);
+  else if (panelTarget?.type === 'arrow') openArrowPanelEdit(panelTarget.id);
+};
+
+// Verwijderen knop in paneel
+document.getElementById('panel-delete').onclick = () => {
+  if (!panelTarget) return;
+  if (confirm('Zeker weten verwijderen?')) {
+    if (panelTarget.type === 'node') deleteNode(panelTarget.id);
+    else deleteArrow(panelTarget.id);
+    saveState();
+    panel.classList.remove('open');
+  }
+};
+
+// ── EXPORT IMAGE (Bounding Box) ────────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', async () => {
+  if (nodes.length === 0) { showToast('Canvas is leeg'); return; }
+  showToast('Bezig met exporteren…');
+  document.body.classList.add('exporting'); clearMultiSelection(); panel.classList.remove('open');
+  
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  nodes.forEach(n => { if(n.x<minX)minX=n.x; if(n.y<minY)minY=n.y; if(n.x+n.width>maxX)maxX=n.x+n.width; if(n.y+n.height>maxY)maxY=n.y+n.height; });
+  
+  const pad = 40;
+  try {
+    const canvasEl = await html2canvas(world, {
+      scale: 2, useCORS: true, backgroundColor: document.body.classList.contains('dark')?'#0a0a0f':'#f8f9fc', logging: false,
+      x: minX - pad, y: minY - pad, width: (maxX - minX) + pad*2, height: (maxY - minY) + pad*2
+    });
+    const link = document.createElement('a'); link.download = 'visual-board.png'; link.href = canvasEl.toDataURL('image/png'); link.click(); showToast('Afbeelding geëxporteerd ✓');
+  } catch(e) { console.error(e); showToast('Export mislukt'); }
+  document.body.classList.remove('exporting');
+});
+
+// ── THEME & INIT ───────────────────────────────────────────────────────────────
+document.getElementById('btn-theme').addEventListener('click', () => { document.body.classList.toggle('dark'); document.getElementById('theme-icon').textContent = document.body.classList.contains('dark') ? '🌙' : '☀️'; updateArrows(); });
+
+setTimeout(() => { saveState(); }, 500); // init history
+window.addEventListener('beforeunload', e => {
+  e.preventDefault();
+  e.returnValue = '';
+});
+// ── LABEL FILTER ───────────────────────────────────────────────────────────────
+let activeFilters = new Set();
+
+function getAllLabels() {
+  const labels = new Set();
+  nodes.forEach(n => {
+    (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean).forEach(l => labels.add(l));
+  });
+  arrows.forEach(a => {
+    (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean).forEach(l => labels.add(l));
+  });
+  return Array.from(labels).sort();
+}
+
+function applyLabelFilter() {
+  if (activeFilters.size === 0) {
+    nodes.forEach(n => { n.el.style.display = ''; });
+    arrows.forEach(a => {
+      [a.pathEl, a.bgPathEl, a.hitEl, a.dotEl, a.labelEl, a.noteEl, a.urlLinkEl]
+        .forEach(el => { if (el) el.style.display = ''; });
+    });
+  } else {
+    nodes.forEach(n => {
+      const lbls = (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+      n.el.style.display = lbls.some(l => activeFilters.has(l)) ? '' : 'none';
+    });
+    arrows.forEach(a => {
+      const lbls = (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+      const vis = lbls.some(l => activeFilters.has(l)) ? '' : 'none';
+      [a.pathEl, a.bgPathEl, a.hitEl, a.dotEl, a.labelEl, a.noteEl, a.urlLinkEl]
+        .forEach(el => { if (el) el.style.display = vis; });
+    });
+  }
+}
+
+function updateFilterBadge() {
+  const badge = document.getElementById('lf-badge');
+  const btn = document.getElementById('btn-label-filter');
+  if (activeFilters.size > 0) {
+    badge.textContent = activeFilters.size;
+    badge.style.display = 'inline';
+    btn.classList.add('active');
+  } else {
+    badge.style.display = 'none';
+    btn.classList.remove('active');
+  }
+}
+
+function renderLabelFilterDropdown() {
+  const list = document.getElementById('lf-list');
+  const labels = getAllLabels();
+  list.innerHTML = '';
+  if (labels.length === 0) {
+    list.innerHTML = '<div id="lf-empty">Geen labels aangemaakt</div>';
+    return;
+  }
+  labels.forEach(label => {
+    const item = document.createElement('label');
+    item.className = 'lf-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = activeFilters.has(label);
+    cb.addEventListener('change', () => {
+      if (cb.checked) activeFilters.add(label);
+      else activeFilters.delete(label);
+      applyLabelFilter();
+      updateFilterBadge();
+    });
+    item.appendChild(cb);
+    item.appendChild(document.createTextNode(label));
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('btn-label-filter').addEventListener('click', e => {
+  e.stopPropagation();
+  renderLabelFilterDropdown();
+  document.getElementById('label-filter-dropdown').classList.toggle('show');
+});
+document.getElementById('label-filter-dropdown').addEventListener('click', e => e.stopPropagation());
+document.getElementById('lf-clear').addEventListener('click', () => {
+  activeFilters.clear();
+  applyLabelFilter();
+  updateFilterBadge();
+  renderLabelFilterDropdown();
+});
+window.addEventListener('click', () => {
+  document.getElementById('label-filter-dropdown').classList.remove('show');
+});
+document.getElementById('btn-export-json').addEventListener('click', () => {
+  const data = JSON.stringify({
+    nodes: nodes.map(n => ({...n, el: null})),
+    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null})),
+    nodeId,
+    arrowId
+  }, null, 2);
+  
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'visual-board-project.json';
+  a.click();
+  showToast("Project geëxporteerd!");
+});
+document.getElementById('btn-import-json').addEventListener('click', () => {
+  document.getElementById('json-import').click();
+});
+
+document.getElementById('json-import').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      loadState(e.target.result);
+      saveState();
+      showToast("Project succesvol geïmporteerd!");
+    } catch (err) {
+      showToast("Fout bij importeren: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
