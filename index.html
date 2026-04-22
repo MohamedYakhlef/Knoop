@@ -2079,101 +2079,61 @@ function importProjectData(data) {
 
     updateArrows();
 }
-window.addEventListener('DOMContentLoaded', () => {
-  // 1. Eerst de standaard opstart-zaken van je tool (laten staan wat er al stond)
-  renderLabelFilterDropdown();
-  updateFilterBadge();
-  
-  // 2. NU kijken of er data in de URL staat
-  const urlParams = new URLSearchParams(window.location.search);
-  const dataFile = urlParams.get('data');
-
-  if (dataFile) {
-    // Gebruik het volledige pad om 404's te voorkomen
-    const currentPath = window.location.origin + window.location.pathname;
-    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-    const fullUrl = basePath + dataFile;
-
-    fetch(fullUrl)
-      .then(response => {
-        if (!response.ok) throw new Error("Bestand niet gevonden");
-        return response.json();
-      })
-      .then(jsonData => {
-        if (!jsonData.nodes || !jsonData.arrows) return;
-
-        // Wis het huidige lege bord
-        nodes.forEach(n => n.el && n.el.remove());
-        arrows.forEach(a => {
-            if(a.pathEl) a.pathEl.remove();
-            if(a.bgPathEl) a.bgPathEl.remove();
-            if(a.dotEl) a.dotEl.remove();
-            if(a.labelEl) a.labelEl.remove();
-        });
-
-        // Laad de nieuwe data in de variabelen
-        nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
-        arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
-        nodeId = jsonData.nodeId || 0;
-        arrowId = jsonData.arrowId || 0;
-
-        // Teken alles opnieuw
-        nodes.forEach(n => createNodeEl(n));
-        arrows.forEach(a => createArrowEl(a));
-        updateArrows();
-        
-        showToast("Project geladen: " + dataFile);
-      })
-      .catch(err => {
-        console.error("Fout bij laden:", err);
-      });
-  }
-});
- // Deze functie plaatsen we helemaal onderaan zodat alle andere functies (zoals createNodeEl) al geladen zijn
-const ladenVanUitUrl = () => {
+window.addEventListener('load', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const dataFile = urlParams.get('data');
 
-if (dataFile) {
-        // Dit zorgt dat hij altijd in de /Knoop/ map zoekt:
-        const fullUrl = window.location.href.split('?')[0].replace('index.html', '') + dataFile;
-
-        fetch(fullUrl)
+    if (dataFile) {
+        console.log("URL parameter gevonden, bestand laden: " + dataFile);
+        
+        fetch(dataFile)
             .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden: " + dataFile);
+                if (!response.ok) throw new Error("Bestand niet gevonden op de server.");
                 return response.json();
             })
             .then(jsonData => {
-                if (!jsonData.nodes || !jsonData.arrows) return;
+                // CHECK: Bestaan de functies die we nodig hebben?
+                if (typeof createNodeEl !== 'function') {
+                    console.error("Fout: createNodeEl is nog niet bekend. De code staat waarschijnlijk op de verkeerde plek.");
+                    return;
+                }
 
-                // 1. Maak het bord leeg
-                nodes.forEach(n => n.el && n.el.remove());
-                arrows.forEach(a => {
-                    if(a.pathEl) a.pathEl.remove();
-                    if(a.bgPathEl) a.bgPathEl.remove();
-                    if(a.dotEl) a.dotEl.remove();
-                    if(a.labelEl) a.labelEl.remove();
-                });
+                // Wis het huidige (lege) bord
+                if (window.nodes) {
+                    nodes.forEach(n => n.el && n.el.remove());
+                    nodes = [];
+                }
+                if (window.arrows) {
+                    arrows.forEach(a => {
+                        if(a.pathEl) a.pathEl.remove();
+                        if(a.bgPathEl) a.bgPathEl.remove();
+                        if(a.dotEl) a.dotEl.remove();
+                        if(a.labelEl) a.labelEl.remove();
+                    });
+                    arrows = [];
+                }
 
-                // 2. Reset data
+                // Data inladen
                 nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
                 arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
                 nodeId = jsonData.nodeId || 0;
                 arrowId = jsonData.arrowId || 0;
 
-                // 3. Teken alles (nu zijn createNodeEl en createArrowEl wel bekend!)
+                // Alles tekenen
                 nodes.forEach(n => createNodeEl(n));
                 arrows.forEach(a => createArrowEl(a));
-                updateArrows();
                 
-                if(typeof showToast === "function") showToast("Project geladen!");
+                // Pijlen updaten (indien de functie bestaat)
+                if (typeof updateArrows === 'function') updateArrows();
+                
+                console.log("Ketenplaat succesvol opgebouwd!");
             })
-            .catch(err => console.error("Fout bij laden:", err));
+            .catch(err => {
+                console.error("Fout tijdens het laden van de data:", err);
+            });
     }
-};
+});
 
-// Start de check na een korte vertraging om zeker te zijn dat alles klaar staat
-setTimeout(ladenVanUitUrl, 100);
 </script>
 </body>
 </html>
