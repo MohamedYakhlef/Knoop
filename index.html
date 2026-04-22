@@ -2079,46 +2079,55 @@ function importProjectData(data) {
 
     updateArrows();
 }
- window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const dataFile = urlParams.get('data');
+window.addEventListener('DOMContentLoaded', () => {
+  // 1. Eerst de standaard opstart-zaken van je tool (laten staan wat er al stond)
+  renderLabelFilterDropdown();
+  updateFilterBadge();
+  
+  // 2. NU kijken of er data in de URL staat
+  const urlParams = new URLSearchParams(window.location.search);
+  const dataFile = urlParams.get('data');
 
-    if (dataFile) {
-        fetch(dataFile)
-            .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden");
-                return response.json();
-            })
-            .then(jsonData => {
-                // We gebruiken de logica die al in jouw bestand zit
-                if (!jsonData.nodes || !jsonData.arrows) return;
+  if (dataFile) {
+    // Gebruik het volledige pad om 404's te voorkomen
+    const currentPath = window.location.origin + window.location.pathname;
+    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+    const fullUrl = basePath + dataFile;
 
-                // 1. Maak het huidige bord leeg
-                nodes.forEach(n => n.el && n.el.remove());
-                arrows.forEach(a => {
-                    if(a.pathEl) a.pathEl.remove();
-                    if(a.bgPathEl) a.bgPathEl.remove();
-                    if(a.dotEl) a.dotEl.remove();
-                    if(a.labelEl) a.labelEl.remove();
-                });
+    fetch(fullUrl)
+      .then(response => {
+        if (!response.ok) throw new Error("Bestand niet gevonden");
+        return response.json();
+      })
+      .then(jsonData => {
+        if (!jsonData.nodes || !jsonData.arrows) return;
 
-                // 2. Reset de variabelen
-                nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
-                arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
-                nodeId = jsonData.nodeId || 0;
-                arrowId = jsonData.arrowId || 0;
+        // Wis het huidige lege bord
+        nodes.forEach(n => n.el && n.el.remove());
+        arrows.forEach(a => {
+            if(a.pathEl) a.pathEl.remove();
+            if(a.bgPathEl) a.bgPathEl.remove();
+            if(a.dotEl) a.dotEl.remove();
+            if(a.labelEl) a.labelEl.remove();
+        });
 
-                // 3. Teken alles opnieuw met jouw bestaande functies
-                nodes.forEach(n => createNodeEl(n));
-                arrows.forEach(a => createArrowEl(a));
-                updateArrows();
-                
-                showToast("Project geladen vanuit URL!");
-            })
-            .catch(err => {
-                console.error("Fout:", err);
-            });
-    }
+        // Laad de nieuwe data in de variabelen
+        nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
+        arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
+        nodeId = jsonData.nodeId || 0;
+        arrowId = jsonData.arrowId || 0;
+
+        // Teken alles opnieuw
+        nodes.forEach(n => createNodeEl(n));
+        arrows.forEach(a => createArrowEl(a));
+        updateArrows();
+        
+        showToast("Project geladen: " + dataFile);
+      })
+      .catch(err => {
+        console.error("Fout bij laden:", err);
+      });
+  }
 });
 </script>
 </body>
