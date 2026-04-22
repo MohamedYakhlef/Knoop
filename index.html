@@ -1963,21 +1963,16 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   reader.readAsText(file);
 });
  // Automatisch inladen via URL-parameter (?data=bestandsnaam.json)
+// Automatisch inladen via URL-parameter (?data=bestandsnaam.json)
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const dataFile = urlParams.get('data');
 
     if (dataFile) {
-        // Maak van de bestandsnaam een volledige URL
-        const fullPath = window.location.origin + window.location.pathname.replace('index.html', '') + dataFile;
-        
-        fetch(fullPath)
+        fetch(dataFile)
             .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden op: " + fullPath);
+                if (!response.ok) throw new Error("Bestand niet gevonden");
                 return response.json();
-            })
-            .then(jsonData => {
-                // ... rest van de code die we eerder hadden ...
             })
             .then(jsonData => {
                 // Hier roepen we de bestaande import-logica van je tool aan
@@ -1990,6 +1985,42 @@ window.addEventListener('DOMContentLoaded', () => {
             });
     }
 });
+
+// Hulpfunctie om de data in de tool te schieten (gebaseerd op jouw bestaande code)
+function importProjectData(data) {
+    if (!data.nodes || !data.arrows) return;
+    
+    // Wis huidig canvas
+    nodes.forEach(n => n.el && n.el.remove());
+    arrows.forEach(a => {
+        if(a.pathEl) a.pathEl.remove();
+        if(a.bgPathEl) a.bgPathEl.remove();
+        if(a.dotEl) a.dotEl.remove();
+        if(a.labelEl) a.labelEl.remove();
+    });
+
+    nodes = [];
+    arrows = [];
+
+    // Herstel IDs
+    nodeId = data.nodeId || 0;
+    arrowId = data.arrowId || 0;
+
+    // Bouw nodes en pijlen opnieuw op
+    data.nodes.forEach(n => {
+        const newNode = {...n};
+        nodes.push(newNode);
+        createNodeEl(newNode);
+    });
+
+    data.arrows.forEach(a => {
+        const newArrow = {...a};
+        arrows.push(newArrow);
+        createArrowEl(newArrow);
+    });
+
+    updateArrows();
+}
 
 // Hulpfunctie om de data in de tool te schieten (gebaseerd op jouw bestaande code)
 function importProjectData(data) {
