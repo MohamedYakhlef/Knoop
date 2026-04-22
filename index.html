@@ -1962,123 +1962,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
- // Automatisch inladen via URL-parameter (?data=bestandsnaam.json)
 // Automatisch inladen via URL-parameter (?data=bestandsnaam.json)
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const dataFile = urlParams.get('data');
-
-    if (dataFile) {
-        // We proberen het bestand te laden vanaf de huidige locatie
-        fetch(dataFile)
-            .then(response => {
-                if (!response.ok) throw new Error("HTTP error! Status: " + response.status);
-                return response.json();
-            })
-            .then(jsonData => {
-                // Gebruik de data om het bord op te bouwen
-                if (jsonData.nodes && jsonData.arrows) {
-                    // Wis het huidige bord
-                    nodes.forEach(n => n.el && n.el.remove());
-                    arrows.forEach(a => {
-                        if(a.pathEl) a.pathEl.remove();
-                        if(a.bgPathEl) a.bgPathEl.remove();
-                        if(a.dotEl) a.dotEl.remove();
-                        if(a.labelEl) a.labelEl.remove();
-                    });
-
-                    // Laad de nieuwe data
-                    nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
-                    arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
-                    nodeId = jsonData.nodeId || 0;
-                    arrowId = jsonData.arrowId || 0;
-
-                    // Teken de elementen
-                    nodes.forEach(n => createNodeEl(n));
-                    arrows.forEach(a => createArrowEl(a));
-                    updateArrows();
-                    
-                    showToast("Project geladen: " + dataFile);
-                }
-            })
-            .catch(err => {
-                console.error("Fout bij laden:", err);
-                showToast("Kon " + dataFile + " niet laden. Controleer de bestandsnaam.");
-            });
-    }
-});
-
-// Hulpfunctie om de data in de tool te schieten (gebaseerd op jouw bestaande code)
-function importProjectData(data) {
-    if (!data.nodes || !data.arrows) return;
-    
-    // Wis huidig canvas
-    nodes.forEach(n => n.el && n.el.remove());
-    arrows.forEach(a => {
-        if(a.pathEl) a.pathEl.remove();
-        if(a.bgPathEl) a.bgPathEl.remove();
-        if(a.dotEl) a.dotEl.remove();
-        if(a.labelEl) a.labelEl.remove();
-    });
-
-    nodes = [];
-    arrows = [];
-
-    // Herstel IDs
-    nodeId = data.nodeId || 0;
-    arrowId = data.arrowId || 0;
-
-    // Bouw nodes en pijlen opnieuw op
-    data.nodes.forEach(n => {
-        const newNode = {...n};
-        nodes.push(newNode);
-        createNodeEl(newNode);
-    });
-
-    data.arrows.forEach(a => {
-        const newArrow = {...a};
-        arrows.push(newArrow);
-        createArrowEl(newArrow);
-    });
-
-    updateArrows();
-}
-
-// Hulpfunctie om de data in de tool te schieten (gebaseerd op jouw bestaande code)
-function importProjectData(data) {
-    if (!data.nodes || !data.arrows) return;
-    
-    // Wis huidig canvas
-    nodes.forEach(n => n.el && n.el.remove());
-    arrows.forEach(a => {
-        if(a.pathEl) a.pathEl.remove();
-        if(a.bgPathEl) a.bgPathEl.remove();
-        if(a.dotEl) a.dotEl.remove();
-        if(a.labelEl) a.labelEl.remove();
-    });
-
-    nodes = [];
-    arrows = [];
-
-    // Herstel IDs
-    nodeId = data.nodeId || 0;
-    arrowId = data.arrowId || 0;
-
-    // Bouw nodes en pijlen opnieuw op
-    data.nodes.forEach(n => {
-        const newNode = {...n};
-        nodes.push(newNode);
-        createNodeEl(newNode);
-    });
-
-    data.arrows.forEach(a => {
-        const newArrow = {...a};
-        arrows.push(newArrow);
-        createArrowEl(newArrow);
-    });
-
-    updateArrows();
-}
 window.addEventListener('load', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const dataFile = urlParams.get('data');
@@ -2088,45 +1972,17 @@ window.addEventListener('load', () => {
 
         fetch(dataFile)
             .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden");
-                return response.json();
+                if (!response.ok) throw new Error(`Bestand niet gevonden: ${dataFile} (status ${response.status})`);
+                return response.text();
             })
-            .then(jsonData => {
-                // We roepen de functies nu aan via 'window.' zodat we zeker weten dat we ze vinden
-                if (typeof window.createNodeEl !== 'function') {
-                    throw new Error("Functies zijn nog steeds niet bereikbaar. Check stap 2.");
-                }
-
-                // Bord leegmaken
-                if (window.nodes) {
-                    nodes.forEach(n => n.el && n.el.remove());
-                }
-                if (window.arrows) {
-                    arrows.forEach(a => {
-                        if(a.pathEl) a.pathEl.remove();
-                        if(a.bgPathEl) a.bgPathEl.remove();
-                        if(a.dotEl) a.dotEl.remove();
-                        if(a.labelEl) a.labelEl.remove();
-                    });
-                }
-
-                // Data injecteren
-                nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
-                arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
-                nodeId = jsonData.nodeId || 0;
-                arrowId = jsonData.arrowId || 0;
-
-                // Tekenen
-                nodes.forEach(n => window.createNodeEl(n));
-                arrows.forEach(a => window.createArrowEl(a));
-                if (typeof window.updateArrows === 'function') window.updateArrows();
-
+            .then(text => {
+                loadState(text);
+                saveState();
                 console.log("Ketenplaat succesvol geladen!");
             })
             .catch(err => console.error("Knoop fout:", err));
     }
 });
-
 </script>
 </body>
 </html>
