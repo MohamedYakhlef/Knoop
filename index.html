@@ -1969,19 +1969,41 @@ window.addEventListener('DOMContentLoaded', () => {
     const dataFile = urlParams.get('data');
 
     if (dataFile) {
+        // We proberen het bestand te laden vanaf de huidige locatie
         fetch(dataFile)
             .then(response => {
-                if (!response.ok) throw new Error("Bestand niet gevonden");
+                if (!response.ok) throw new Error("HTTP error! Status: " + response.status);
                 return response.json();
             })
             .then(jsonData => {
-                // Hier roepen we de bestaande import-logica van je tool aan
-                importProjectData(jsonData);
-                showToast("Project " + dataFile + " geladen!");
+                // Gebruik de data om het bord op te bouwen
+                if (jsonData.nodes && jsonData.arrows) {
+                    // Wis het huidige bord
+                    nodes.forEach(n => n.el && n.el.remove());
+                    arrows.forEach(a => {
+                        if(a.pathEl) a.pathEl.remove();
+                        if(a.bgPathEl) a.bgPathEl.remove();
+                        if(a.dotEl) a.dotEl.remove();
+                        if(a.labelEl) a.labelEl.remove();
+                    });
+
+                    // Laad de nieuwe data
+                    nodes = jsonData.nodes.map(n => ({ ...n, el: null }));
+                    arrows = jsonData.arrows.map(a => ({ ...a, pathEl: null, bgPathEl: null, hitEl: null, dotEl: null, labelEl: null }));
+                    nodeId = jsonData.nodeId || 0;
+                    arrowId = jsonData.arrowId || 0;
+
+                    // Teken de elementen
+                    nodes.forEach(n => createNodeEl(n));
+                    arrows.forEach(a => createArrowEl(a));
+                    updateArrows();
+                    
+                    showToast("Project geladen: " + dataFile);
+                }
             })
             .catch(err => {
                 console.error("Fout bij laden:", err);
-                showToast("Kon " + dataFile + " niet laden.");
+                showToast("Kon " + dataFile + " niet laden. Controleer de bestandsnaam.");
             });
     }
 });
