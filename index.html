@@ -147,28 +147,6 @@
   }
   .anchor-point:hover { r: 8px; fill: var(--accent3); stroke: #000; }
 
-  /* ── WAYPOINT HANDLES (Vrije Lijnbewerking) ── */
-  .waypoint-handle {
-    fill: #fff; stroke: var(--accent2); stroke-width: 2.5;
-    pointer-events: all; cursor: grab; transition: fill 0.15s, r 0.1s;
-  }
-  .waypoint-handle:hover { fill: var(--accent2); }
-  .waypoint-handle.dragging { cursor: grabbing; fill: var(--accent2); }
-  .waypoint-seg-hit {
-    fill: none; stroke: transparent; stroke-width: 18;
-    pointer-events: stroke; cursor: cell;
-  }
-  /* Route mode toggle buttons */
-  .route-btn {
-    flex: 1; justify-content: center; font-size: 11px;
-    padding: 7px 6px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface2);
-    color: var(--text); font-family: 'DM Mono', monospace;
-    cursor: pointer; transition: all .15s; text-align: center;
-  }
-  .route-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .route-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
   /* ── NODE CARDS ── */
   .node {
     position: absolute; width: 220px; min-height: 50px; background: var(--surface); border: 1px solid var(--border);
@@ -246,13 +224,6 @@ node.shape-text {
   .node.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
   .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
-.node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
-.node.connected-highlight {
-  border-color: var(--accent3) !important;
-  box-shadow: 0 0 0 2px rgba(92,248,200,0.25), 0 8px 28px rgba(92,248,200,0.12) !important;
-}
-#svg-layer .arrow-path.active-connection { stroke-width: 3.5 !important; opacity: 1; }
-#svg-layer .arrow-path.arrow-dimmed { opacity: 0.12; }
   .node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
 
   .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
@@ -413,12 +384,10 @@ node.shape-text {
   .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 9px 12px; outline: none; resize: vertical; transition: border-color .15s; }
   .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
 
-.view-line { margin-bottom: 16px; }
-.view-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-.view-value { font-size: 15px; color: var(--text); margin-top: 3px; word-break: break-word; line-height: 1.5; }
-.view-value a { color: var(--accent); text-decoration: underline; }
-.view-img { width: 100%; border-radius: 8px; object-fit: cover; margin-bottom: 16px; border: 1px solid var(--border); }
-#panel-view { padding-bottom: 16px; }
+  .view-line { margin-bottom: 12px; }
+  .view-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+  .view-value { font-size: 14px; color: var(--text); margin-top: 2px; word-break: break-word; }
+  .view-value a { color: var(--accent); text-decoration: underline; }
 
   .btn-action { width: 100%; padding: 13px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; margin-bottom: 10px; }
   .btn-save { background: #10b981; color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
@@ -529,7 +498,6 @@ node.shape-text {
     </svg>
     <svg id="anchors-svg" style="position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;overflow:visible;z-index:999;">
       <g id="anchors-group"></g>
-      <g id="waypoints-group" style="pointer-events:all;"></g>
     </svg>
 
     <div id="selection-box"></div>
@@ -541,8 +509,7 @@ node.shape-text {
 
   <div id="panel-view" style="display:none;">
     <div id="view-content"></div>
-   <button class="btn-action btn-edit-mode" id="btn-to-edit">Bewerken ✎</button>
-    <button class="btn-action btn-del-panel" id="btn-view-delete" style="display:none;">Verwijderen 🗑</button>
+    <button class="btn-action btn-edit-mode" id="btn-to-edit">Bewerken ✎</button>
   </div>
 
   <div id="panel-edit" style="display:none;">
@@ -611,30 +578,16 @@ node.shape-text {
   </div>
   <textarea id="f-note" rows="3"></textarea>
 </div>
-<div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
-      <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
-      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
-      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
+      <div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
+    <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
+      <div class="field"><label>Label (voor filter)</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
 
 <div id="panel-arrow-fields" style="display:none">
       <div class="field"><label>Label</label><input type="text" id="f-arrow-label" placeholder="Verbinding…"></div>
       <div class="field"><label>URL</label><input type="url" id="f-arrow-url" placeholder="https://…"></div>
+<div class="field"><label>Label (voor filter)</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
       <div class="field"><label>Vorm</label><select id="f-arrow-shape"><option value="straight">Recht</option><option value="curve">Gebogen</option></select></div>
-
-      <!-- Lijn modus: Vaste vorm vs Vrije vorm -->
-      <div class="field" id="wrap-arrow-route">
-        <label>Lijn modus</label>
-        <div style="display:flex; gap:6px; margin-bottom:6px;">
-          <button id="btn-route-auto" class="route-btn active">📐 Vaste vorm</button>
-          <button id="btn-route-custom" class="route-btn">✏️ Vrije vorm</button>
-        </div>
-        <div id="waypoint-hint" style="display:none; font-size:10px; color:var(--text-dim); font-family:'DM Mono',monospace; padding:8px; background:var(--surface2); border-radius:6px; line-height:1.6;">
-          💡 <b>Klik op de lijn</b> om een punt toe te voegen.<br>
-          <b>Sleep punten</b> om de route te vormen.<br>
-          <b>Dubbelklik</b> op een punt om het te verwijderen.
-        </div>
-      </div>
       <div class="field"><label>Animatie snelheid</label><select id="f-arrow-anim"><option value="none">Uit</option><option value="normal" selected>Normaal</option><option value="fast">Snel</option></select></div>
       <div class="field"><label>Stijl</label><select id="f-arrow-style"><option value="dot">Groen Balletje</option><option value="dashed">Bewegende Streepjes</option></select></div>
 <div class="field" id="wrap-arrow-color">
@@ -646,12 +599,10 @@ node.shape-text {
   <div id="color-grid-arrow" class="color-palette-grid"></div>
   <input type="hidden" id="f-arrow-color" value="#7c5cfc">
 </div>
-<div class="field">
+      <div class="field">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Notitie tonen op canvas</label><label class="switch"><input type="checkbox" id="f-arrow-show-note"><span class="slider"></span></label></div>
         <textarea id="f-arrow-note" rows="4" placeholder="Voeg een notitie toe…"></textarea>
       </div>
-      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
-      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
 
     <button class="btn-action btn-save" id="panel-save">Opslaan</button>
@@ -744,7 +695,6 @@ let panelTarget = null;
 let selectedNodeId = null;
 let multiSelectedNodes = new Set();
 let zoomLevel = 1;
-let topZ = 10;
 
 const canvas = document.getElementById('canvas'), world = document.getElementById('world');
 const svgLayer = document.getElementById('svg-layer'), arrowsGroup = document.getElementById('arrows-group');
@@ -944,7 +894,6 @@ node.el.addEventListener('mousedown', e => {
     if (currentTool === 'arrow') return; // afhandeling via anchors
 
     isDragging = false;
-    node.el.style.zIndex = ++topZ;
     const startX = e.clientX, startY = e.clientY;
 
     if (!multiSelectedNodes.has(node.id) && !e.shiftKey) {
@@ -1078,7 +1027,7 @@ urlIconEl.addEventListener('click', e => { e.stopPropagation(); if(arrow.url) wi
       document.querySelector('defs').appendChild(markerEl);
       // -----------------------------------------------------------------
 
-      const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', routeMode: 'auto', waypoints: [], pathEl, bgPathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl };
+      const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', pathEl, bgPathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl };
       arrows.push(arrow);
 
   hitEl.addEventListener('click', e => {
@@ -1095,11 +1044,7 @@ function updateArrow(arrow) {
   const p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
 
   let d = '';
-  if (arrow.routeMode === 'custom' && arrow.waypoints && arrow.waypoints.length > 0) {
-    d = `M ${p1.x} ${p1.y}`;
-    arrow.waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
-    d += ` L ${p2.x} ${p2.y}`;
-  } else if (arrow.shape === 'straight') d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+  if (arrow.shape === 'straight') d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
   else {
     const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy), offset = Math.min(60, len * 0.3);
     const nx = -dy/len, ny = dx/len;
@@ -1163,22 +1108,7 @@ function startDotAnimation(arrow) {
   }
   tick();
 }
-function updateAllDots() {
-  arrows.forEach(a => {
-    if (a._animFrame) cancelAnimationFrame(a._animFrame);
-    a._animFrame = null;
-    a.dotEl.style.display = 'none';
-    if (a.style === 'dashed') {
-      a.pathEl.style.strokeDashoffset = '';
-    }
-  });
-  // Herstart animaties alleen voor pijlen van geselecteerd vakje
-  if (selectedNodeId) {
-    arrows.forEach(a => {
-      if (a.from === selectedNodeId || a.to === selectedNodeId) startDotAnimation(a);
-    });
-  }
-}
+function updateAllDots() { arrows.forEach(a => startDotAnimation(a)); }
 
 function deleteNode(id) {
   const node = nodes.find(n => n.id === id); if (!node) return; node.el.remove();
@@ -1192,96 +1122,7 @@ function deleteArrow(id) {
   arrows = arrows.filter(x => x.id !== id);
   if (panelTarget && panelTarget.id === id) panel.classList.remove('open');
 }
-function removeArrowEls(a) { if (a._animFrame) cancelAnimationFrame(a._animFrame); a.bgPathEl.remove(); a.pathEl.remove(); a.hitEl.remove(); a.dotEl.remove(); a.labelEl.remove(); if(a.noteEl) a.noteEl.remove(); if(a.urlLinkEl) a.urlLinkEl.remove(); if(a.markerEl) a.markerEl.remove(); }
-
-// ── VRIJE LIJNBEWERKING (Waypoints) ─────────────────────────────────────────
-const waypointsGroup = document.getElementById('waypoints-group');
-let draggingWaypoint = null; // { arrow, idx }
-let editingArrow = null;
-
-function clearWaypointHandles() {
-  waypointsGroup.innerHTML = '';
-  editingArrow = null;
-}
-
-function renderWaypointHandles(arrow) {
-  waypointsGroup.innerHTML = '';
-  if (!arrow || arrow.routeMode !== 'custom') return;
-  editingArrow = arrow;
-
-  const f = nodes.find(n => n.id === arrow.from);
-  const t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-
-  const p1 = getAnchorPos(f, arrow.fromPort);
-  const p2 = getAnchorPos(t, arrow.toPort);
-  const allPoints = [p1, ...arrow.waypoints, p2];
-
-  // Invisible hit segments between handles to click-add waypoints
-  for (let i = 0; i < allPoints.length - 1; i++) {
-    const seg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    seg.setAttribute('x1', allPoints[i].x);
-    seg.setAttribute('y1', allPoints[i].y);
-    seg.setAttribute('x2', allPoints[i+1].x);
-    seg.setAttribute('y2', allPoints[i+1].y);
-    seg.classList.add('waypoint-seg-hit');
-    seg.dataset.segIndex = i;
-    (function(segIdx) {
-      seg.addEventListener('click', e => {
-        e.stopPropagation();
-        const cRect = canvas.getBoundingClientRect();
-        const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
-        const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
-        // segIdx: 0 = between p1 and first wp, 1 = between first/second wp, etc.
-        arrow.waypoints.splice(segIdx, 0, { x: mx, y: my });
-        updateArrow(arrow);
-        renderWaypointHandles(arrow);
-        saveState();
-      });
-    })(i);
-    waypointsGroup.appendChild(seg);
-  }
-
-  // Draggable handles for each waypoint
-  arrow.waypoints.forEach((wp, idx) => {
-    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.classList.add('waypoint-handle');
-    c.setAttribute('cx', wp.x);
-    c.setAttribute('cy', wp.y);
-    c.setAttribute('r', 7);
-
-    c.addEventListener('dblclick', e => {
-      e.stopPropagation();
-      arrow.waypoints.splice(idx, 1);
-      updateArrow(arrow);
-      renderWaypointHandles(arrow);
-      saveState();
-    });
-
-    c.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      draggingWaypoint = { arrow, idx };
-      c.classList.add('dragging');
-    });
-
-    waypointsGroup.appendChild(c);
-  });
-}
-
-function initDefaultWaypoints(arrow) {
-  const f = nodes.find(n => n.id === arrow.from);
-  const t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-  const p1 = getAnchorPos(f, arrow.fromPort);
-  const p2 = getAnchorPos(t, arrow.toPort);
-  // Start with two waypoints forming an orthogonal route
-  const midX = (p1.x + p2.x) / 2;
-  arrow.waypoints = [
-    { x: midX, y: p1.y },
-    { x: midX, y: p2.y }
-  ];
-}// ── MULTI-SELECT (Box) ─────────────────────────────────────────────────────────
+function removeArrowEls(a) { if (a._animFrame) cancelAnimationFrame(a._animFrame); a.bgPathEl.remove(); a.pathEl.remove(); a.hitEl.remove(); a.dotEl.remove(); a.labelEl.remove(); if(a.noteEl) a.noteEl.remove(); if(a.urlLinkEl) a.urlLinkEl.remove(); if(a.markerEl) a.markerEl.remove(); }// ── MULTI-SELECT (Box) ─────────────────────────────────────────────────────────
 let selectBoxStart = null;
 canvas.addEventListener('mousedown', e => {
 
@@ -1321,16 +1162,6 @@ if (currentTool === 'text') {
   clearMultiSelection();
 });
 document.addEventListener('mousemove', e => {
-  // Waypoint dragging
-  if (draggingWaypoint) {
-    const cRect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
-    const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
-    draggingWaypoint.arrow.waypoints[draggingWaypoint.idx] = { x: mx, y: my };
-    updateArrow(draggingWaypoint.arrow);
-    renderWaypointHandles(draggingWaypoint.arrow);
-    return;
-  }
   if (arrowSource && currentTool === 'arrow') {
     const cRect = canvas.getBoundingClientRect();
     const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
@@ -1347,7 +1178,6 @@ document.addEventListener('mousemove', e => {
   selectionBox.style.left = x + 'px'; selectionBox.style.top = y + 'px'; selectionBox.style.width = w + 'px'; selectionBox.style.height = h + 'px';
 });
 document.addEventListener('mouseup', e => {
-  if (draggingWaypoint) { saveState(); draggingWaypoint = null; return; }
   if (currentTool === 'arrow') {
     const targetEl = document.elementFromPoint(e.clientX, e.clientY);
     const isAnchor = targetEl && targetEl.classList.contains('anchor-point');
@@ -1379,44 +1209,9 @@ document.addEventListener('mouseup', e => {
 function clearMultiSelection() { multiSelectedNodes.clear(); document.querySelectorAll('.multi-selected').forEach(el => el.classList.remove('multi-selected')); }
 
 function selectNodeForAnim(id) {
-  // Reset alles
-  document.querySelectorAll('.node').forEach(n => {
-    n.classList.remove('highlight', 'dimmed', 'connected-highlight');
-  });
-  arrows.forEach(a => {
-    if (a._animFrame) cancelAnimationFrame(a._animFrame);
-    a._animFrame = null;
-    a.dotEl.style.display = 'none';
-    a.pathEl.classList.remove('active-connection');
-    a.pathEl.style.strokeWidth = '';
-    if (a.style === 'dashed') a.pathEl.style.strokeDashoffset = '';
-  });
-
-  // Zelfde vakje nogmaals: deselecteer
+  document.querySelectorAll('.node.highlight').forEach(n => n.classList.remove('highlight'));
   if (selectedNodeId === id) { selectedNodeId = null; return; }
-  selectedNodeId = id;
-
-  // Highlight geselecteerd vakje
-  const selEl = document.querySelector(`.node[data-id="${id}"]`);
-  if (selEl) selEl.classList.add('highlight');
-
-  // Vind gekoppelde pijlen en vakjes
-  const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
-  const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
-
-// Glow op gekoppelde vakjes
-nodes.forEach(n => {
-  if (n.id === id) return;
-  if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
-});
-
-  // Highlight gekoppelde pijlen + animatie, dim de rest
-arrows.forEach(a => {
-  if (a.from === id || a.to === id) {
-    a.pathEl.classList.add('active-connection');
-    startDotAnimation(a);
-  }
-});
+  selectedNodeId = id; const el = document.querySelector(`.node[data-id="${id}"]`); if (el) el.classList.add('highlight');
 }
 
 // ── SEARCH ─────────────────────────────────────────────────────────────────────
@@ -1654,28 +1449,15 @@ document.getElementById('f-font-size').value = n.fontSize || 14;
       previewText.style.display = ''; btnRemove.style.display = 'none';
       applyLiveNodeChanges(n); saveState();
     };
-} else {
-    document.getElementById('panel-view').style.display = 'block';
-    document.getElementById('panel-edit').style.display = 'none';
-    document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
+  } else {
+    document.getElementById('panel-view').style.display = 'block'; document.getElementById('panel-edit').style.display = 'none'; document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
     document.getElementById('view-content').innerHTML = `
-      ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
       <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.title}</div></div>
       ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
       ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
-      ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
+      ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Groep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
       ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
-      ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
     `;
-    const btnViewDelete = document.getElementById('btn-view-delete');
-    if (btnViewDelete) {
-      btnViewDelete.style.display = 'block';
-      btnViewDelete.onclick = () => {
-        if (confirm('Weet je het zeker? Dit vakje wordt verwijderd.')) {
-          deleteNode(n.id); saveState(); panel.classList.remove('open');
-        }
-      };
-    }
   }
 }
 
@@ -1704,7 +1486,7 @@ function openArrowPanelEdit(id) {
   document.getElementById('panel-node-fields').style.display = 'none';
   document.getElementById('panel-arrow-fields').style.display = 'block';
   document.getElementById('panel-title').childNodes[0].textContent = 'Pijl bewerken';
-  document.getElementById('f-arrow-label').value = a.label; 
+document.getElementById('f-arrow-label').value = a.label; 
   document.getElementById('f-arrow-shape').value = a.shape; 
   document.getElementById('f-arrow-anim').value = a.anim; 
   document.getElementById('f-arrow-style').value = a.style; 
@@ -1712,51 +1494,13 @@ function openArrowPanelEdit(id) {
   // Zorg dat de kleur in het palet wordt geladen
   document.getElementById('f-arrow-color').value = a.color; 
   const gArrow = document.getElementById('color-grid-arrow');
-  if (gArrow) gArrow.classList.remove('open');
-  renderColorGrid('color-grid-arrow', 'f-arrow-color', a);
+  if (gArrow) gArrow.classList.remove('open'); // Sluit hem standaard
+  renderColorGrid('color-grid-arrow', 'f-arrow-color', a); // Teken het raster
   
   document.getElementById('f-arrow-note').value = a.note || ''; 
   document.getElementById('f-arrow-url').value = a.url || ''; 
   document.getElementById('f-arrow-show-note').checked = a.showNote || false;
   document.getElementById('f-arrow-filter-label').value = a.filterLabel || '';
-
-  // ── Route Mode Toggle ──────────────────────────────
-  const btnAuto   = document.getElementById('btn-route-auto');
-  const btnCustom = document.getElementById('btn-route-custom');
-  const hint      = document.getElementById('waypoint-hint');
-  const shapeField = document.getElementById('f-arrow-shape').closest('.field');
-
-  function setRouteMode(mode) {
-    a.routeMode = mode;
-    if (mode === 'custom') {
-      btnAuto.classList.remove('active'); btnCustom.classList.add('active');
-      hint.style.display = 'block';
-      shapeField.style.opacity = '0.4'; shapeField.style.pointerEvents = 'none';
-      if (!a.waypoints || a.waypoints.length === 0) initDefaultWaypoints(a);
-      updateArrow(a); renderWaypointHandles(a);
-    } else {
-      btnCustom.classList.remove('active'); btnAuto.classList.add('active');
-      hint.style.display = 'none';
-      shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
-      clearWaypointHandles(); updateArrow(a);
-    }
-    saveState();
-  }
-
-  // Init button state
-  if (a.routeMode === 'custom') {
-    setRouteMode('custom');
-  } else {
-    btnAuto.classList.add('active'); btnCustom.classList.remove('active');
-    hint.style.display = 'none';
-    shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
-    clearWaypointHandles();
-  }
-
-  btnAuto.onclick   = () => setRouteMode('auto');
-  btnCustom.onclick = () => setRouteMode('custom');
-  // ─────────────────────────────────────────────────
-
   function syncArrow() {
     a.label = document.getElementById('f-arrow-label').value;
     a.shape = document.getElementById('f-arrow-shape').value;
@@ -1780,7 +1524,6 @@ function openArrowPanelEdit(id) {
 document.getElementById('panel-close').onclick = () => {
   panel.classList.remove('open');
   panelTarget = null;
-  clearWaypointHandles();
   arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)'));
 };
 
@@ -1788,7 +1531,6 @@ document.getElementById('panel-close').onclick = () => {
 document.getElementById('panel-save').onclick = () => {
   panel.classList.remove('open');
   panelTarget = null;
-  clearWaypointHandles();
   saveState();
   showToast('Opgeslagen ✓');
 };
@@ -1834,10 +1576,6 @@ document.getElementById('btn-export').addEventListener('click', async () => {
 document.getElementById('btn-theme').addEventListener('click', () => { document.body.classList.toggle('dark'); document.getElementById('theme-icon').textContent = document.body.classList.contains('dark') ? '🌙' : '☀️'; updateArrows(); });
 
 setTimeout(() => { saveState(); }, 500); // init history
-window.addEventListener('beforeunload', e => {
-  e.preventDefault();
-  e.returnValue = '';
-});
 // ── LABEL FILTER ───────────────────────────────────────────────────────────────
 let activeFilters = new Set();
 
@@ -1961,27 +1699,6 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     }
   };
   reader.readAsText(file);
-});
-// Automatisch inladen via URL-parameter (?data=bestandsnaam.json)
-window.addEventListener('load', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const dataFile = urlParams.get('data');
-
-    if (dataFile) {
-        console.log("Knoop: Bestand laden uit URL ->", dataFile);
-
-        fetch(dataFile)
-            .then(response => {
-                if (!response.ok) throw new Error(`Bestand niet gevonden: ${dataFile} (status ${response.status})`);
-                return response.text();
-            })
-            .then(text => {
-                loadState(text);
-                saveState();
-                console.log("Ketenplaat succesvol geladen!");
-            })
-            .catch(err => console.error("Knoop fout:", err));
-    }
 });
 </script>
 </body>
