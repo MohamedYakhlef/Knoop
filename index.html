@@ -55,6 +55,16 @@
     font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s;
   }
   #search-bar:focus { border-color: var(--accent); }
+  #search-tools { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+  #search-count {
+    min-width: 44px; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text-dim);
+  }
+  .search-nav-btn {
+    width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); cursor: pointer; line-height: 1;
+  }
+  .search-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   /* LEFT TOOLBAR */
   #left-toolbar {
@@ -93,6 +103,7 @@
   #canvas.tool-select { cursor: crosshair; }
   #canvas.tool-text .node { cursor: text !important; }
   #canvas.tool-eraser { cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') 12 12, pointer; }
+  #canvas.tool-eraser .node, #canvas.tool-eraser .node * { cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') 12 12, pointer !important; }
 
   #canvas::before {
     content: ''; position: absolute; inset: 0;
@@ -209,6 +220,10 @@ node.shape-text {
     cursor: text; 
   }
   .node.shape-text:hover { border-color: var(--border); }
+  .node.shape-text:not(:hover):not(.selected):not(.multi-selected):not(.highlight):not(.connected-highlight) {
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
 
   /* Zorg dat de aanwijzer een tekst-streepje blijft boven alle vormen als de T-tool aan staat */
   #canvas.tool-text .node { cursor: text !important; }
@@ -246,6 +261,7 @@ node.shape-text {
   .node:hover { border-color: var(--accent); }
   .node.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
   .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .node.search-active { border-color: var(--accent2) !important; box-shadow: 0 0 0 2px rgba(252,92,125,0.35) !important; }
   .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
 .node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
 .node.connected-highlight {
@@ -298,7 +314,7 @@ node.shape-text {
     display: flex; justify-content: flex-start; gap: 4px; padding: 6px 10px 8px;
     border-top: none; margin-top: auto; flex: 0 0 auto;
   }
- .node.shape-text .node-footer { display: none; }
+ .node.shape-text .node-footer { display: flex; justify-content: flex-start; padding: 6px 8px 6px; }
 
   /* Voeg dit toe onder je andere node-footer stijlen */
 .node.shape-oval .node-footer {
@@ -325,6 +341,8 @@ node.shape-text {
   .node-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
   .node-btn.del:hover { background: var(--accent2); border-color: var(--accent2); }
 .node-btn.pin { font-size: 11px; }
+.node-btn.duplicate { font-size: 14px; font-weight: 700; }
+.node-btn.rotate { font-size: 12px; }
 .node-btn.pin.pinned { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 .node.pinned { cursor: default !important; }
 .node.pinned .resize-handle { display: none; }
@@ -427,6 +445,23 @@ node.shape-text {
   .field label { display: block; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
   .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 9px 12px; outline: none; resize: vertical; transition: border-color .15s; }
   .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .keten-inline-wrap { display:flex; gap:6px; align-items:flex-start; }
+  .keten-list { flex:1; width:100%; }
+.keten-row-controls { display:flex; gap:6px; flex: 0 0 auto; }
+  .keten-icon-btn {
+    width: 28px !important;
+    min-width: 28px;
+    max-width: 28px;
+    height: 28px;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    font-size: 16px;
+    line-height: 1;
+  }
 
 .view-line { margin-bottom: 16px; }
 .view-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
@@ -498,6 +533,25 @@ node.shape-text {
 }
 #autosave-indicator.saved { color: #22c55e; }
 #autosave-indicator.saving { color: var(--text-dim); }
+  #new-project-modal {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,20,0.55); z-index: 2500;
+  }
+  #new-project-modal.show { display: flex; }
+  .np-card {
+    width: min(520px, calc(100vw - 32px));
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 18px;
+  }
+  .np-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .np-text { font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.6; color: var(--text-dim); margin-bottom: 14px; }
+  .np-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .np-btn {
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 12px;
+  }
+  .np-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .np-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 </style>
 </head>
 <body>
@@ -505,6 +559,7 @@ node.shape-text {
 <div id="toolbar">
   <div class="logo">Visual<span>Board</span></div>
   <div class="tb-sep"></div>
+  <button class="tb-btn" id="btn-new-project" title="Start nieuw project">🆕 Nieuw project</button>
   <button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
   <button class="tb-btn" id="btn-export-json" title="Exporteer als Project">💾 Export</button>
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
@@ -520,6 +575,11 @@ node.shape-text {
     </div>
   </div>
   <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
+  <div id="search-tools">
+    <span id="search-count">0/0</span>
+    <button id="search-prev" class="search-nav-btn" title="Vorige resultaat">↑</button>
+    <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
+  </div>
   <button class="tb-btn" id="btn-export" title="Exporteer als Afbeelding" style="margin-left: 8px;">🖼️ Export Image</button>
   <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
 </div>
@@ -579,16 +639,6 @@ node.shape-text {
     <div id="panel-node-fields">
       <div class="field"><label>Titel / Tekst</label><input type="text" id="f-title" placeholder="Naam..."></div>
 
-<div class="field" id="wrap-node-color">
-  <label>Kleur (Achtergrond)</label>
-  <div id="preview-node-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-node')">
-    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9;" id="swatch-node-color"></div>
-    <span>Kies kleur</span>
-  </div>
-  <div id="color-grid-node" class="color-palette-grid"></div>
-  <input type="hidden" id="f-node-color" value="#f1f5f9">
-</div>
-
 <div id="title-style-options" style="margin-bottom:16px;">
   <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Titel opmaak</label>
   <div style="display:flex; gap:8px; align-items:center;">
@@ -606,6 +656,16 @@ node.shape-text {
       <option value="32">32px</option>
     </select>
   </div>
+</div>
+
+<div class="field" id="wrap-node-color">
+  <label>Kleur (Achtergrond)</label>
+  <div id="preview-node-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-node')">
+    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9;" id="swatch-node-color"></div>
+    <span>Kies kleur</span>
+  </div>
+  <div id="color-grid-node" class="color-palette-grid"></div>
+  <input type="hidden" id="f-node-color" value="#f1f5f9">
 </div>
 
 <div id="text-node-options" style="display:none; flex-direction: column; gap: 8px; margin-bottom: 16px;">
@@ -641,10 +701,32 @@ node.shape-text {
   </div>
   <textarea id="f-note" rows="3"></textarea>
 </div>
-<div class="field" id="wrap-keten"><label>Keten</label><input type="text" id="f-keten"></div>
-<div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
+<div id="note-style-options" style="margin-bottom:16px;">
+  <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Notitie opmaak</label>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button id="btn-note-bold" class="tb-btn" style="flex:1; justify-content:center;"><b>B</b></button>
+    <button id="btn-note-italic" class="tb-btn" style="flex:1; justify-content:center;"><i>I</i></button>
+    <select id="f-note-font-size" style="flex:2; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; padding:6px 8px; outline:none; cursor:pointer;">
+      <option value="10" selected>10px (standaard)</option>
+      <option value="11">11px</option>
+      <option value="12">12px</option>
+      <option value="13">13px</option>
+      <option value="14">14px</option>
+      <option value="16">16px</option>
+      <option value="18">18px</option>
+    </select>
+  </div>
+</div>
+<div class="field" id="wrap-keten">
+  <label>Keten</label>
+  <div class="keten-inline-wrap">
+    <div id="f-keten-list" class="keten-list"></div>
+  </div>
+</div>
+      <div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
+      <div class="field" id="wrap-bitteam"><label>BIT TEAM</label><input type="text" id="f-bitteam"></div>
       <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
-<div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
+      <div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
       <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
       <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
@@ -684,8 +766,13 @@ node.shape-text {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Notitie tonen op canvas</label><label class="switch"><input type="checkbox" id="f-arrow-show-note"><span class="slider"></span></label></div>
         <textarea id="f-arrow-note" rows="4" placeholder="Voeg een notitie toe…"></textarea>
       </div>
-<div class="field"><label>Keten</label><input type="text" id="f-arrow-keten"></div>
-<div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
+      <div class="field">
+        <label>Keten</label>
+        <div class="keten-inline-wrap">
+          <div id="f-arrow-keten-list" class="keten-list"></div>
+        </div>
+      </div>
+      <div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
       <div class="field"><label>Leverancier</label><input type="text" id="f-arrow-leverancier"></div>
       <div class="field"><label>Servicelevel</label><input type="text" id="f-arrow-servicelevel"></div>
       <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
@@ -698,6 +785,20 @@ node.shape-text {
 </div>
 
 <div id="toast"></div>
+<div id="new-project-modal">
+  <div class="np-card">
+    <div class="np-title">Nieuw project starten?</div>
+    <div class="np-text">
+      Niet opgeslagen werk gaat verloren. Weet je het zeker?<br>
+      Klik op export om een lokaal bestand op te slaan.
+    </div>
+    <div class="np-actions">
+      <button class="np-btn" id="btn-np-cancel">Annuleren</button>
+      <button class="np-btn" id="btn-np-export">Sla werk op</button>
+      <button class="np-btn primary" id="btn-np-create">Maak nieuw canvas</button>
+    </div>
+  </div>
+</div>
 <input type="file" id="json-import" accept=".json" style="display:none">
 
 <script>
@@ -791,6 +892,9 @@ const anchorsGroup = document.getElementById('anchors-group');
 const tempLine = document.getElementById('temp-line'), panel = document.getElementById('panel');
 const selectionBox = document.getElementById('selection-box');
 const searchBar = document.getElementById('search-bar');
+const searchCount = document.getElementById('search-count');
+const searchPrevBtn = document.getElementById('search-prev');
+const searchNextBtn = document.getElementById('search-next');
 
 // ── UTILS ──────────────────────────────────────────────────────────────────────
 function showToast(msg, ms = 2000) { document.getElementById('toast').textContent = msg; document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), ms); }
@@ -838,7 +942,8 @@ n.el.style.height = n.height + 'px';
 if (n.pinned) {
   n.el.classList.add('pinned');
   n.el.querySelector('.pin').classList.add('pinned');
-  n.el.querySelector('.pin').title = 'Losmaken';
+  const pinMode = n.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)';
+  n.el.querySelector('.pin').title = pinMode;
 }
 renderNode(n);
 });
@@ -984,7 +1089,9 @@ function createNode(x, y, shape = 'square', title = '', forceId = null) {
     </div>
     <div class="node-footer">
       <button class="node-btn edit" title="Bewerken" data-id="${id}">✎</button>
-<button class="node-btn pin" title="Vastpinnen" data-id="${id}">📌</button>
+      <button class="node-btn duplicate" title="Kopie maken" data-id="${id}">+</button>
+      <button class="node-btn rotate" title="Kantel 90°" data-id="${id}">⤾</button>
+      <button class="node-btn pin" title="Vastpinnen" data-id="${id}">📌</button>
     </div>
     <div class="resize-handle"></div>`;
   world.appendChild(el);
@@ -995,9 +1102,10 @@ const node = {
     height: shape === 'text' ? 50 : (shape === 'area' ? 380 : 190),
     shape, title: initTitle, url: '', note: '', bgColor, color: '#1a1a2e',
     fontWeight: 'normal', fontStyle: 'normal', fontSize: 14,
+    noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
     showImg: true, img: '', 
     showNote: true,                    // ← NIEUWE REGEL
-   keten: '', behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, el
+   keten: '', ketens: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
 if (shape === 'text') { 
@@ -1013,8 +1121,66 @@ if (shape === 'text') {
   return node;
 }
 
+function isNodeInsideArea(node, areaNode) {
+  if (!node || !areaNode || areaNode.shape !== 'area' || node.id === areaNode.id) return false;
+  const cx = node.x + node.width / 2;
+  const cy = node.y + node.height / 2;
+  return cx >= areaNode.x &&
+         cx <= areaNode.x + areaNode.width &&
+         cy >= areaNode.y &&
+         cy <= areaNode.y + areaNode.height;
+}
+
+function findAreaForNode(node) {
+  const areas = nodes.filter(n => n.shape === 'area' && n.id !== node.id);
+  // Kies het kleinste gebied dat de node bevat (meest specifieke "ouder")
+  const containing = areas.filter(area => isNodeInsideArea(node, area));
+  if (containing.length === 0) return null;
+  containing.sort((a, b) => (a.width * a.height) - (b.width * b.height));
+  return containing[0];
+}
+
+function duplicateNode(sourceNode) {
+  const clone = createNode(sourceNode.x + 24, sourceNode.y + 24, sourceNode.shape, sourceNode.title);
+  Object.assign(clone, {
+    width: sourceNode.width,
+    height: sourceNode.height,
+    title: sourceNode.title,
+    url: sourceNode.url || '',
+    note: sourceNode.note || '',
+    bgColor: sourceNode.bgColor,
+    color: sourceNode.color,
+    fontWeight: sourceNode.fontWeight || 'normal',
+    fontStyle: sourceNode.fontStyle || 'normal',
+    fontSize: sourceNode.fontSize || 14,
+    noteFontWeight: sourceNode.noteFontWeight || 'normal',
+    noteFontStyle: sourceNode.noteFontStyle || 'normal',
+    noteFontSize: sourceNode.noteFontSize || 10,
+    showImg: sourceNode.showImg !== false,
+    img: sourceNode.img || '',
+    showNote: sourceNode.showNote !== false,
+    keten: sourceNode.keten || '',
+    ketens: Array.isArray(sourceNode.ketens) ? [...sourceNode.ketens] : [],
+    behandelaarsgroep: sourceNode.behandelaarsgroep || '',
+    leverancier: sourceNode.leverancier || '',
+    servicelevel: sourceNode.servicelevel || '',
+    filterLabel: sourceNode.filterLabel || '',
+    rotation: sourceNode.rotation || 0,
+    pinned: false,
+    pinnedTo: 'canvas',
+    pinnedAreaId: null
+  });
+  clone.el.style.width = clone.width + 'px';
+  clone.el.style.height = clone.height + 'px';
+  renderNode(clone);
+  clone.el.style.zIndex = ++topZ;
+  saveState();
+  showToast('Kopie gemaakt');
+  return clone;
+}
+
 function attachNodeEvents(node) {
-  let isDragging = false, startPos = {}, dragOffsets = [];
+  let isDragging = false, startPos = {}, dragOffsets = [], areaPinnedOffsets = [];
   
 node.el.addEventListener('mousedown', e => {
     // CRUCIALE FIX: Als de tekst-tool aan staat, moet het vakje niks doen
@@ -1048,8 +1214,14 @@ node.el.addEventListener('mousedown', e => {
         n.el.classList.add('dragging');
         return { node: n, ox: n.x, oy: n.y };
       });
+      const draggedAreaIds = new Set(dragOffsets.filter(d => d.node.shape === 'area').map(d => d.node.id));
+      areaPinnedOffsets = nodes
+        .filter(n => n.pinned && n.pinnedTo === 'area' && draggedAreaIds.has(n.pinnedAreaId) && !multiSelectedNodes.has(n.id))
+        .map(n => ({ node: n, ox: n.x, oy: n.y }));
+      areaPinnedOffsets.forEach(d => d.node.el.classList.add('dragging'));
     } else {
       dragOffsets = []; // Leeg lijstje, dus we gaan niks slepen
+      areaPinnedOffsets = [];
     }
 
     function onMove(ev) {
@@ -1062,11 +1234,16 @@ node.el.addEventListener('mousedown', e => {
         d.node.x = d.ox + dx; d.node.y = d.oy + dy;
         d.node.el.style.left = d.node.x + 'px'; d.node.el.style.top  = d.node.y + 'px';
       });
+      areaPinnedOffsets.forEach(d => {
+        d.node.x = d.ox + dx; d.node.y = d.oy + dy;
+        d.node.el.style.left = d.node.x + 'px'; d.node.el.style.top  = d.node.y + 'px';
+      });
       updateArrows();
     }
     
     function onUp() {
       dragOffsets.forEach(d => d.node.el.classList.remove('dragging'));
+      areaPinnedOffsets.forEach(d => d.node.el.classList.remove('dragging'));
       document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
       
       if (isDragging) saveState();
@@ -1091,17 +1268,41 @@ node.el.addEventListener('mousedown', e => {
     document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
   });
   
-  if(node.shape !== 'text') {
-    node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
+  node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
+node.el.querySelector('.duplicate').addEventListener('click', e => {
+  e.stopPropagation();
+  duplicateNode(node);
+});
+node.el.querySelector('.rotate').addEventListener('click', e => {
+  e.stopPropagation();
+  node.rotation = node.rotation === 90 ? 0 : 90;
+  node.el.style.transform = `rotate(${node.rotation}deg)`;
+  updateArrows();
+  saveState();
+});
 node.el.querySelector('.pin').addEventListener('click', e => {
   e.stopPropagation();
   node.pinned = !node.pinned;
+  if (node.pinned) {
+    const parentArea = findAreaForNode(node);
+    if (parentArea) {
+      node.pinnedTo = 'area';
+      node.pinnedAreaId = parentArea.id;
+    } else {
+      node.pinnedTo = 'canvas';
+      node.pinnedAreaId = null;
+    }
+  } else {
+    node.pinnedTo = 'canvas';
+    node.pinnedAreaId = null;
+  }
   node.el.classList.toggle('pinned', node.pinned);
   node.el.querySelector('.pin').classList.toggle('pinned', node.pinned);
-  node.el.querySelector('.pin').title = node.pinned ? 'Losmaken' : 'Vastpinnen';
+  node.el.querySelector('.pin').title = node.pinned
+    ? (node.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)')
+    : 'Vastpinnen';
   saveState();
 });
-  }
 }
 
 // ── ANCHOR MATH (Voor pijlen) ────────────────────────────────────────────────
@@ -1165,7 +1366,7 @@ function renderAnchors() {
             const newArrow = createArrow(arrowSource, n.id, arrowSourcePort, i);
             saveState();
             setTool('pointer');
-            openArrowPanel(newArrow.id);
+            openArrowPanelEdit(newArrow.id);
           }
           arrowSource = null;
           tempLine.setAttribute('d', '');
@@ -1211,7 +1412,7 @@ markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('mar
 const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 markerStartPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', '#7c5cfc');
 markerStartEl.appendChild(markerStartPathEl); document.querySelector('defs').appendChild(markerStartEl);
-const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };
+const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };
       arrows.push(arrow);
 
   hitEl.addEventListener('click', e => {
@@ -1340,6 +1541,18 @@ function updateAllDots() {
 
 function deleteNode(id) {
   const node = nodes.find(n => n.id === id); if (!node) return; node.el.remove();
+  if (node.shape === 'area') {
+    nodes.forEach(n => {
+      if (n.pinned && n.pinnedTo === 'area' && n.pinnedAreaId === id) {
+        n.pinnedTo = 'canvas';
+        n.pinnedAreaId = null;
+        if (n.el) {
+          const pinBtn = n.el.querySelector('.pin');
+          if (pinBtn) pinBtn.title = 'Losmaken (vast op canvas)';
+        }
+      }
+    });
+  }
   nodes = nodes.filter(n => n.id !== id);
   arrows.filter(a => a.from === id || a.to === id).forEach(a => removeArrowEls(a));
   arrows = arrows.filter(a => a.from !== id && a.to !== id);
@@ -1560,7 +1773,7 @@ if (currentTool === 'arrow') {
       const newArrow = createArrow(arrowSource, magnetTarget.nodeId, arrowSourcePort, magnetTarget.port);
       saveState();
       setTool('pointer');
-      openArrowPanel(newArrow.id);
+      openArrowPanelEdit(newArrow.id);
       arrowSource = null;
       magnetTarget = null;
       tempLine.setAttribute('d', '');
@@ -1637,22 +1850,56 @@ function selectNodeForAnim(id) {
 }
 
 // ── SEARCH ─────────────────────────────────────────────────────────────────────
-searchBar.addEventListener('input', e => {
-  const q = e.target.value.toLowerCase();
-  document.querySelectorAll('.node').forEach(n => n.classList.remove('highlight'));
-  if(!q) return;
-  let match = null;
-  nodes.forEach(n => {
-    if (n.title.toLowerCase().includes(q) || n.behandelaarsgroep.toLowerCase().includes(q)) {
-      n.el.classList.add('highlight');
-      if(!match) match = n;
-    }
-  });
-  if (match) {
+let searchMatches = [];
+let searchMatchIndex = -1;
+
+function updateSearchCount() {
+  if (!searchCount) return;
+  if (searchMatches.length === 0) searchCount.textContent = '0/0';
+  else searchCount.textContent = `${searchMatchIndex + 1}/${searchMatches.length}`;
+}
+
+function focusSearchMatch(index) {
+  if (searchMatches.length === 0) return;
+  searchMatchIndex = ((index % searchMatches.length) + searchMatches.length) % searchMatches.length;
+  const match = searchMatches[searchMatchIndex];
+  document.querySelectorAll('.node').forEach(el => el.classList.remove('search-active'));
+  if (match && match.el) {
+    match.el.classList.add('search-active');
     world.style.left = (-match.x * zoomLevel + canvas.offsetWidth/2 - match.width/2) + 'px';
     world.style.top = (-match.y * zoomLevel + canvas.offsetHeight/2 - match.height/2) + 'px';
   }
+  updateSearchCount();
+}
+
+function runSearch() {
+  const q = (searchBar.value || '').trim().toLowerCase();
+  document.querySelectorAll('.node').forEach(el => el.classList.remove('highlight', 'search-active'));
+  searchMatches = [];
+  searchMatchIndex = -1;
+  if (!q) { updateSearchCount(); return; }
+
+  searchMatches = nodes.filter(n =>
+    (n.title || '').toLowerCase().includes(q) ||
+    (n.behandelaarsgroep || '').toLowerCase().includes(q) ||
+    (n.note || '').toLowerCase().includes(q) ||
+    (n.keten || '').toLowerCase().includes(q)
+  );
+
+  searchMatches.forEach(n => n.el.classList.add('highlight'));
+  if (searchMatches.length > 0) focusSearchMatch(0);
+  else updateSearchCount();
+}
+
+searchBar.addEventListener('input', runSearch);
+searchBar.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  if (searchMatches.length === 0) return;
+  focusSearchMatch(searchMatchIndex + (e.shiftKey ? -1 : 1));
 });
+searchPrevBtn.addEventListener('click', () => { if (searchMatches.length > 0) focusSearchMatch(searchMatchIndex - 1); });
+searchNextBtn.addEventListener('click', () => { if (searchMatches.length > 0) focusSearchMatch(searchMatchIndex + 1); });
 
 // ── PAN & ZOOM ─────────────────────────────────────────────────────────────────
 let panStart = null, panOrigin = null;
@@ -1687,6 +1934,8 @@ document.addEventListener('mouseup', () => { if (panStart) { panStart = null; ca
 
 // ── PANEL & LIVE UPDATES ───────────────────────────────────────────────────────
 function renderNode(n) {
+  n.rotation = n.rotation || 0;
+  n.el.style.transform = `rotate(${n.rotation}deg)`;
   const titleEl = document.getElementById('ntitle-'+n.id);
   if (!titleEl) return;
   titleEl.textContent = n.title || '';
@@ -1711,6 +1960,9 @@ function renderNode(n) {
   const noteEl = document.getElementById('nnote-'+n.id);
   if (noteEl) {
     noteEl.textContent = n.note || '';
+    noteEl.style.fontWeight = n.noteFontWeight || 'normal';
+    noteEl.style.fontStyle = n.noteFontStyle || 'normal';
+    noteEl.style.fontSize = (n.noteFontSize || 10) + 'px';
     noteEl.style.display = (n.showNote && n.note && n.note.trim()) ? 'block' : 'none';
   }
 
@@ -1733,8 +1985,10 @@ function applyLiveNodeChanges(n) {
   n.color = document.getElementById('f-text-color').value; 
   n.url = document.getElementById('f-url').value; 
   n.note = document.getElementById('f-note').value; 
-  n.keten = document.getElementById('f-keten').value;
+  n.ketens = collectNodeKetensFromForm();
+  n.keten = n.ketens.join(', ');
   n.behandelaarsgroep = document.getElementById('f-behandelaarsgroep').value;
+  n.bitteam = document.getElementById('f-bitteam').value;
   n.leverancier = document.getElementById('f-leverancier').value;
   n.servicelevel = document.getElementById('f-servicelevel').value;
   n.showImg = document.getElementById('f-show-image').checked;
@@ -1767,6 +2021,10 @@ if (n.shape === 'area') {
 const noteEl = document.getElementById('nnote-'+n.id); 
 if (noteEl) {
   noteEl.textContent = n.note;
+  n.noteFontSize = parseInt(document.getElementById('f-note-font-size').value) || 10;
+  noteEl.style.fontWeight = n.noteFontWeight || 'normal';
+  noteEl.style.fontStyle = n.noteFontStyle || 'normal';
+  noteEl.style.fontSize = n.noteFontSize + 'px';
   if(n.showNote && n.note.trim() !== '') {
     noteEl.style.display = 'block';
   } else {
@@ -1790,6 +2048,8 @@ if (noteEl) {
 
 document.getElementById('btn-text-bold').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.fontWeight = n.fontWeight==='bold'?'normal':'bold'; applyLiveNodeChanges(n); });
 document.getElementById('btn-text-italic').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.fontStyle = n.fontStyle==='italic'?'normal':'italic'; applyLiveNodeChanges(n); });
+document.getElementById('btn-note-bold').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.noteFontWeight = n.noteFontWeight==='bold'?'normal':'bold'; applyLiveNodeChanges(n); });
+document.getElementById('btn-note-italic').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.noteFontStyle = n.noteFontStyle==='italic'?'normal':'italic'; applyLiveNodeChanges(n); });
 
 function openNodePanel(id, editMode = false) {
   const n = nodes.find(x => x.id === id); if(!n) return; panelTarget = { type: 'node', id }; panel.classList.add('open');
@@ -1806,13 +2066,15 @@ function openNodePanel(id, editMode = false) {
     document.getElementById('f-text-color').value = n.color || '#1a1a2e'; 
     document.getElementById('f-url').value = n.url || ''; 
     document.getElementById('f-note').value = n.note || ''; 
-    document.getElementById('f-keten').value = n.keten || '';
+    renderNodeKetenFields(getNodeKetens(n), () => applyLiveNodeChanges(n));
     document.getElementById('f-behandelaarsgroep').value = n.behandelaarsgroep || '';
+    document.getElementById('f-bitteam').value = n.bitteam || '';
     document.getElementById('f-leverancier').value = n.leverancier || '';
     document.getElementById('f-servicelevel').value = n.servicelevel || '';
     document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
     document.getElementById('f-node-label').value = n.filterLabel || '';
     document.getElementById('f-font-size').value = n.fontSize || 14;
+    document.getElementById('f-note-font-size').value = n.noteFontSize || 10;
 
 // 2. Zorg dat de kleur-rasters gesloten zijn als je het paneel opent
     const gNode = document.getElementById('color-grid-node');
@@ -1845,7 +2107,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
 
 
 
-['f-title','f-node-color','f-text-color','f-url','f-note','f-keten','f-behandelaarsgroep','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-node-label','f-font-size'].forEach(fid => {
+['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
   document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
   document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
 });
@@ -1886,8 +2148,9 @@ else { document.getElementById('text-node-options').style.display = 'none';
       <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.title}</div></div>
       ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
       ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
-      ${n.keten ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${n.keten}</div></div>` : ''}
+      ${getNodeKetens(n).length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${getNodeKetens(n).join(', ')}</div></div>` : ''}
       ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
+      ${n.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${n.bitteam}</div></div>` : ''}
       ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
       ${n.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${n.servicelevel}</div></div>` : ''}
       ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
@@ -1913,16 +2176,176 @@ document.getElementById('panel-view').style.display = 'block';
   document.getElementById('panel-edit').style.display = 'none';
   document.getElementById('btn-view-delete').style.display = 'none';
   document.getElementById('panel-title').childNodes[0].textContent = 'Pijl info';
+  const ketenText = getArrowKetens(a).join(', ');
   document.getElementById('view-content').innerHTML = `
     ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.label}</div></div>` : ''}
     ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${a.url}" target="_blank">${a.url}</a></div></div>` : ''}
     ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
-    ${a.keten ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${a.keten}</div></div>` : ''}
+    ${ketenText ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${ketenText}</div></div>` : ''}
     ${a.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${a.behandelaarsgroep}</div></div>` : ''}
+    ${a.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${a.bitteam}</div></div>` : ''}
     ${a.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${a.leverancier}</div></div>` : ''}
     ${a.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${a.servicelevel}</div></div>` : ''}
     <div class="view-line"><div class="view-label">Stijl</div><div class="view-value">${a.shape === 'curve' ? 'Gebogen' : 'Recht'} · ${a.style === 'dot' ? 'Balletje' : 'Streepjes'}</div></div>
   `;
+}
+
+function normalizeKetens(values) {
+  return (values || []).map(v => (v || '').trim()).filter(Boolean);
+}
+
+function getNodeKetens(node) {
+  if (Array.isArray(node.ketens) && node.ketens.length > 0) return normalizeKetens(node.ketens);
+  if (typeof node.keten === 'string' && node.keten.trim()) return normalizeKetens(node.keten.split(','));
+  return [];
+}
+
+function getArrowKetens(arrow) {
+  if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0) return normalizeKetens(arrow.ketens);
+  if (typeof arrow.keten === 'string' && arrow.keten.trim()) return normalizeKetens(arrow.keten.split(','));
+  return [];
+}
+
+function collectNodeKetensFromForm() {
+  const inputs = Array.from(document.querySelectorAll('#f-keten-list .f-keten-item'));
+  return normalizeKetens(inputs.map(i => i.value));
+}
+
+function collectArrowKetensFromForm() {
+  const inputs = Array.from(document.querySelectorAll('#f-arrow-keten-list .f-arrow-keten-item'));
+  return normalizeKetens(inputs.map(i => i.value));
+}
+
+function renderNodeKetenFields(values, onChange) {
+  const listEl = document.getElementById('f-keten-list');
+  if (!listEl) return;
+
+  let ketens = normalizeKetens(values);
+  if (ketens.length === 0) ketens = [''];
+
+  const render = () => {
+    listEl.innerHTML = '';
+    ketens.forEach((value, idx) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.gap = '6px';
+      row.style.marginBottom = '6px';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'f-keten-item';
+      input.placeholder = `Keten ${idx + 1}`;
+      input.value = value;
+      input.style.flex = '1';
+      input.style.width = '100%';
+      input.oninput = (e) => { ketens[idx] = e.target.value; onChange(); };
+      input.onchange = (e) => { ketens[idx] = e.target.value; onChange(); };
+
+      const controls = document.createElement('div');
+      controls.className = 'keten-row-controls';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = '-';
+      removeBtn.className = 'btn-action keten-icon-btn';
+      removeBtn.disabled = ketens.length <= 1;
+      removeBtn.onclick = () => {
+        if (ketens.length <= 1) return;
+        ketens.splice(idx, 1);
+        render();
+        onChange();
+      };
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.textContent = '+';
+      addBtn.className = 'btn-action keten-icon-btn';
+      addBtn.style.visibility = idx === ketens.length - 1 ? 'visible' : 'hidden';
+      addBtn.onclick = () => {
+        const last = ketens[ketens.length - 1];
+        if (!last || !last.trim()) {
+          showToast('Vul eerst de laatste Keten in');
+          return;
+        }
+        ketens.push('');
+        render();
+      };
+
+      controls.appendChild(removeBtn);
+      controls.appendChild(addBtn);
+      row.appendChild(input);
+      row.appendChild(controls);
+      listEl.appendChild(row);
+    });
+  };
+
+  render();
+}
+
+function renderArrowKetenFields(values, onChange) {
+  const listEl = document.getElementById('f-arrow-keten-list');
+  if (!listEl) return;
+
+  let ketens = normalizeKetens(values);
+  if (ketens.length === 0) ketens = [''];
+
+  const render = () => {
+    listEl.innerHTML = '';
+    ketens.forEach((value, idx) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.gap = '6px';
+      row.style.marginBottom = '6px';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'f-arrow-keten-item';
+      input.placeholder = `Keten ${idx + 1}`;
+      input.value = value;
+      input.style.flex = '1';
+      input.style.width = '100%';
+      input.oninput = (e) => { ketens[idx] = e.target.value; onChange(); };
+      input.onchange = (e) => { ketens[idx] = e.target.value; onChange(); };
+
+      const controls = document.createElement('div');
+      controls.className = 'keten-row-controls';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = '-';
+      removeBtn.className = 'btn-action keten-icon-btn';
+      removeBtn.disabled = ketens.length <= 1;
+      removeBtn.onclick = () => {
+        if (ketens.length <= 1) return;
+        ketens.splice(idx, 1);
+        render();
+        onChange();
+      };
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.textContent = '+';
+      addBtn.className = 'btn-action keten-icon-btn';
+      addBtn.style.visibility = idx === ketens.length - 1 ? 'visible' : 'hidden';
+      addBtn.onclick = () => {
+        const last = ketens[ketens.length - 1];
+        if (!last || !last.trim()) {
+          showToast('Vul eerst de laatste Keten in');
+          return;
+        }
+        ketens.push('');
+        render();
+      };
+
+      controls.appendChild(removeBtn);
+      controls.appendChild(addBtn);
+      row.appendChild(input);
+      row.appendChild(controls);
+      listEl.appendChild(row);
+    });
+  };
+
+  render();
 }
 
 function openArrowPanelEdit(id) {
@@ -1938,6 +2361,10 @@ function openArrowPanelEdit(id) {
   document.getElementById('f-arrow-shape').value = a.shape; 
   document.getElementById('f-arrow-anim').value = a.anim; 
   document.getElementById('f-arrow-style').value = a.style; 
+  renderArrowKetenFields(getArrowKetens(a), syncArrow);
+  document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
+  document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
+  document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
   
   // Zorg dat de kleur in het palet wordt geladen
   document.getElementById('f-arrow-color').value = a.color; 
@@ -1950,7 +2377,6 @@ function openArrowPanelEdit(id) {
   document.getElementById('f-arrow-show-note').checked = a.showNote || false;
   document.getElementById('f-arrow-filter-label').value = a.filterLabel || '';
   document.getElementById('f-arrow-bidirectional').checked = a.bidirectional || false;
-  document.getElementById('f-arrow-keten').value = a.keten || '';
   document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
   document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
   document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
@@ -1991,25 +2417,30 @@ function openArrowPanelEdit(id) {
   btnCustom.onclick = () => setRouteMode('custom');
   // ─────────────────────────────────────────────────
 
+  function applyArrowFormToModel(targetArrow) {
+    targetArrow.label = document.getElementById('f-arrow-label').value;
+    targetArrow.shape = document.getElementById('f-arrow-shape').value;
+    targetArrow.anim  = document.getElementById('f-arrow-anim').value;
+    targetArrow.style = document.getElementById('f-arrow-style').value;
+    targetArrow.color = document.getElementById('f-arrow-color').value;
+    targetArrow.note  = document.getElementById('f-arrow-note').value;
+    targetArrow.url   = document.getElementById('f-arrow-url').value;
+    targetArrow.filterLabel = document.getElementById('f-arrow-filter-label').value;
+    targetArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
+    targetArrow.ketens = collectArrowKetensFromForm();
+    targetArrow.keten = targetArrow.ketens.join(', ');
+    targetArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
+    targetArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
+    targetArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
+    targetArrow.showNote = document.getElementById('f-arrow-show-note').checked;
+  }
+
 function syncArrow() {
-    a.label = document.getElementById('f-arrow-label').value;
-    a.shape = document.getElementById('f-arrow-shape').value;
-    a.anim  = document.getElementById('f-arrow-anim').value;
-    a.style = document.getElementById('f-arrow-style').value;
-    a.color = document.getElementById('f-arrow-color').value;
-    a.note  = document.getElementById('f-arrow-note').value;
-    a.url   = document.getElementById('f-arrow-url').value;
-    a.filterLabel = document.getElementById('f-arrow-filter-label').value;
-    a.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
-    a.keten = document.getElementById('f-arrow-keten').value;
-    a.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
-    a.leverancier = document.getElementById('f-arrow-leverancier').value;
-    a.servicelevel = document.getElementById('f-arrow-servicelevel').value;
-    a.showNote = document.getElementById('f-arrow-show-note').checked;
+    applyArrowFormToModel(a);
     updateArrow(a); updateAllDots();
   }
 
-['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label','f-arrow-bidirectional'].forEach(fid => {
+['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label','f-arrow-bidirectional','f-arrow-behandelaarsgroep','f-arrow-leverancier','f-arrow-servicelevel'].forEach(fid => {
     document.getElementById(fid).oninput = syncArrow;
     document.getElementById(fid).onchange = syncArrow;
   });
@@ -2025,6 +2456,28 @@ document.getElementById('panel-close').onclick = () => {
 
 // Opslaan & Sluiten
 document.getElementById('panel-save').onclick = () => {
+  if (panelTarget?.type === 'arrow') {
+    const activeArrow = arrows.find(x => x.id === panelTarget.id);
+    if (activeArrow) {
+      activeArrow.label = document.getElementById('f-arrow-label').value;
+      activeArrow.shape = document.getElementById('f-arrow-shape').value;
+      activeArrow.anim  = document.getElementById('f-arrow-anim').value;
+      activeArrow.style = document.getElementById('f-arrow-style').value;
+      activeArrow.color = document.getElementById('f-arrow-color').value;
+      activeArrow.note  = document.getElementById('f-arrow-note').value;
+      activeArrow.url   = document.getElementById('f-arrow-url').value;
+      activeArrow.filterLabel = document.getElementById('f-arrow-filter-label').value;
+      activeArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
+      activeArrow.ketens = collectArrowKetensFromForm();
+      activeArrow.keten = activeArrow.ketens.join(', ');
+      activeArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
+      activeArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
+      activeArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
+      activeArrow.showNote = document.getElementById('f-arrow-show-note').checked;
+      updateArrow(activeArrow);
+      updateAllDots();
+    }
+  }
   panel.classList.remove('open');
   panelTarget = null;
   clearWaypointHandles();
@@ -2084,7 +2537,14 @@ window.addEventListener('beforeunload', e => {
   e.returnValue = '';
 });
 // ── LABEL FILTER ───────────────────────────────────────────────────────────────
-let activeFilters = { keten: new Set(), behandelaarsgroep: new Set(), leverancier: new Set(), label: new Set() };
+const activeFilters = {
+  keten: new Set(),
+  behandelaarsgroep: new Set(),
+  bitteam: new Set(),
+  leverancier: new Set(),
+  servicelevel: new Set(),
+  label: new Set()
+};
 function activeFiltersEmpty() { return Object.values(activeFilters).every(s => s.size === 0); }
 function activeFiltersCount() { return Object.values(activeFilters).reduce((t,s) => t + s.size, 0); }
 
@@ -2100,23 +2560,70 @@ function getAllLabels() {
 }
 
 function nodeMatches(n) {
-  if (activeFilters.keten.size > 0 && activeFilters.keten.has(n.keten || '')) return true;
-  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')) return true;
-  if (activeFilters.leverancier.size > 0 && activeFilters.leverancier.has(n.leverancier || '')) return true;
+
+  if (
+    activeFilters.keten.size > 0 &&
+    !getNodeKetens(n).some(k => activeFilters.keten.has(k))
+  ) return false;
+
+  if (
+    activeFilters.behandelaarsgroep.size > 0 &&
+    !activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')
+  ) return false;
+
+  if (
+    activeFilters.bitteam.size > 0 &&
+    !activeFilters.bitteam.has(n.bitteam || '')
+  ) return false;
+
+  if (
+    activeFilters.leverancier.size > 0 &&
+    !activeFilters.leverancier.has(n.leverancier || '')
+  ) return false;
+
+  if (
+    activeFilters.servicelevel.size > 0 &&
+    !activeFilters.servicelevel.has(n.servicelevel || '')
+  ) return false;
+
   if (activeFilters.label.size > 0) {
-    const lbls = (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
-    if (lbls.some(l => activeFilters.label.has(l))) return true;
+    const lbls = (n.filterLabel || '')
+      .split(',')
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    if (!lbls.some(l => activeFilters.label.has(l))) {
+      return false;
+    }
   }
-  return false;
+
+  return true;
 }
 function arrowMatches(a) {
-  if (activeFilters.keten.size > 0 && activeFilters.keten.has(a.keten || '')) return true;
-  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(a.behandelaarsgroep || '')) return true;
-  if (activeFilters.leverancier.size > 0 && activeFilters.leverancier.has(a.leverancier || '')) return true;
+  const arrowKetens = getArrowKetens(a);
+  if (activeFilters.keten.size > 0 && arrowKetens.some(k => activeFilters.keten.has(k))) return true;
+
+  if (activeFilters.behandelaarsgroep.size > 0 &&
+      activeFilters.behandelaarsgroep.has(a.behandelaarsgroep || '')) return true;
+
+  if (activeFilters.bitteam.size > 0 &&
+      activeFilters.bitteam.has(a.bitteam || '')) return true;
+
+  if (activeFilters.leverancier.size > 0 &&
+      activeFilters.leverancier.has(a.leverancier || '')) return true;
+
+  if (activeFilters.servicelevel.size > 0 &&
+      activeFilters.servicelevel.has(a.servicelevel || '')) return true;
+
   if (activeFilters.label.size > 0) {
-    const lbls = (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+    const lbls = (a.filterLabel || '')
+      .split(',')
+      .map(l => l.trim())
+      .filter(Boolean);
+
     if (lbls.some(l => activeFilters.label.has(l))) return true;
   }
+
   return false;
 }
 function applyLabelFilter() {
@@ -2161,12 +2668,18 @@ function updateFilterBadge() {
 function renderLabelFilterDropdown() {
   const list = document.getElementById('lf-list');
   list.innerHTML = '';
+  
   const sections = [
-    { key: 'keten',           icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.map(n => n.keten), ...arrows.map(a => a.keten)].filter(Boolean))] },
+    { key: 'keten',             icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.flatMap(n => getNodeKetens(n)), ...arrows.flatMap(a => getArrowKetens(a))].filter(Boolean))] },
     { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n => n.behandelaarsgroep), ...arrows.map(a => a.behandelaarsgroep)].filter(Boolean))] },
-    { key: 'leverancier',     icon: '🏢', label: 'Leverancier',      values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
-    { key: 'label',           icon: '🏷️', label: 'Label',            values: getAllLabels() },
+    { key: 'bitteam',           icon: '🛠️', label: 'BIT TEAM',          values: [...new Set(nodes.map(n => n.bitteam).filter(Boolean))] },
+    { key: 'leverancier',       icon: '🏢', label: 'Leverancier',       values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
+    { key: 'servicelevel',      icon: '📊', label: 'Servicelevel',      values: [...new Set(nodes.map(n => n.servicelevel).filter(Boolean))] },
+    
+    { key: 'label',             icon: '🏷️', label: 'Label',             values: getAllLabels() },
   ];
+
+  // ... rest van je bestaande render code ...
   let hasAny = false;
   sections.forEach(sec => {
     if (sec.values.length === 0) return;
@@ -2180,7 +2693,7 @@ function renderLabelFilterDropdown() {
       item.className = 'lf-item';
       const cb = document.createElement('input');
       cb.type = 'checkbox';
-      cb.checked = activeFilters[sec.key].has(val);
+      cb.checked = activeFilters[sec.key]?.has(val) || false;
       cb.addEventListener('change', () => {
         if (cb.checked) activeFilters[sec.key].add(val);
         else activeFilters[sec.key].delete(val);
@@ -2210,7 +2723,8 @@ document.getElementById('lf-clear').addEventListener('click', () => {
 window.addEventListener('click', () => {
   document.getElementById('label-filter-dropdown').classList.remove('show');
 });
-document.getElementById('btn-export-json').addEventListener('click', () => {
+
+function exportProjectJson() {
   const data = JSON.stringify({
     nodes: nodes.map(n => ({...n, el: null})),
     arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})),
@@ -2225,13 +2739,57 @@ document.getElementById('btn-export-json').addEventListener('click', () => {
   a.download = 'visual-board-project.json';
   a.click();
   showToast("Project geëxporteerd!");
+}
+
+function createNewCanvas() {
+  nodes.forEach(n => n.el.remove());
+  arrows.forEach(a => removeArrowEls(a));
+  nodes = [];
+  arrows = [];
+  nodeId = 0;
+  arrowId = 0;
+  panel.classList.remove('open');
+  panelTarget = null;
+  clearWaypointHandles();
+  clearMultiSelection();
+  selectedNodeId = null;
+  anchorsGroup.innerHTML = '';
+  waypointsGroup.innerHTML = '';
+  tempLine.setAttribute('d', '');
+  historyStack = [];
+  historyIndex = -1;
+  saveState();
+  showToast('Nieuw canvas gestart');
+}
+
+const newProjectModal = document.getElementById('new-project-modal');
+const closeNewProjectModal = () => newProjectModal.classList.remove('show');
+document.getElementById('btn-new-project').addEventListener('click', () => {
+  newProjectModal.classList.add('show');
 });
+document.getElementById('btn-np-cancel').addEventListener('click', closeNewProjectModal);
+document.getElementById('btn-np-export').addEventListener('click', () => {
+  exportProjectJson();
+  closeNewProjectModal();
+});
+document.getElementById('btn-np-create').addEventListener('click', () => {
+  createNewCanvas();
+  closeNewProjectModal();
+});
+newProjectModal.addEventListener('click', (e) => {
+  if (e.target === newProjectModal) closeNewProjectModal();
+});
+
+document.getElementById('btn-export-json').addEventListener('click', exportProjectJson);
 document.getElementById('btn-import-json').addEventListener('click', () => {
-  document.getElementById('json-import').click();
+  const importInput = document.getElementById('json-import');
+  importInput.value = '';
+  importInput.click();
 });
 
 document.getElementById('json-import').addEventListener('change', (e) => {
-  const file = e.target.files[0];
+  const inputEl = e.target;
+  const file = inputEl.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -2241,6 +2799,8 @@ document.getElementById('json-import').addEventListener('change', (e) => {
       showToast("Project succesvol geïmporteerd!");
     } catch (err) {
       showToast("Fout bij importeren: " + err.message);
+    } finally {
+      inputEl.value = '';
     }
   };
   reader.readAsText(file);
