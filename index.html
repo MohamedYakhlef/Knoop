@@ -146,6 +146,7 @@
     pointer-events: all; cursor: crosshair; transition: r 0.15s, fill 0.15s;
   }
   .anchor-point:hover { r: 8px; fill: var(--accent3); stroke: #000; }
+.anchor-point.magnet-hover { r: 10px; fill: var(--accent3); stroke: #000; stroke-width: 2.5; }
 
   /* ── WAYPOINT HANDLES (Vrije Lijnbewerking) ── */
   .waypoint-handle {
@@ -782,6 +783,7 @@ let selectedNodeId = null;
 let multiSelectedNodes = new Set();
 let zoomLevel = 1;
 let topZ = 10;
+let magnetTarget = null; // { nodeId, port } – voor magnetisch snappen bij pijl tekenen
 
 const canvas = document.getElementById('canvas'), world = document.getElementById('world');
 const svgLayer = document.getElementById('svg-layer'), arrowsGroup = document.getElementById('arrows-group');
@@ -1493,13 +1495,47 @@ if (arrowSource && currentTool === 'arrow') {
     const cRect = canvas.getBoundingClientRect();
     const mx = (e.clientX - cRect.left - (parseFloat(world.style.left) || 0)) / zoomLevel;
     const my = (e.clientY - cRect.top - (parseFloat(world.style.top) || 0)) / zoomLevel;
-    
+
     const sourceNode = nodes.find(n => n.id === arrowSource);
     if (sourceNode) {
-      // Haal de startpositie op van het ankerpunt
       const startPos = getAnchorPos(sourceNode, arrowSourcePort);
-      // Teken de tijdelijke lijn van start naar muis
-      tempLine.setAttribute('d', `M ${startPos.x} ${startPos.y} L ${mx} ${my}`);
+
+      // ── MAGNETISCH SNAPPEN ────────────────────────────────────────────
+      const SNAP_THRESHOLD = 40; // pixels in world-coördinaten
+      let snapX = mx, snapY = my;
+      let foundMagnet = null;
+
+      // Reset alle anchor highlights
+      anchorsGroup.querySelectorAll('.anchor-point').forEach(c => c.classList.remove('magnet-hover'));
+
+      let bestDist = SNAP_THRESHOLD;
+      nodes.forEach(n => {
+        if (n.id === arrowSource) return; // sla bronknooppunt over
+        for (let i = 0; i < 8; i++) {
+          const pos = getAnchorPos(n, i);
+          const dist = Math.sqrt((pos.x - mx) ** 2 + (pos.y - my) ** 2);
+          if (dist < bestDist) {
+            bestDist = dist;
+            snapX = pos.x;
+            snapY = pos.y;
+            foundMagnet = { nodeId: n.id, port: i };
+          }
+        }
+      });
+
+      magnetTarget = foundMagnet;
+
+      // Highlight het dichtstbijzijnde ankerpunt
+      if (foundMagnet) {
+        anchorsGroup.querySelectorAll('.anchor-point').forEach(c => {
+          if (c.dataset.node === foundMagnet.nodeId && parseInt(c.dataset.port) === foundMagnet.port) {
+            c.classList.add('magnet-hover');
+          }
+        });
+      }
+      // ──────────────────────────────────────────────────────────────────
+
+      tempLine.setAttribute('d', `M ${startPos.x} ${startPos.y} L ${snapX} ${snapY}`);
     }
   }
   if (!selectBoxStart) return;
@@ -1509,14 +1545,34 @@ if (arrowSource && currentTool === 'arrow') {
 });
 document.addEventListener('mouseup', e => {
   if (draggingWaypoint) { saveState(); draggingWaypoint = null; return; }
-  if (currentTool === 'arrow') {
+if (currentTool === 'arrow') {
     const targetEl = document.elementFromPoint(e.clientX, e.clientY);
     const isAnchor = targetEl && targetEl.classList.contains('anchor-point');
-    if (!isAnchor) {
-      // Klik naast een puntje: annuleer tekenen
-      arrowSource = null;
-      tempLine.setAttribute('d', '');
+
+    if (isAnchor) {
+      // Exacte klik op ankerpunt → afhandeling via anchor click event
+      magnetTarget = null;
+      return;
     }
+
+    if (magnetTarget && arrowSource && magnetTarget.nodeId !== arrowSource) {
+      // Magnetisch snap: maak pijl naar het dichtstbijzijnde ankerpunt
+      const newArrow = createArrow(arrowSource, magnetTarget.nodeId, arrowSourcePort, magnetTarget.port);
+      saveState();
+      setTool('pointer');
+      openArrowPanel(newArrow.id);
+      arrowSource = null;
+      magnetTarget = null;
+      tempLine.setAttribute('d', '');
+      anchorsGroup.querySelectorAll('.anchor-point').forEach(c => c.classList.remove('magnet-hover'));
+      return;
+    }
+
+    // Geen anchor getroffen en geen magneet: annuleer tekenen
+    arrowSource = null;
+    magnetTarget = null;
+    tempLine.setAttribute('d', '');
+    anchorsGroup.querySelectorAll('.anchor-point').forEach(c => c.classList.remove('magnet-hover'));
     return;
   }
 
