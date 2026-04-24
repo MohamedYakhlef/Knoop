@@ -132,8 +132,8 @@
 #anchors-svg {
   /* blijft al op z-index:999 (inline) → blijft altijd bovenaan */
 }
-#svg-layer .arrow-path {
-    fill: none; stroke: var(--accent); stroke-width: 2.5;
+  #svg-layer .arrow-path {
+    fill: none; stroke: var(--accent); stroke-width: 2.5; marker-end: url(#arrowhead);
     pointer-events: stroke; cursor: pointer; transition: stroke .15s;
   }
   #svg-layer .arrow-path:hover { stroke: var(--accent2); }
@@ -146,28 +146,6 @@
     pointer-events: all; cursor: crosshair; transition: r 0.15s, fill 0.15s;
   }
   .anchor-point:hover { r: 8px; fill: var(--accent3); stroke: #000; }
-
-  /* ── WAYPOINT HANDLES (Vrije Lijnbewerking) ── */
-  .waypoint-handle {
-    fill: #fff; stroke: var(--accent2); stroke-width: 2.5;
-    pointer-events: all; cursor: grab; transition: fill 0.15s, r 0.1s;
-  }
-  .waypoint-handle:hover { fill: var(--accent2); }
-  .waypoint-handle.dragging { cursor: grabbing; fill: var(--accent2); }
-  .waypoint-seg-hit {
-    fill: none; stroke: transparent; stroke-width: 18;
-    pointer-events: stroke; cursor: cell;
-  }
-  /* Route mode toggle buttons */
-  .route-btn {
-    flex: 1; justify-content: center; font-size: 11px;
-    padding: 7px 6px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface2);
-    color: var(--text); font-family: 'DM Mono', monospace;
-    cursor: pointer; transition: all .15s; text-align: center;
-  }
-  .route-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .route-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   /* ── NODE CARDS ── */
   .node {
@@ -246,13 +224,6 @@ node.shape-text {
   .node.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
   .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
-.node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
-.node.connected-highlight {
-  border-color: var(--accent3) !important;
-  box-shadow: 0 0 0 2px rgba(92,248,200,0.25), 0 8px 28px rgba(92,248,200,0.12) !important;
-}
-#svg-layer .arrow-path.active-connection { stroke-width: 3.5 !important; opacity: 1; }
-#svg-layer .arrow-path.arrow-dimmed { opacity: 0.12; }
   .node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
 
   .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
@@ -297,18 +268,8 @@ node.shape-text {
     display: flex; justify-content: flex-start; gap: 4px; padding: 6px 10px 8px;
     border-top: none; margin-top: auto; flex: 0 0 auto;
   }
- .node.shape-text .node-footer { display: none; }
+ .node.shape-oval .node-footer, .node.shape-text .node-footer { display: none; }
 
-  /* Voeg dit toe onder je andere node-footer stijlen */
-.node.shape-oval .node-footer {
-    display: flex;
-    justify-content: flex-start; /* Zet de knopjes aan de linkerkant */
-    padding-left: 0px;          /* De afstand vanaf de linkerrand (genoeg voor de ronding) */
-    padding-bottom: 12px;        /* De afstand vanaf de onderkant (zodat ze in de ronding blijven) */
-    gap: 6px;
-    margin-top: auto;            /* Zorgt dat ze altijd onderaan de vorm blijven staan */
-}
-  
 /* Gebied: geen onderste lijn */
 .node.shape-area .node-footer {
     border-top: none !important;
@@ -323,10 +284,6 @@ node.shape-text {
   .node:hover .node-btn { opacity: 1; }
   .node-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
   .node-btn.del:hover { background: var(--accent2); border-color: var(--accent2); }
-.node-btn.pin { font-size: 11px; }
-.node-btn.pin.pinned { background: #f59e0b; border-color: #f59e0b; color: #fff; }
-.node.pinned { cursor: default !important; }
-.node.pinned .resize-handle { display: none; }
 
   .node .resize-handle {
     position: absolute; bottom: 8px; right: 8px; width: 18px; height: 18px; cursor: nwse-resize; opacity: 0; transition: opacity .2s; z-index: 10;
@@ -427,12 +384,10 @@ node.shape-text {
   .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 9px 12px; outline: none; resize: vertical; transition: border-color .15s; }
   .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
 
-.view-line { margin-bottom: 16px; }
-.view-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-.view-value { font-size: 15px; color: var(--text); margin-top: 3px; word-break: break-word; line-height: 1.5; }
-.view-value a { color: var(--accent); text-decoration: underline; }
-.view-img { width: 100%; border-radius: 8px; object-fit: cover; margin-bottom: 16px; border: 1px solid var(--border); }
-#panel-view { padding-bottom: 16px; }
+  .view-line { margin-bottom: 12px; }
+  .view-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+  .view-value { font-size: 14px; color: var(--text); margin-top: 2px; word-break: break-word; }
+  .view-value a { color: var(--accent); text-decoration: underline; }
 
   .btn-action { width: 100%; padding: 13px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; margin-bottom: 10px; }
   .btn-save { background: #10b981; color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
@@ -442,7 +397,7 @@ node.shape-text {
   .btn-del-panel { background: transparent; border: 2px solid #ef4444; color: #ef4444; }
   .btn-del-panel:hover { background: #ef4444; color: #fff; }
 
-  #temp-line { position: absolute; pointer-events: none; stroke: var(--accent2); stroke-width: 2.5; stroke-dasharray: 6 4; fill: none; marker-end: url(#arrowhead-temp); overflow: visible; }
+  #temp-line { position: absolute; pointer-events: none; stroke: var(--accent3); stroke-width: 2; stroke-dasharray: 6 4; fill: none; marker-end: url(#arrowhead-temp); overflow: visible; }
   
   #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 2000; white-space: nowrap; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -454,15 +409,8 @@ node.shape-text {
   border-radius: 8px; box-shadow: var(--shadow);
   display: none; flex-direction: column;
   padding: 8px; z-index: 2000;
-  min-width: 260px; max-height: 420px; overflow-y: auto;
+  min-width: 200px; max-height: 300px; overflow-y: auto;
 }
-.lf-section-header {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--text-dim); text-transform: uppercase;
-  padding: 8px 4px 4px; letter-spacing: .5px;
-  border-top: 1px solid var(--border); margin-top: 4px;
-}
-.lf-section-header:first-child { border-top: none; margin-top: 0; }
 #label-filter-dropdown.show { display: flex; }
 #label-filter-dropdown .lf-header {
   font-family: 'DM Mono', monospace; font-size: 10px;
@@ -490,13 +438,6 @@ node.shape-text {
   border-radius: 10px; padding: 1px 6px;
   font-size: 10px; margin-left: 2px; display: none;
 }
-#autosave-indicator {
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  color: var(--text-dim); margin-left: 8px;
-  transition: color 0.3s;
-}
-#autosave-indicator.saved { color: #22c55e; }
-#autosave-indicator.saving { color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -520,7 +461,6 @@ node.shape-text {
   </div>
   <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
   <button class="tb-btn" id="btn-export" title="Exporteer als Afbeelding" style="margin-left: 8px;">🖼️ Export Image</button>
-  <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
 </div>
 
 <div id="left-toolbar">
@@ -558,7 +498,6 @@ node.shape-text {
     </svg>
     <svg id="anchors-svg" style="position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;overflow:visible;z-index:999;">
       <g id="anchors-group"></g>
-      <g id="waypoints-group" style="pointer-events:all;"></g>
     </svg>
 
     <div id="selection-box"></div>
@@ -570,8 +509,7 @@ node.shape-text {
 
   <div id="panel-view" style="display:none;">
     <div id="view-content"></div>
-   <button class="btn-action btn-edit-mode" id="btn-to-edit">Bewerken ✎</button>
-    <button class="btn-action btn-del-panel" id="btn-view-delete" style="display:none;">Verwijderen 🗑</button>
+    <button class="btn-action btn-edit-mode" id="btn-to-edit">Bewerken ✎</button>
   </div>
 
   <div id="panel-edit" style="display:none;">
@@ -640,35 +578,17 @@ node.shape-text {
   </div>
   <textarea id="f-note" rows="3"></textarea>
 </div>
-<div class="field" id="wrap-keten"><label>Keten</label><input type="text" id="f-keten"></div>
-<div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
-      <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
-<div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
-      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
-      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
+      <div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
+    <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
+      <div class="field"><label>Label (voor filter)</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
 
 <div id="panel-arrow-fields" style="display:none">
-      <button class="btn-action btn-edit-mode" id="btn-reanchor" style="margin-bottom: 20px; background: var(--accent3); color: #000;">🎯 Punt verplaatsen</button>
       <div class="field"><label>Label</label><input type="text" id="f-arrow-label" placeholder="Verbinding…"></div>
       <div class="field"><label>URL</label><input type="url" id="f-arrow-url" placeholder="https://…"></div>
+<div class="field"><label>Label (voor filter)</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
       <div class="field"><label>Vorm</label><select id="f-arrow-shape"><option value="straight">Recht</option><option value="curve">Gebogen</option></select></div>
-
-      <!-- Lijn modus: Vaste vorm vs Vrije vorm -->
-      <div class="field" id="wrap-arrow-route">
-        <label>Lijn modus</label>
-        <div style="display:flex; gap:6px; margin-bottom:6px;">
-          <button id="btn-route-auto" class="route-btn active">📐 Vaste vorm</button>
-          <button id="btn-route-custom" class="route-btn">✏️ Vrije vorm</button>
-        </div>
-        <div id="waypoint-hint" style="display:none; font-size:10px; color:var(--text-dim); font-family:'DM Mono',monospace; padding:8px; background:var(--surface2); border-radius:6px; line-height:1.6;">
-          💡 <b>Klik op de lijn</b> om een punt toe te voegen.<br>
-          <b>Sleep punten</b> om de route te vormen.<br>
-          <b>Dubbelklik</b> op een punt om het te verwijderen.
-        </div>
-      </div>
       <div class="field"><label>Animatie snelheid</label><select id="f-arrow-anim"><option value="none">Uit</option><option value="normal" selected>Normaal</option><option value="fast">Snel</option></select></div>
-<div class="field" style="display:flex;justify-content:space-between;align-items:center;"><label>Tweerichtingsverkeer</label><label class="switch"><input type="checkbox" id="f-arrow-bidirectional"><span class="slider"></span></label></div>
       <div class="field"><label>Stijl</label><select id="f-arrow-style"><option value="dot">Groen Balletje</option><option value="dashed">Bewegende Streepjes</option></select></div>
 <div class="field" id="wrap-arrow-color">
   <label>Kleur pijl</label>
@@ -679,16 +599,10 @@ node.shape-text {
   <div id="color-grid-arrow" class="color-palette-grid"></div>
   <input type="hidden" id="f-arrow-color" value="#7c5cfc">
 </div>
-<div class="field">
+      <div class="field">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Notitie tonen op canvas</label><label class="switch"><input type="checkbox" id="f-arrow-show-note"><span class="slider"></span></label></div>
         <textarea id="f-arrow-note" rows="4" placeholder="Voeg een notitie toe…"></textarea>
       </div>
-<div class="field"><label>Keten</label><input type="text" id="f-arrow-keten"></div>
-<div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
-      <div class="field"><label>Leverancier</label><input type="text" id="f-arrow-leverancier"></div>
-      <div class="field"><label>Servicelevel</label><input type="text" id="f-arrow-servicelevel"></div>
-      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
-      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
 
     <button class="btn-action btn-save" id="panel-save">Opslaan</button>
@@ -781,7 +695,6 @@ let panelTarget = null;
 let selectedNodeId = null;
 let multiSelectedNodes = new Set();
 let zoomLevel = 1;
-let topZ = 10;
 
 const canvas = document.getElementById('canvas'), world = document.getElementById('world');
 const svgLayer = document.getElementById('svg-layer'), arrowsGroup = document.getElementById('arrows-group');
@@ -793,29 +706,12 @@ const searchBar = document.getElementById('search-bar');
 // ── UTILS ──────────────────────────────────────────────────────────────────────
 function showToast(msg, ms = 2000) { document.getElementById('toast').textContent = msg; document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), ms); }
 
-let _autoSaveTimer = null;
-function triggerAutoSave(state) {
-  const indicator = document.getElementById('autosave-indicator');
-  if (indicator) { indicator.textContent = '⏳ Opslaan…'; indicator.className = 'saving'; }
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem('visualboard_autosave', state);
-      localStorage.setItem('visualboard_autosave_time', Date.now());
-      if (indicator) { indicator.textContent = '✓ Opgeslagen'; indicator.className = 'saved'; }
-    } catch(e) {
-      if (indicator) { indicator.textContent = '⚠ Opslaan mislukt'; indicator.className = 'saving'; }
-    }
-  }, 1500);
-}
-
 function saveState() {
   if (isRestoring) return;
   const state = JSON.stringify({ nodes: nodes.map(n => ({...n, el: null})), arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null})), nodeId, arrowId });
   if (historyIndex < historyStack.length - 1) historyStack.splice(historyIndex + 1);
   historyStack.push(state);
   historyIndex++;
-  triggerAutoSave(state);
 }
 
 function loadState(stateStr) {
@@ -831,14 +727,9 @@ data.nodes.forEach(nd => {
     const savedEl = n.el;           // bewaar DOM-referentie
     Object.assign(n, nd);           // laad opgeslagen data (overschrijft el met null)
     n.el = savedEl;                 // herstel DOM-referentie
-  n.el.style.width  = n.width  + 'px';
-n.el.style.height = n.height + 'px';
-if (n.pinned) {
-  n.el.classList.add('pinned');
-  n.el.querySelector('.pin').classList.add('pinned');
-  n.el.querySelector('.pin').title = 'Losmaken';
-}
-renderNode(n);
+    n.el.style.width  = n.width  + 'px';
+    n.el.style.height = n.height + 'px';
+    renderNode(n);                  // teken data op canvas (leest NIET uit formulier)
 });
 data.arrows.forEach(ad => {
     const a = createArrow(ad.from, ad.to, ad.fromPort, ad.toPort, ad.id);
@@ -854,29 +745,6 @@ data.arrows.forEach(ad => {
 });
   updateAllDots(); isRestoring = false;
 }
-
-// ── AUTOSAVE HERSTEL ───────────────────────────────────────────────────────────
-setTimeout(() => {
-  try {
-    const saved = localStorage.getItem('visualboard_autosave');
-    const savedTime = localStorage.getItem('visualboard_autosave_time');
-    const indicator = document.getElementById('autosave-indicator');
-    if (saved) {
-      const date = savedTime ? new Date(parseInt(savedTime)).toLocaleString('nl-NL') : 'onbekend';
-      if (confirm(`📂 Automatisch opgeslagen werk gevonden (${date}).\n\nWil je dit herstellen?`)) {
-        loadState(saved);
-        saveState();
-        if (indicator) { indicator.textContent = '✓ Hersteld'; indicator.className = 'saved'; }
-      } else {
-        if (indicator) { indicator.textContent = '—'; indicator.className = 'saving'; }
-      }
-    } else {
-      if (indicator) { indicator.textContent = '—'; indicator.className = 'saving'; }
-    }
-  } catch(e) {
-    console.warn('Autosave herstel mislukt:', e);
-  }
-}, 0);
 
 document.getElementById('tool-undo').addEventListener('click', () => { if (historyIndex > 0) loadState(historyStack[--historyIndex]); });
 document.getElementById('tool-redo').addEventListener('click', () => { if (historyIndex < historyStack.length - 1) loadState(historyStack[++historyIndex]); });
@@ -980,7 +848,6 @@ function createNode(x, y, shape = 'square', title = '', forceId = null) {
     </div>
     <div class="node-footer">
       <button class="node-btn edit" title="Bewerken" data-id="${id}">✎</button>
-<button class="node-btn pin" title="Vastpinnen" data-id="${id}">📌</button>
     </div>
     <div class="resize-handle"></div>`;
   world.appendChild(el);
@@ -993,7 +860,7 @@ const node = {
     fontWeight: 'normal', fontStyle: 'normal', fontSize: 14,
     showImg: true, img: '', 
     showNote: true,                    // ← NIEUWE REGEL
-   keten: '', behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, el
+    behandelaarsgroep: '', leverancier: '', filterLabel: '', el
   };
   
 if (shape === 'text') { 
@@ -1025,10 +892,8 @@ node.el.addEventListener('mousedown', e => {
     }
     
     if (currentTool === 'arrow') return; // afhandeling via anchors
-if (node.pinned) return; // vastgepind: niet slepen
 
     isDragging = false;
-    node.el.style.zIndex = ++topZ;
     const startX = e.clientX, startY = e.clientY;
 
     if (!multiSelectedNodes.has(node.id) && !e.shiftKey) {
@@ -1065,7 +930,6 @@ if (node.pinned) return; // vastgepind: niet slepen
 
   // Resize
   node.el.querySelector('.resize-handle').addEventListener('mousedown', e => {
-    if (node.pinned) return;
     e.stopPropagation(); const startX = e.clientX, startY = e.clientY, startW = node.width, startH = node.height;
     function onMove(ev) {
       node.width = Math.max(50, startW + (ev.clientX - startX)/zoomLevel);
@@ -1077,16 +941,8 @@ if (node.pinned) return; // vastgepind: niet slepen
     document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
   });
   
-  if(node.shape !== 'text') {
+  if(node.shape !== 'oval' && node.shape !== 'text') {
     node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
-node.el.querySelector('.pin').addEventListener('click', e => {
-  e.stopPropagation();
-  node.pinned = !node.pinned;
-  node.el.classList.toggle('pinned', node.pinned);
-  node.el.querySelector('.pin').classList.toggle('pinned', node.pinned);
-  node.el.querySelector('.pin').title = node.pinned ? 'Losmaken' : 'Vastpinnen';
-  saveState();
-});
   }
 }
 
@@ -1111,47 +967,29 @@ function getAnchorPos(node, port) {
 
 function renderAnchors() {
   anchorsGroup.innerHTML = '';
+  if (currentTool !== 'arrow') return;
   nodes.forEach(n => {
-    // Deze regel zorgt ervoor dat alle 9 punten per vakje worden getekend
-    for (let i = 0; i < 8; i++) { 
+    for(let i=0; i<8; i++) {
       const pos = getAnchorPos(n, i);
       const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      c.classList.add('anchor-point');
-      c.setAttribute('cx', pos.x);
+      c.classList.add('anchor-point'); 
+      c.setAttribute('cx', pos.x); 
       c.setAttribute('cy', pos.y);
-      c.setAttribute('r', '6');
-      c.dataset.node = n.id;
+      c.dataset.node = n.id; 
       c.dataset.port = i;
-
-      c.addEventListener('click', e => {
+c.addEventListener('click', e => {
         e.stopPropagation();
-        
-        // Logica voor her-ankeren (bestaande pijl verplaatsen)
-        if (reanchoringArrowId) {
-          const a = arrows.find(x => x.id === reanchoringArrowId);
-          if (a) {
-            a.to = n.id;
-            a.toPort = i;
-            updateArrow(a);
-            saveState();
-            showToast("Pijlpunt verplaatst!");
-          }
-          reanchoringArrowId = null;
-          anchorsGroup.innerHTML = ''; 
-          return;
-        }
-
-        // Logica voor een nieuwe pijl trekken
         if (!arrowSource) {
           arrowSource = n.id;
           arrowSourcePort = i;
-          showToast("Kies nu het eindpunt");
         } else {
           if (n.id !== arrowSource) {
             const newArrow = createArrow(arrowSource, n.id, arrowSourcePort, i);
             saveState();
-            setTool('pointer');
-            openArrowPanel(newArrow.id);
+            // --- DEZE REGEL IS NIEUW ---
+            setTool('pointer'); 
+            // ---------------------------
+            openArrowPanelEdit(newArrow.id);
           }
           arrowSource = null;
           tempLine.setAttribute('d', '');
@@ -1178,7 +1016,7 @@ urlIconEl.addEventListener('click', e => { e.stopPropagation(); if(arrow.url) wi
 
       [bgPathEl, pathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl].forEach(el => arrowsGroup.appendChild(el));
 
- // --- NIEUW: Maak een unieke pijlpunt voor deze specifieke pijl ---
+      // --- NIEUW: Maak een unieke pijlpunt voor deze specifieke pijl ---
       const markerId = 'arrowhead-' + id;
       const markerEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
       markerEl.setAttribute('id', markerId); markerEl.setAttribute('markerWidth', '8'); markerEl.setAttribute('markerHeight', '8'); markerEl.setAttribute('refX', '7'); markerEl.setAttribute('refY', '3'); markerEl.setAttribute('orient', 'auto');
@@ -1189,15 +1027,7 @@ urlIconEl.addEventListener('click', e => { e.stopPropagation(); if(arrow.url) wi
       document.querySelector('defs').appendChild(markerEl);
       // -----------------------------------------------------------------
 
-      const dotEl2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dotEl2.setAttribute('r','5'); dotEl2.setAttribute('fill','#5cf8c8'); dotEl2.style.display='none';
-arrowsGroup.appendChild(dotEl2);
-const markerStartId = 'arrowhead-start-' + id;
-const markerStartEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('markerWidth', '8'); markerStartEl.setAttribute('markerHeight', '8'); markerStartEl.setAttribute('refX', '1'); markerStartEl.setAttribute('refY', '3'); markerStartEl.setAttribute('orient', 'auto-start-reverse');
-const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-markerStartPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', '#7c5cfc');
-markerStartEl.appendChild(markerStartPathEl); document.querySelector('defs').appendChild(markerStartEl);
-const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };
+      const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', pathEl, bgPathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl };
       arrows.push(arrow);
 
   hitEl.addEventListener('click', e => {
@@ -1211,21 +1041,11 @@ const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 
 function updateArrow(arrow) {
   const f = nodes.find(n => n.id === arrow.from), t = nodes.find(n => n.id === arrow.to);
   if (!f || !t) return;
-  let p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
-if (arrow.bidirectional) {
-  const dx = p2.x - p1.x, dy = p2.y - p1.y;
-  const len = Math.sqrt(dx*dx + dy*dy) || 1;
-  p1 = { x: p1.x + dx/len * 14, y: p1.y + dy/len * 14 };
-}
+  const p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
 
-let d = '';
-  if (arrow.routeMode === 'custom' && arrow.waypoints && arrow.waypoints.length > 0) {
-    d = `M ${p1.x} ${p1.y}`;
-    arrow.waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
-    d += ` L ${p2.x} ${p2.y}`;
-  } else if (arrow.shape === 'straight') {
-    d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
-  } else {
+  let d = '';
+  if (arrow.shape === 'straight') d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+  else {
     const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy), offset = Math.min(60, len * 0.3);
     const nx = -dy/len, ny = dx/len;
     d = `M ${p1.x} ${p1.y} Q ${p1.x + dx/2 + nx*offset} ${p1.y + dy/2 + ny*offset} ${p2.x} ${p2.y}`;
@@ -1236,14 +1056,12 @@ arrow.bgPathEl.setAttribute('d', d); arrow.pathEl.setAttribute('d', d); arrow.hi
   
   // --- NIEUW: Kleur van de punt gelijktrekken met de pijl ---
   if (arrow.markerPathEl) arrow.markerPathEl.setAttribute('fill', arrow.color);
-if (arrow.markerStartPathEl) arrow.markerStartPathEl.setAttribute('fill', arrow.color);
-arrow.pathEl.setAttribute('marker-start', arrow.bidirectional ? `url(#${arrow.markerStartEl.id})` : '');
 
   const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
   arrow.labelEl.setAttribute('x', mx); arrow.labelEl.setAttribute('y', my - 10);
   arrow.labelEl.textContent = arrow.label || '';
   // Gebruik onze unieke pijlpunt (behalve als hij is geselecteerd, dan tijdelijk roze)
- arrow.pathEl.setAttribute('marker-end', `url(#${arrow.markerEl.id})`);
+  arrow.pathEl.setAttribute('marker-end', panelTarget && panelTarget.id===arrow.id ? 'url(#arrowhead-sel)' : `url(#${arrow.markerEl.id})`);
 
   // Notitie tonen op canvas
   if (arrow.noteEl) {
@@ -1281,48 +1099,16 @@ function startDotAnimation(arrow) {
     if (arrow.style === 'dashed') {
       arrow.dashOffset -= speed * 200;
       arrow.pathEl.style.strokeDashoffset = arrow.dashOffset;
-      if (arrow.bidirectional) {
-        if (!arrow._dashPath2) {
-          arrow._dashPath2 = arrow.pathEl.cloneNode();
-          arrow._dashPath2.style.strokeDashoffset = '';
-          arrow._dashPath2.setAttribute('marker-end', '');
-          arrow.pathEl.parentNode.insertBefore(arrow._dashPath2, arrow.pathEl.nextSibling);
-        }
-        arrow._dashPath2.setAttribute('d', arrow.pathEl.getAttribute('d'));
-        arrow._dashPath2.style.stroke = arrow.color;
-        arrow._dashPath2.style.strokeDasharray = '8,8';
-        arrow._dashPath2.style.strokeDashoffset = -arrow.dashOffset;
-      }
     } else {
       t = (t + speed) % 1;
       arrow.dotEl.style.display = '';
       try { const pt = arrow.pathEl.getPointAtLength(t * arrow.pathEl.getTotalLength()); arrow.dotEl.setAttribute('cx', pt.x); arrow.dotEl.setAttribute('cy', pt.y); } catch(e){}
-      if (arrow.bidirectional && arrow.dotEl2) {
-        const t2 = (1 - t) % 1;
-        arrow.dotEl2.style.display = '';
-        try { const pt2 = arrow.pathEl.getPointAtLength(t2 * arrow.pathEl.getTotalLength()); arrow.dotEl2.setAttribute('cx', pt2.x); arrow.dotEl2.setAttribute('cy', pt2.y); } catch(e){}
-      } else if (arrow.dotEl2) { arrow.dotEl2.style.display = 'none'; }
     }
     arrow._animFrame = requestAnimationFrame(tick);
   }
   tick();
 }
-function updateAllDots() {
-  arrows.forEach(a => {
-    if (a._animFrame) cancelAnimationFrame(a._animFrame);
-    a._animFrame = null;
-    a.dotEl.style.display = 'none';
-    if (a.style === 'dashed') {
-      a.pathEl.style.strokeDashoffset = '';
-    }
-  });
-  // Herstart animaties alleen voor pijlen van geselecteerd vakje
-  if (selectedNodeId) {
-    arrows.forEach(a => {
-      if (a.from === selectedNodeId || a.to === selectedNodeId) startDotAnimation(a);
-    });
-  }
-}
+function updateAllDots() { arrows.forEach(a => startDotAnimation(a)); }
 
 function deleteNode(id) {
   const node = nodes.find(n => n.id === id); if (!node) return; node.el.remove();
@@ -1336,98 +1122,7 @@ function deleteArrow(id) {
   arrows = arrows.filter(x => x.id !== id);
   if (panelTarget && panelTarget.id === id) panel.classList.remove('open');
 }
-function removeArrowEls(a) { if (a._animFrame) cancelAnimationFrame(a._animFrame); a.bgPathEl.remove(); a.pathEl.remove(); a.hitEl.remove(); a.dotEl.remove(); if(a.dotEl2) a.dotEl2.remove(); a.labelEl.remove(); if(a.noteEl) a.noteEl.remove(); if(a.urlLinkEl) a.urlLinkEl.remove(); if(a.markerEl) a.markerEl.remove(); if(a.markerStartEl) a.markerStartEl.remove(); if(a._dashPath2) a._dashPath2.remove(); }
-
-// ── VRIJE LIJNBEWERKING (Waypoints) ─────────────────────────────────────────
-const waypointsGroup = document.getElementById('waypoints-group');
-let draggingWaypoint = null; // { arrow, idx }
-let reanchoringArrowId = null;
-let editingArrow = null;
-
-function clearWaypointHandles() {
-  waypointsGroup.innerHTML = '';
-  editingArrow = null;
-}
-
-function renderWaypointHandles(arrow) {
-  waypointsGroup.innerHTML = '';
-  if (!arrow || arrow.routeMode !== 'custom') return;
-  editingArrow = arrow;
-
-  const f = nodes.find(n => n.id === arrow.from);
-  const t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-
-  const p1 = getAnchorPos(f, arrow.fromPort);
-  const p2 = getAnchorPos(t, arrow.toPort);
-  const allPoints = [p1, ...arrow.waypoints, p2];
-
-  // Invisible hit segments between handles to click-add waypoints
-  for (let i = 0; i < allPoints.length - 1; i++) {
-    const seg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    seg.setAttribute('x1', allPoints[i].x);
-    seg.setAttribute('y1', allPoints[i].y);
-    seg.setAttribute('x2', allPoints[i+1].x);
-    seg.setAttribute('y2', allPoints[i+1].y);
-    seg.classList.add('waypoint-seg-hit');
-    seg.dataset.segIndex = i;
-    (function(segIdx) {
-      seg.addEventListener('click', e => {
-        e.stopPropagation();
-        const cRect = canvas.getBoundingClientRect();
-        const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
-        const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
-        // segIdx: 0 = between p1 and first wp, 1 = between first/second wp, etc.
-        arrow.waypoints.splice(segIdx, 0, { x: mx, y: my });
-        updateArrow(arrow);
-        renderWaypointHandles(arrow);
-        saveState();
-      });
-    })(i);
-    waypointsGroup.appendChild(seg);
-  }
-
-
-  // Draggable handles for each waypoint
-  arrow.waypoints.forEach((wp, idx) => {
-    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.classList.add('waypoint-handle');
-    c.setAttribute('cx', wp.x);
-    c.setAttribute('cy', wp.y);
-    c.setAttribute('r', 7);
-
-    c.addEventListener('dblclick', e => {
-      e.stopPropagation();
-      arrow.waypoints.splice(idx, 1);
-      updateArrow(arrow);
-      renderWaypointHandles(arrow);
-      saveState();
-    });
-
-    c.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      draggingWaypoint = { arrow, idx };
-      c.classList.add('dragging');
-    });
-
-    waypointsGroup.appendChild(c);
-  });
-}
-
-function initDefaultWaypoints(arrow) {
-  const f = nodes.find(n => n.id === arrow.from);
-  const t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-  const p1 = getAnchorPos(f, arrow.fromPort);
-  const p2 = getAnchorPos(t, arrow.toPort);
-  // Start with two waypoints forming an orthogonal route
-  const midX = (p1.x + p2.x) / 2;
-  arrow.waypoints = [
-    { x: midX, y: p1.y },
-    { x: midX, y: p2.y }
-  ];
-}// ── MULTI-SELECT (Box) ─────────────────────────────────────────────────────────
+function removeArrowEls(a) { if (a._animFrame) cancelAnimationFrame(a._animFrame); a.bgPathEl.remove(); a.pathEl.remove(); a.hitEl.remove(); a.dotEl.remove(); a.labelEl.remove(); if(a.noteEl) a.noteEl.remove(); if(a.urlLinkEl) a.urlLinkEl.remove(); if(a.markerEl) a.markerEl.remove(); }// ── MULTI-SELECT (Box) ─────────────────────────────────────────────────────────
 let selectBoxStart = null;
 canvas.addEventListener('mousedown', e => {
 
@@ -1467,27 +1162,14 @@ if (currentTool === 'text') {
   clearMultiSelection();
 });
 document.addEventListener('mousemove', e => {
-  // Waypoint dragging
-  if (draggingWaypoint) {
+  if (arrowSource && currentTool === 'arrow') {
     const cRect = canvas.getBoundingClientRect();
     const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
-    const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
-    draggingWaypoint.arrow.waypoints[draggingWaypoint.idx] = { x: mx, y: my };
-    updateArrow(draggingWaypoint.arrow);
-    renderWaypointHandles(draggingWaypoint.arrow);
-    return;
-  }
-if (arrowSource && currentTool === 'arrow') {
-    const cRect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - cRect.left - (parseFloat(world.style.left) || 0)) / zoomLevel;
-    const my = (e.clientY - cRect.top - (parseFloat(world.style.top) || 0)) / zoomLevel;
-    
+    const my = (e.clientY - cRect.top - (parseFloat(world.style.top)||0)) / zoomLevel;
     const sourceNode = nodes.find(n => n.id === arrowSource);
     if (sourceNode) {
-      // Haal de startpositie op van het ankerpunt
-      const startPos = getAnchorPos(sourceNode, arrowSourcePort);
-      // Teken de tijdelijke lijn van start naar muis
-      tempLine.setAttribute('d', `M ${startPos.x} ${startPos.y} L ${mx} ${my}`);
+      const p1 = getAnchorPos(sourceNode, arrowSourcePort);
+      tempLine.setAttribute('d', `M ${p1.x} ${p1.y} L ${mx} ${my}`);
     }
   }
   if (!selectBoxStart) return;
@@ -1496,7 +1178,6 @@ if (arrowSource && currentTool === 'arrow') {
   selectionBox.style.left = x + 'px'; selectionBox.style.top = y + 'px'; selectionBox.style.width = w + 'px'; selectionBox.style.height = h + 'px';
 });
 document.addEventListener('mouseup', e => {
-  if (draggingWaypoint) { saveState(); draggingWaypoint = null; return; }
   if (currentTool === 'arrow') {
     const targetEl = document.elementFromPoint(e.clientX, e.clientY);
     const isAnchor = targetEl && targetEl.classList.contains('anchor-point');
@@ -1528,44 +1209,9 @@ document.addEventListener('mouseup', e => {
 function clearMultiSelection() { multiSelectedNodes.clear(); document.querySelectorAll('.multi-selected').forEach(el => el.classList.remove('multi-selected')); }
 
 function selectNodeForAnim(id) {
-  // Reset alles
-  document.querySelectorAll('.node').forEach(n => {
-    n.classList.remove('highlight', 'dimmed', 'connected-highlight');
-  });
-  arrows.forEach(a => {
-    if (a._animFrame) cancelAnimationFrame(a._animFrame);
-    a._animFrame = null;
-    a.dotEl.style.display = 'none';
-    a.pathEl.classList.remove('active-connection');
-    a.pathEl.style.strokeWidth = '';
-    if (a.style === 'dashed') a.pathEl.style.strokeDashoffset = '';
-  });
-
-  // Zelfde vakje nogmaals: deselecteer
+  document.querySelectorAll('.node.highlight').forEach(n => n.classList.remove('highlight'));
   if (selectedNodeId === id) { selectedNodeId = null; return; }
-  selectedNodeId = id;
-
-  // Highlight geselecteerd vakje
-  const selEl = document.querySelector(`.node[data-id="${id}"]`);
-  if (selEl) selEl.classList.add('highlight');
-
-  // Vind gekoppelde pijlen en vakjes
-  const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
-  const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
-
-// Glow op gekoppelde vakjes
-nodes.forEach(n => {
-  if (n.id === id) return;
-  if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
-});
-
-  // Highlight gekoppelde pijlen + animatie, dim de rest
-arrows.forEach(a => {
-  if (a.from === id || a.to === id) {
-    a.pathEl.classList.add('active-connection');
-    startDotAnimation(a);
-  }
-});
+  selectedNodeId = id; const el = document.querySelector(`.node[data-id="${id}"]`); if (el) el.classList.add('highlight');
 }
 
 // ── SEARCH ─────────────────────────────────────────────────────────────────────
@@ -1665,10 +1311,8 @@ function applyLiveNodeChanges(n) {
   n.color = document.getElementById('f-text-color').value; 
   n.url = document.getElementById('f-url').value; 
   n.note = document.getElementById('f-note').value; 
-  n.keten = document.getElementById('f-keten').value;
-  n.behandelaarsgroep = document.getElementById('f-behandelaarsgroep').value;
-  n.leverancier = document.getElementById('f-leverancier').value;
-  n.servicelevel = document.getElementById('f-servicelevel').value;
+  n.behandelaarsgroep = document.getElementById('f-behandelaarsgroep').value; 
+  n.leverancier = document.getElementById('f-leverancier').value; 
   n.showImg = document.getElementById('f-show-image').checked;
   n.showNote = document.getElementById('f-show-note').checked;
   n.filterLabel = document.getElementById('f-node-label').value;
@@ -1738,13 +1382,11 @@ function openNodePanel(id, editMode = false) {
     document.getElementById('f-text-color').value = n.color || '#1a1a2e'; 
     document.getElementById('f-url').value = n.url || ''; 
     document.getElementById('f-note').value = n.note || ''; 
-    document.getElementById('f-keten').value = n.keten || '';
-    document.getElementById('f-behandelaarsgroep').value = n.behandelaarsgroep || '';
-    document.getElementById('f-leverancier').value = n.leverancier || '';
-    document.getElementById('f-servicelevel').value = n.servicelevel || '';
-    document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
+    document.getElementById('f-behandelaarsgroep').value = n.behandelaarsgroep || ''; 
+    document.getElementById('f-leverancier').value = n.leverancier || ''; 
+   document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
     document.getElementById('f-node-label').value = n.filterLabel || '';
-    document.getElementById('f-font-size').value = n.fontSize || 14;
+document.getElementById('f-font-size').value = n.fontSize || 14;
 
 // 2. Zorg dat de kleur-rasters gesloten zijn als je het paneel opent
     const gNode = document.getElementById('color-grid-node');
@@ -1759,14 +1401,12 @@ function openNodePanel(id, editMode = false) {
 
     if (n.shape === 'text') { document.getElementById('text-node-options').style.display = 'flex'; 
                              document.getElementById('wrap-show-img').style.display = 'none'; 
-                             document.getElementById('wrap-keten').style.display = 'none';
                              document.getElementById('wrap-behandelaar').style.display = 'none'; 
                              document.getElementById('wrap-leverancier').style.display = 'none'; }
-else { document.getElementById('text-node-options').style.display = 'none'; 
-      document.getElementById('wrap-show-img').style.display = 'block';
-      document.getElementById('wrap-keten').style.display = 'block';
-      document.getElementById('wrap-behandelaar').style.display = 'block'; 
-      document.getElementById('wrap-leverancier').style.display = 'block'; }
+    else { document.getElementById('text-node-options').style.display = 'none'; 
+          document.getElementById('wrap-show-img').style.display = 'block'; 
+          document.getElementById('wrap-behandelaar').style.display = 'block'; 
+          document.getElementById('wrap-leverancier').style.display = 'block'; }
     const titleInput = document.getElementById('f-title');
     if (titleInput) {
       titleInput.onkeydown = (e) => {
@@ -1777,7 +1417,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
 
 
 
-['f-title','f-node-color','f-text-color','f-url','f-note','f-keten','f-behandelaarsgroep','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-node-label','f-font-size'].forEach(fid => {
+['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-leverancier','f-show-image','f-show-note','f-node-label','f-font-size'].forEach(fid => {
   document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
   document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
 });
@@ -1809,64 +1449,44 @@ else { document.getElementById('text-node-options').style.display = 'none';
       previewText.style.display = ''; btnRemove.style.display = 'none';
       applyLiveNodeChanges(n); saveState();
     };
-} else {
-    document.getElementById('panel-view').style.display = 'block';
-    document.getElementById('panel-edit').style.display = 'none';
-    document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
+  } else {
+    document.getElementById('panel-view').style.display = 'block'; document.getElementById('panel-edit').style.display = 'none'; document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
     document.getElementById('view-content').innerHTML = `
-      ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
       <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.title}</div></div>
       ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
       ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
-      ${n.keten ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${n.keten}</div></div>` : ''}
-      ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
+      ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Groep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
       ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
-      ${n.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${n.servicelevel}</div></div>` : ''}
-      ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
     `;
-    const btnViewDelete = document.getElementById('btn-view-delete');
-    if (btnViewDelete) {
-      btnViewDelete.style.display = 'block';
-      btnViewDelete.onclick = () => {
-        if (confirm('Weet je het zeker? Dit vakje wordt verwijderd.')) {
-          deleteNode(n.id); saveState(); panel.classList.remove('open');
-        }
-      };
-    }
   }
 }
 
 
 function openArrowPanel(id) {
   const a = arrows.find(x => x.id === id); if(!a) return; panelTarget = { type: 'arrow', id }; panel.classList.add('open');
-  arrows.forEach(arr => { if(arr.markerEl) arr.pathEl.setAttribute('marker-end', `url(#${arr.markerEl.id})`); });
+  arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)')); a.pathEl.setAttribute('marker-end', 'url(#arrowhead-sel)');
 
-document.getElementById('panel-view').style.display = 'block';
+  document.getElementById('panel-view').style.display = 'block';
   document.getElementById('panel-edit').style.display = 'none';
-  document.getElementById('btn-view-delete').style.display = 'none';
   document.getElementById('panel-title').childNodes[0].textContent = 'Pijl info';
   document.getElementById('view-content').innerHTML = `
     ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.label}</div></div>` : ''}
     ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${a.url}" target="_blank">${a.url}</a></div></div>` : ''}
     ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
-    ${a.keten ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${a.keten}</div></div>` : ''}
-    ${a.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${a.behandelaarsgroep}</div></div>` : ''}
-    ${a.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${a.leverancier}</div></div>` : ''}
-    ${a.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${a.servicelevel}</div></div>` : ''}
     <div class="view-line"><div class="view-label">Stijl</div><div class="view-value">${a.shape === 'curve' ? 'Gebogen' : 'Recht'} · ${a.style === 'dot' ? 'Balletje' : 'Streepjes'}</div></div>
   `;
 }
 
 function openArrowPanelEdit(id) {
   const a = arrows.find(x => x.id === id); if(!a) return; panelTarget = { type: 'arrow', id }; panel.classList.add('open');
-  arrows.forEach(arr => { if(arr.markerEl) arr.pathEl.setAttribute('marker-end', `url(#${arr.markerEl.id})`); });
+  arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)')); a.pathEl.setAttribute('marker-end', 'url(#arrowhead-sel)');
 
   document.getElementById('panel-view').style.display = 'none';
   document.getElementById('panel-edit').style.display = 'block';
   document.getElementById('panel-node-fields').style.display = 'none';
   document.getElementById('panel-arrow-fields').style.display = 'block';
   document.getElementById('panel-title').childNodes[0].textContent = 'Pijl bewerken';
-  document.getElementById('f-arrow-label').value = a.label; 
+document.getElementById('f-arrow-label').value = a.label; 
   document.getElementById('f-arrow-shape').value = a.shape; 
   document.getElementById('f-arrow-anim').value = a.anim; 
   document.getElementById('f-arrow-style').value = a.style; 
@@ -1874,56 +1494,14 @@ function openArrowPanelEdit(id) {
   // Zorg dat de kleur in het palet wordt geladen
   document.getElementById('f-arrow-color').value = a.color; 
   const gArrow = document.getElementById('color-grid-arrow');
-  if (gArrow) gArrow.classList.remove('open');
-  renderColorGrid('color-grid-arrow', 'f-arrow-color', a);
+  if (gArrow) gArrow.classList.remove('open'); // Sluit hem standaard
+  renderColorGrid('color-grid-arrow', 'f-arrow-color', a); // Teken het raster
   
   document.getElementById('f-arrow-note').value = a.note || ''; 
   document.getElementById('f-arrow-url').value = a.url || ''; 
   document.getElementById('f-arrow-show-note').checked = a.showNote || false;
   document.getElementById('f-arrow-filter-label').value = a.filterLabel || '';
-  document.getElementById('f-arrow-bidirectional').checked = a.bidirectional || false;
-  document.getElementById('f-arrow-keten').value = a.keten || '';
-  document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
-  document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
-  document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
-
-// ── Route Mode Toggle ──────────────────────────────
-  const btnAuto   = document.getElementById('btn-route-auto');
-  const btnCustom = document.getElementById('btn-route-custom');
-  const hint      = document.getElementById('waypoint-hint');
-  const shapeField = document.getElementById('f-arrow-shape').closest('.field');  
-
-  function setRouteMode(mode) {
-    a.routeMode = mode;
-    if (mode === 'custom') {
-      btnAuto.classList.remove('active'); btnCustom.classList.add('active');
-      hint.style.display = 'block';
-      shapeField.style.opacity = '0.4'; shapeField.style.pointerEvents = 'none';
-      if (!a.waypoints || a.waypoints.length === 0) initDefaultWaypoints(a);
-      updateArrow(a); renderWaypointHandles(a);
-    } else {
-      btnCustom.classList.remove('active'); btnAuto.classList.add('active');
-      hint.style.display = 'none';
-      shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
-      clearWaypointHandles(); updateArrow(a);
-    }
-    saveState();
-  }
-
-  // Init button state
-  if (a.routeMode === 'custom') {
-    setRouteMode('custom');
-  } else {
-    btnAuto.classList.add('active'); btnCustom.classList.remove('active');
-    hint.style.display = 'none';
-    shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
-    clearWaypointHandles();
-  }
-  btnAuto.onclick   = () => setRouteMode('auto');
-  btnCustom.onclick = () => setRouteMode('custom');
-  // ─────────────────────────────────────────────────
-
-function syncArrow() {
+  function syncArrow() {
     a.label = document.getElementById('f-arrow-label').value;
     a.shape = document.getElementById('f-arrow-shape').value;
     a.anim  = document.getElementById('f-arrow-anim').value;
@@ -1932,16 +1510,11 @@ function syncArrow() {
     a.note  = document.getElementById('f-arrow-note').value;
     a.url   = document.getElementById('f-arrow-url').value;
     a.filterLabel = document.getElementById('f-arrow-filter-label').value;
-    a.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
-    a.keten = document.getElementById('f-arrow-keten').value;
-    a.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
-    a.leverancier = document.getElementById('f-arrow-leverancier').value;
-    a.servicelevel = document.getElementById('f-arrow-servicelevel').value;
     a.showNote = document.getElementById('f-arrow-show-note').checked;
     updateArrow(a); updateAllDots();
   }
 
-['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label','f-arrow-bidirectional'].forEach(fid => {
+['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label'].forEach(fid => {
     document.getElementById(fid).oninput = syncArrow;
     document.getElementById(fid).onchange = syncArrow;
   });
@@ -1951,15 +1524,13 @@ function syncArrow() {
 document.getElementById('panel-close').onclick = () => {
   panel.classList.remove('open');
   panelTarget = null;
-  clearWaypointHandles();
-  arrows.forEach(arr => { if(arr.markerEl) arr.pathEl.setAttribute('marker-end', `url(#${arr.markerEl.id})`); });
+  arrows.forEach(arr => arr.pathEl.setAttribute('marker-end','url(#arrowhead)'));
 };
 
 // Opslaan & Sluiten
 document.getElementById('panel-save').onclick = () => {
   panel.classList.remove('open');
   panelTarget = null;
-  clearWaypointHandles();
   saveState();
   showToast('Opgeslagen ✓');
 };
@@ -1980,13 +1551,7 @@ document.getElementById('panel-delete').onclick = () => {
     panel.classList.remove('open');
   }
 };
-document.getElementById('btn-reanchor').addEventListener('click', () => {
-  if (panelTarget && panelTarget.type === 'arrow') {
-    reanchoringArrowId = panelTarget.id;
-    renderAnchors(); // Toon de ankerpunten (balletjes)
-    showToast("Klik op een rondje om de pijlpunt te verplaatsen");
-  }
-});
+
 // ── EXPORT IMAGE (Bounding Box) ────────────────────────────────────────────────
 document.getElementById('btn-export').addEventListener('click', async () => {
   if (nodes.length === 0) { showToast('Canvas is leeg'); return; }
@@ -2011,14 +1576,8 @@ document.getElementById('btn-export').addEventListener('click', async () => {
 document.getElementById('btn-theme').addEventListener('click', () => { document.body.classList.toggle('dark'); document.getElementById('theme-icon').textContent = document.body.classList.contains('dark') ? '🌙' : '☀️'; updateArrows(); });
 
 setTimeout(() => { saveState(); }, 500); // init history
-window.addEventListener('beforeunload', e => {
-  e.preventDefault();
-  e.returnValue = '';
-});
 // ── LABEL FILTER ───────────────────────────────────────────────────────────────
-let activeFilters = { keten: new Set(), behandelaarsgroep: new Set(), leverancier: new Set(), label: new Set() };
-function activeFiltersEmpty() { return Object.values(activeFilters).every(s => s.size === 0); }
-function activeFiltersCount() { return Object.values(activeFilters).reduce((t,s) => t + s.size, 0); }
+let activeFilters = new Set();
 
 function getAllLabels() {
   const labels = new Set();
@@ -2031,48 +1590,23 @@ function getAllLabels() {
   return Array.from(labels).sort();
 }
 
-function nodeMatches(n) {
-  if (activeFilters.keten.size > 0 && activeFilters.keten.has(n.keten || '')) return true;
-  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')) return true;
-  if (activeFilters.leverancier.size > 0 && activeFilters.leverancier.has(n.leverancier || '')) return true;
-  if (activeFilters.label.size > 0) {
-    const lbls = (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
-    if (lbls.some(l => activeFilters.label.has(l))) return true;
-  }
-  return false;
-}
-function arrowMatches(a) {
-  if (activeFilters.keten.size > 0 && activeFilters.keten.has(a.keten || '')) return true;
-  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(a.behandelaarsgroep || '')) return true;
-  if (activeFilters.leverancier.size > 0 && activeFilters.leverancier.has(a.leverancier || '')) return true;
-  if (activeFilters.label.size > 0) {
-    const lbls = (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
-    if (lbls.some(l => activeFilters.label.has(l))) return true;
-  }
-  return false;
-}
 function applyLabelFilter() {
-  if (activeFiltersEmpty()) {
-    nodes.forEach(n => { n.el.style.opacity = ''; n.el.style.filter = ''; });
+  if (activeFilters.size === 0) {
+    nodes.forEach(n => { n.el.style.display = ''; });
     arrows.forEach(a => {
       [a.pathEl, a.bgPathEl, a.hitEl, a.dotEl, a.labelEl, a.noteEl, a.urlLinkEl]
-        .forEach(el => { if (el) { el.style.opacity = ''; el.style.display = ''; } });
-      updateArrow(a);
+        .forEach(el => { if (el) el.style.display = ''; });
     });
   } else {
     nodes.forEach(n => {
-      const match = nodeMatches(n);
-      n.el.style.opacity = match ? '' : '0.50';
-      n.el.style.filter  = match ? '' : 'grayscale(1)';
+      const lbls = (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+      n.el.style.display = lbls.some(l => activeFilters.has(l)) ? '' : 'none';
     });
     arrows.forEach(a => {
-      const match = arrowMatches(a);
-      if (!match) {
-        if (a._animFrame) { cancelAnimationFrame(a._animFrame); a._animFrame = null; }
-        if (a.dotEl) a.dotEl.style.display = 'none';
-      } else { updateArrow(a); }
-      [a.pathEl, a.bgPathEl, a.hitEl, a.labelEl, a.noteEl, a.urlLinkEl]
-        .forEach(el => { if (el) el.style.opacity = match ? '' : '0.50'; });
+      const lbls = (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+      const vis = lbls.some(l => activeFilters.has(l)) ? '' : 'none';
+      [a.pathEl, a.bgPathEl, a.hitEl, a.dotEl, a.labelEl, a.noteEl, a.urlLinkEl]
+        .forEach(el => { if (el) el.style.display = vis; });
     });
   }
 }
@@ -2080,8 +1614,8 @@ function applyLabelFilter() {
 function updateFilterBadge() {
   const badge = document.getElementById('lf-badge');
   const btn = document.getElementById('btn-label-filter');
-  if (activeFiltersCount() > 0) {
-    badge.textContent = activeFiltersCount();
+  if (activeFilters.size > 0) {
+    badge.textContent = activeFilters.size;
     badge.style.display = 'inline';
     btn.classList.add('active');
   } else {
@@ -2092,39 +1626,28 @@ function updateFilterBadge() {
 
 function renderLabelFilterDropdown() {
   const list = document.getElementById('lf-list');
+  const labels = getAllLabels();
   list.innerHTML = '';
-  const sections = [
-    { key: 'keten',           icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.map(n => n.keten), ...arrows.map(a => a.keten)].filter(Boolean))] },
-    { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n => n.behandelaarsgroep), ...arrows.map(a => a.behandelaarsgroep)].filter(Boolean))] },
-    { key: 'leverancier',     icon: '🏢', label: 'Leverancier',      values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
-    { key: 'label',           icon: '🏷️', label: 'Label',            values: getAllLabels() },
-  ];
-  let hasAny = false;
-  sections.forEach(sec => {
-    if (sec.values.length === 0) return;
-    hasAny = true;
-    const hdr = document.createElement('div');
-    hdr.className = 'lf-section-header';
-    hdr.textContent = sec.icon + ' ' + sec.label;
-    list.appendChild(hdr);
-    sec.values.sort().forEach(val => {
-      const item = document.createElement('label');
-      item.className = 'lf-item';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = activeFilters[sec.key].has(val);
-      cb.addEventListener('change', () => {
-        if (cb.checked) activeFilters[sec.key].add(val);
-        else activeFilters[sec.key].delete(val);
-        applyLabelFilter();
-        updateFilterBadge();
-      });
-      item.appendChild(cb);
-      item.appendChild(document.createTextNode(val));
-      list.appendChild(item);
+  if (labels.length === 0) {
+    list.innerHTML = '<div id="lf-empty">Geen labels aangemaakt</div>';
+    return;
+  }
+  labels.forEach(label => {
+    const item = document.createElement('label');
+    item.className = 'lf-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = activeFilters.has(label);
+    cb.addEventListener('change', () => {
+      if (cb.checked) activeFilters.add(label);
+      else activeFilters.delete(label);
+      applyLabelFilter();
+      updateFilterBadge();
     });
+    item.appendChild(cb);
+    item.appendChild(document.createTextNode(label));
+    list.appendChild(item);
   });
-  if (!hasAny) list.innerHTML = '<div id="lf-empty">Geen filterwaarden gevonden</div>';
 }
 
 document.getElementById('btn-label-filter').addEventListener('click', e => {
@@ -2134,7 +1657,7 @@ document.getElementById('btn-label-filter').addEventListener('click', e => {
 });
 document.getElementById('label-filter-dropdown').addEventListener('click', e => e.stopPropagation());
 document.getElementById('lf-clear').addEventListener('click', () => {
-  Object.values(activeFilters).forEach(s => s.clear());
+  activeFilters.clear();
   applyLabelFilter();
   updateFilterBadge();
   renderLabelFilterDropdown();
@@ -2145,7 +1668,7 @@ window.addEventListener('click', () => {
 document.getElementById('btn-export-json').addEventListener('click', () => {
   const data = JSON.stringify({
     nodes: nodes.map(n => ({...n, el: null})),
-    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})),
+    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null})),
     nodeId,
     arrowId
   }, null, 2);
