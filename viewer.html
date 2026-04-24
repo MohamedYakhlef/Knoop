@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visual Board – Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f9fc; --surface: #ffffff; --surface2: #f1f2f7; --border: #d0d4e0;
+    --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
+    --text: #1a1a2e; --text-dim: #6b6b8a; --shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  body.dark {
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27; --border: #2a2a3d;
+    --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
+    --text: #e8e8f0; --text-dim: #a0a0c0; --shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Syne', sans-serif; color: var(--text); user-select: none; }
+
+  /* ── TOOLBAR ── */
+  #toolbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 52px;
+    background: rgba(248,249,252,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; padding: 0 16px; z-index: 1000;
+  }
+  body.dark #toolbar { background: rgba(13,13,20,0.95); }
+  #toolbar .logo { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; margin-right: 4px; }
+  #toolbar .logo span { color: var(--accent); }
+  #toolbar .viewer-badge {
+    font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px;
+    margin-right: 8px;
+  }
+  .tb-btn {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: all .15s;
+  }
+  .tb-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+  #search-bar {
+    margin-left: auto; width: 200px; padding: 6px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s;
+  }
+  #search-bar:focus { border-color: var(--accent); }
+
+  /* ── CANVAS ── */
+  #canvas {
+    position: fixed; top: 52px; left: 0; right: 0; bottom: 0;
+    overflow: hidden; cursor: grab;
+  }
+  #canvas.grabbing { cursor: grabbing; }
+  #canvas::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, #d0d4e0 1px, transparent 1px);
+    background-size: 28px 28px; pointer-events: none;
+  }
+  body.dark #canvas::before { background-image: radial-gradient(circle, #2a2a3d 1px, transparent 1px); }
+  #world { position: absolute; top: 0; left: 0; width: 4000px; height: 4000px; transform-origin: 0 0; }
+
+  /* ── SVG ARROWS ── */
+  #svg-layer {
+    position: absolute; top: 0; left: 0; width: 4000px; height: 4000px;
+    pointer-events: none; overflow: visible; z-index: 5;
+  }
+  #svg-layer .arrow-path {
+    fill: none; stroke: var(--accent); stroke-width: 2.5;
+    pointer-events: stroke; cursor: pointer; transition: stroke .15s;
+  }
+  #svg-layer .arrow-path:hover { stroke: var(--accent2); }
+  #svg-layer .arrow-path.selected { stroke: var(--accent2); stroke-width: 3; }
+  .arrow-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+  #svg-layer .arrow-bg { fill: none; stroke: var(--surface); stroke-width: 7; stroke-linejoin: round; pointer-events: none; }
+
+  /* ── NODE CARDS ── */
+  .node {
+    position: absolute; width: 220px; min-height: 50px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s, filter .3s ease;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden;
+  }
+  .node.shape-oval { border-radius: 100px; padding: 10px 20px; align-items: center; justify-content: center; }
+  .node.shape-area { border: 2px dashed var(--border) !important; z-index: 1 !important; cursor: default; }
+  .node.shape-text {
+    background: transparent !important; border: 1px dashed transparent;
+    box-shadow: none; min-height: unset; cursor: default;
+  }
+  .node.shape-text:hover { border-color: var(--border); }
+  .node:not(.shape-area):hover { border-color: var(--accent); }
+  .node.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
+  .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
+  .node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
+  .node.connected-highlight {
+    border-color: var(--accent3) !important;
+    box-shadow: 0 0 0 2px rgba(92,248,200,0.25), 0 8px 28px rgba(92,248,200,0.12) !important;
+  }
+  .node:not(.shape-area) { z-index: 10; }
+
+  .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
+  .node-thumb.has-img { display: block; }
+  .node-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .node-body { padding: 12px 12px 10px; flex: 2 1 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .node.shape-oval .node-body { text-align: center; }
+
+  .node-title { font-size: 14px; font-weight: 600; color: #1a1a2e !important; word-break: break-word; line-height: 1.3; }
+  .node.shape-text .node-title { font-size: 16px; color: inherit !important; }
+
+  .node-note {
+    font-size: 11px; margin-top: 8px; color: var(--text-dim);
+    display: none; pointer-events: none; white-space: pre-wrap;
+  }
+  .node-note.visible { display: block !important; }
+
+  .node-link {
+    position: absolute; top: 8px; right: 8px; background: var(--accent); color: white;
+    width: 20px; height: 20px; border-radius: 4px; display: none; align-items: center;
+    justify-content: center; font-size: 10px; text-decoration: none; cursor: pointer; z-index: 10;
+  }
+  .node-link:hover { background: var(--accent2); }
+
+  .node-footer { display: flex; justify-content: flex-start; gap: 4px; padding: 6px 10px 8px; margin-top: auto; flex: 0 0 auto; }
+  .node.shape-text .node-footer { display: none; }
+  .node.shape-oval .node-footer { display: flex; justify-content: flex-start; padding-left: 0; padding-bottom: 12px; gap: 6px; margin-top: auto; }
+  .node.shape-area .node-footer { border-top: none !important; padding: 8px 10px 8px; }
+
+  /* Tags in footer (read-only) */
+  .node-tag {
+    font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 6px;
+    border-radius: 10px; border: 1px solid var(--border); color: var(--text-dim);
+    background: var(--surface2); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 100px;
+  }
+
+  /* Export cleanup */
+  body.exporting .node-footer { display: none !important; }
+
+  /* ── TOGGLE SWITCH ── */
+  .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+  .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+  input:checked + .slider { background-color: #5cf8c8; }
+  input:checked + .slider:before { transform: translateX(24px); }
+
+  /* ── INFO PANEL ── */
+  #panel {
+    position: fixed; top: 52px; right: -380px; width: 340px; bottom: 0;
+    background: var(--surface); border-left: 1px solid var(--border); z-index: 900;
+    padding: 24px; transition: right .3s cubic-bezier(.4,0,.2,1); overflow-y: auto;
+  }
+  #panel.open { right: 0; }
+  #panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  #panel-close { width: 28px; height: 28px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all .15s; }
+  #panel-close:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+  .view-line { margin-bottom: 16px; }
+  .view-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .view-value { font-size: 15px; color: var(--text); margin-top: 3px; word-break: break-word; line-height: 1.5; }
+  .view-value a { color: var(--accent); text-decoration: underline; }
+  .view-img { width: 100%; border-radius: 8px; object-fit: cover; margin-bottom: 16px; border: 1px solid var(--border); }
+  #panel-view { padding-bottom: 16px; }
+
+  /* ── LABEL FILTER DROPDOWN ── */
+  #label-filter-wrapper { position: relative; }
+  #label-filter-dropdown {
+    position: absolute; top: 40px; left: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: var(--shadow);
+    display: none; flex-direction: column;
+    padding: 8px; z-index: 2000;
+    min-width: 260px; max-height: 420px; overflow-y: auto;
+  }
+  #label-filter-dropdown.show { display: flex; }
+  .lf-header { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); text-transform: uppercase; padding: 2px 4px 6px; letter-spacing: .5px; }
+  .lf-section-header { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); text-transform: uppercase; padding: 8px 4px 4px; letter-spacing: .5px; border-top: 1px solid var(--border); margin-top: 4px; }
+  .lf-section-header:first-child { border-top: none; margin-top: 0; }
+  .lf-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); transition: background 0.1s; }
+  .lf-item:hover { background: var(--surface2); }
+  .lf-item input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; }
+  #lf-empty { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); padding: 6px 8px; }
+  #lf-clear { margin-top: 6px; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; text-align: center; transition: all .15s; }
+  #lf-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+  #lf-badge { background: var(--accent); color: white; border-radius: 10px; padding: 1px 6px; font-size: 10px; margin-left: 2px; display: none; }
+
+  /* ── LOADING / ERROR STATES ── */
+  #loading-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 9999; gap: 16px;
+  }
+  #loading-screen.hidden { display: none; }
+  .loading-spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text-dim); }
+  #error-msg { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent2); display: none; text-align: center; max-width: 400px; line-height: 1.6; }
+  #error-msg.show { display: block; }
+
+  /* ── TOAST ── */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 2000; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── ZOOM INDICATOR ── */
+  #zoom-indicator {
+    position: fixed; bottom: 16px; right: 16px;
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 6px; z-index: 100;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .zoom-btn { cursor: pointer; padding: 0 4px; color: var(--text-dim); font-size: 14px; transition: color .15s; border: none; background: none; }
+  .zoom-btn:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Project laden…</div>
+  <div id="error-msg"></div>
+</div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <div class="logo">Visual<span>Board</span></div>
+  <div class="viewer-badge">👁 Viewer</div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
+
+  <div id="label-filter-wrapper">
+    <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
+      🏷️ Filter <span id="lf-badge">0</span>
+    </button>
+    <div id="label-filter-dropdown">
+      <div class="lf-header">Filter op label</div>
+      <div id="lf-list"><div id="lf-empty">Geen labels aangemaakt</div></div>
+      <button id="lf-clear">✕ Filter wissen</button>
+    </div>
+  </div>
+
+  <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
+  <button class="tb-btn" id="btn-export" title="Exporteer als Afbeelding" style="margin-left: 8px;">🖼️ Export Image</button>
+</div>
+
+<!-- Canvas -->
+<div id="canvas">
+  <div id="world">
+    <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#7c5cfc"/>
+        </marker>
+        <marker id="arrowhead-sel" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#fc5c7d"/>
+        </marker>
+      </defs>
+      <g id="arrows-group"></g>
+    </svg>
+  </div>
+</div>
+
+<!-- Info Panel -->
+<div id="panel">
+  <h2>Informatie <button id="panel-close">✕</button></h2>
+  <div id="panel-view">
+    <div id="view-content"></div>
+  </div>
+</div>
+
+<!-- Zoom indicator -->
+<div id="zoom-indicator">
+  <button class="zoom-btn" id="zoom-out" title="Uitzoomen">−</button>
+  <span id="zoom-label">100%</span>
+  <button class="zoom-btn" id="zoom-in" title="Inzoomen">+</button>
+  <button class="zoom-btn" id="zoom-fit" title="Alles passend maken">⊞</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let nodes = [], arrows = [];
+let zoomLevel = 1;
+let selectedNodeId = null;
+const canvas  = document.getElementById('canvas');
+const world   = document.getElementById('world');
+const svgLayer = document.getElementById('svg-layer');
+const arrowsGroup = document.getElementById('arrows-group');
+const panel   = document.getElementById('panel');
+const searchBar = document.getElementById('search-bar');
+
+function showToast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+// ── LOAD JSON via ?src= ────────────────────────────────────────────────────────
+async function loadFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const src = params.get('src');
+  const loadingScreen = document.getElementById('loading-screen');
+  const loadingText   = document.getElementById('loading-text');
+  const errorMsg      = document.getElementById('error-msg');
+
+  if (!src) {
+    loadingText.textContent = '';
+    errorMsg.classList.add('show');
+    errorMsg.innerHTML = `
+      <strong>Geen project-URL opgegeven.</strong><br><br>
+      Voeg een <code>?src=</code> parameter toe aan de URL:<br><br>
+      <code>viewer.html?src=https://…/project.json</code>
+    `;
+    return;
+  }
+
+  try {
+    loadingText.textContent = `Ophalen van project…`;
+    const res = await fetch(src);
+    if (!res.ok) throw new Error(`HTTP ${res.status} – ${res.statusText}`);
+    const data = await res.json();
+    loadingScreen.classList.add('hidden');
+    initProject(data);
+  } catch (err) {
+    loadingText.textContent = '';
+    errorMsg.classList.add('show');
+    errorMsg.innerHTML = `
+      <strong>Kon project niet laden.</strong><br><br>
+      ${err.message}<br><br>
+      Controleer of de URL correct is en CORS toestaat.<br>
+      <small style="opacity:.6">URL: ${src}</small>
+    `;
+    console.error(err);
+  }
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────────
+function getAnchorPos(node, port) {
+  let px = 0.5, py = 0.5;
+  if(port===0){px=0.5;py=0;}else if(port===1){px=1;py=0;}
+  else if(port===2){px=1;py=0.5;}else if(port===3){px=1;py=1;}
+  else if(port===4){px=0.5;py=1;}else if(port===5){px=0;py=1;}
+  else if(port===6){px=0;py=0.5;}else if(port===7){px=0;py=0;}
+  if (node.shape === 'oval') {
+    const a = node.width/2, b = node.height/2;
+    const cx = node.x + a, cy = node.y + b;
+    const angle = (port * 45 - 90) * (Math.PI/180);
+    return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
+  }
+  return { x: node.x + node.width*px, y: node.y + node.height*py };
+}
+
+// ── CREATE NODE (read-only, no drag/resize/edit buttons) ──────────────────────
+function createNodeEl(nd) {
+  const el = document.createElement('div');
+  el.className = `node shape-${nd.shape || 'square'}`;
+  el.style.left  = nd.x + 'px';
+  el.style.top   = nd.y + 'px';
+  el.style.width  = nd.width  + 'px';
+  if (nd.shape !== 'text') el.style.height = nd.height + 'px';
+  el.dataset.id = nd.id;
+
+  el.innerHTML = `
+    <a class="node-link" target="_blank"></a>
+    <div class="node-thumb" id="thumb-${nd.id}"></div>
+    <div class="node-body">
+      <div class="node-title" id="ntitle-${nd.id}"></div>
+      <div class="node-note" id="nnote-${nd.id}"></div>
+    </div>
+    ${nd.shape !== 'text' ? `<div class="node-footer" id="nfooter-${nd.id}"></div>` : ''}
+  `;
+
+  world.appendChild(el);
+  nd.el = el;
+  renderNodeEl(nd);
+
+  // Click → info panel (only for non-area, non-text nodes)
+  if (nd.shape !== 'area' && nd.shape !== 'text') {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openInfoPanel(nd.id);
+      selectNodeForAnim(nd.id);
+    });
+  }
+}
+
+function renderNodeEl(n) {
+  const titleEl = document.getElementById('ntitle-' + n.id);
+  if (!titleEl) return;
+  titleEl.textContent = n.title || '';
+  titleEl.style.fontWeight = n.fontWeight || 'normal';
+  titleEl.style.fontStyle  = n.fontStyle  || 'normal';
+  titleEl.style.fontSize   = (n.fontSize  || 14) + 'px';
+
+  if (n.shape === 'area') {
+    const hex = (n.bgColor || '#f1f5f9').replace('#','');
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    n.el.style.backgroundColor = `rgba(${r},${g},${b},0.15)`;
+  } else {
+    n.el.style.backgroundColor = n.bgColor || '#f1f5f9';
+  }
+  n.el.style.color = n.color || '#1a1a2e';
+
+  const linkEl = n.el.querySelector('.node-link');
+  if (n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
+  else { linkEl.style.display = 'none'; }
+
+  const noteEl = document.getElementById('nnote-' + n.id);
+  if (noteEl) {
+    noteEl.textContent = n.note || '';
+    noteEl.style.display = (n.showNote && n.note && n.note.trim()) ? 'block' : 'none';
+  }
+
+  const thumbEl = document.getElementById('thumb-' + n.id);
+  if (thumbEl) {
+    if (n.img && n.showImg !== false) {
+      thumbEl.classList.add('has-img');
+      let imgEl = thumbEl.querySelector('img');
+      if (!imgEl) { imgEl = document.createElement('img'); thumbEl.appendChild(imgEl); }
+      imgEl.src = n.img;
+    } else {
+      thumbEl.classList.remove('has-img');
+    }
+  }
+
+  // Small tags in footer
+  const footerEl = document.getElementById('nfooter-' + n.id);
+  if (footerEl) {
+    footerEl.innerHTML = '';
+    if (n.keten) {
+      const tag = document.createElement('span');
+      tag.className = 'node-tag'; tag.title = 'Keten: ' + n.keten;
+      tag.textContent = '🔗 ' + n.keten; footerEl.appendChild(tag);
+    }
+    if (n.behandelaarsgroep) {
+      const tag = document.createElement('span');
+      tag.className = 'node-tag'; tag.title = 'Behandelaarsgroep: ' + n.behandelaarsgroep;
+      tag.textContent = '👥 ' + n.behandelaarsgroep; footerEl.appendChild(tag);
+    }
+  }
+}
+
+// ── ARROWS ────────────────────────────────────────────────────────────────────
+function createArrowEl(ad) {
+  const bgPathEl = document.createElementNS('http://www.w3.org/2000/svg','path'); bgPathEl.classList.add('arrow-bg');
+  const pathEl   = document.createElementNS('http://www.w3.org/2000/svg','path'); pathEl.classList.add('arrow-path'); pathEl.id = 'path-'+ad.id;
+  const hitEl    = document.createElementNS('http://www.w3.org/2000/svg','path'); hitEl.classList.add('arrow-hit');
+  const dotEl    = document.createElementNS('http://www.w3.org/2000/svg','circle'); dotEl.setAttribute('r','5'); dotEl.setAttribute('fill','#5cf8c8'); dotEl.style.display='none';
+  const dotEl2   = document.createElementNS('http://www.w3.org/2000/svg','circle'); dotEl2.setAttribute('r','5'); dotEl2.setAttribute('fill','#5cf8c8'); dotEl2.style.display='none';
+  const labelEl  = document.createElementNS('http://www.w3.org/2000/svg','text'); labelEl.setAttribute('fill','#b0b0d0'); labelEl.setAttribute('font-size','11'); labelEl.setAttribute('text-anchor','middle');
+  const noteEl   = document.createElementNS('http://www.w3.org/2000/svg','text'); noteEl.setAttribute('fill','#a0a0c0'); noteEl.setAttribute('font-size','10'); noteEl.setAttribute('font-style','italic'); noteEl.setAttribute('text-anchor','middle'); noteEl.style.display='none';
+  const urlLinkEl= document.createElementNS('http://www.w3.org/2000/svg','a'); urlLinkEl.setAttribute('target','_blank');
+  const urlIconEl= document.createElementNS('http://www.w3.org/2000/svg','text'); urlIconEl.setAttribute('font-size','12'); urlIconEl.setAttribute('fill','#7c5cfc'); urlIconEl.style.cursor='pointer'; urlIconEl.style.display='none'; urlIconEl.textContent='🔗';
+  urlLinkEl.appendChild(urlIconEl);
+
+  // Per-arrow arrowhead markers
+  const markerId = 'arrowhead-' + ad.id;
+  const markerEl = document.createElementNS('http://www.w3.org/2000/svg','marker');
+  markerEl.setAttribute('id', markerId); markerEl.setAttribute('markerWidth','8'); markerEl.setAttribute('markerHeight','8'); markerEl.setAttribute('refX','7'); markerEl.setAttribute('refY','3'); markerEl.setAttribute('orient','auto');
+  const markerPathEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+  markerPathEl.setAttribute('d','M0,0 L0,6 L8,3 z'); markerPathEl.setAttribute('fill', ad.color || '#7c5cfc');
+  markerEl.appendChild(markerPathEl);
+  svgLayer.querySelector('defs').appendChild(markerEl);
+
+  const markerStartId = 'arrowhead-start-' + ad.id;
+  const markerStartEl = document.createElementNS('http://www.w3.org/2000/svg','marker');
+  markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('markerWidth','8'); markerStartEl.setAttribute('markerHeight','8'); markerStartEl.setAttribute('refX','1'); markerStartEl.setAttribute('refY','3'); markerStartEl.setAttribute('orient','auto-start-reverse');
+  const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+  markerStartPathEl.setAttribute('d','M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', ad.color || '#7c5cfc');
+  markerStartEl.appendChild(markerStartPathEl);
+  svgLayer.querySelector('defs').appendChild(markerStartEl);
+
+  [bgPathEl, pathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl].forEach(el => arrowsGroup.appendChild(el));
+  arrowsGroup.appendChild(dotEl2);
+
+  const arrow = {
+    ...ad,
+    pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl,
+    markerEl, markerPathEl, markerStartEl, markerStartPathEl,
+    _animFrame: null, dashOffset: 0
+  };
+  arrows.push(arrow);
+
+  // Click → open arrow info panel
+  hitEl.addEventListener('click', e => {
+    e.stopPropagation();
+    openArrowInfoPanel(arrow.id);
+  });
+
+  updateArrow(arrow);
+  startDotAnimation(arrow);
+  return arrow;
+}
+
+function updateArrow(arrow) {
+  const f = nodes.find(n => n.id === arrow.from);
+  const t = nodes.find(n => n.id === arrow.to);
+  if (!f || !t) return;
+
+  let p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
+
+  if (arrow.bidirectional) {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy)||1;
+    p1 = { x: p1.x + dx/len*14, y: p1.y + dy/len*14 };
+  }
+
+  let d = '';
+  if (arrow.routeMode === 'custom' && arrow.waypoints && arrow.waypoints.length > 0) {
+    d = `M ${p1.x} ${p1.y}`;
+    arrow.waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
+    d += ` L ${p2.x} ${p2.y}`;
+  } else if (arrow.shape === 'straight' || !arrow.shape) {
+    d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+  } else {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy), offset = Math.min(60, len * 0.3);
+    const nx = -dy/len, ny = dx/len;
+    d = `M ${p1.x} ${p1.y} Q ${p1.x+dx/2+nx*offset} ${p1.y+dy/2+ny*offset} ${p2.x} ${p2.y}`;
+  }
+
+  arrow.bgPathEl.setAttribute('d', d);
+  arrow.pathEl.setAttribute('d', d);
+  arrow.hitEl.setAttribute('d', d);
+  arrow.pathEl.style.stroke = arrow.color || '#7c5cfc';
+  if (arrow.markerPathEl)      arrow.markerPathEl.setAttribute('fill', arrow.color || '#7c5cfc');
+  if (arrow.markerStartPathEl) arrow.markerStartPathEl.setAttribute('fill', arrow.color || '#7c5cfc');
+  arrow.pathEl.setAttribute('marker-end', `url(#${arrow.markerEl.id})`);
+  arrow.pathEl.setAttribute('marker-start', arrow.bidirectional ? `url(#${arrow.markerStartEl.id})` : '');
+
+  const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+  arrow.labelEl.setAttribute('x', mx); arrow.labelEl.setAttribute('y', my - 10);
+  arrow.labelEl.textContent = arrow.label || '';
+
+  if (arrow.noteEl) {
+    if (arrow.showNote && arrow.note) {
+      arrow.noteEl.style.display = ''; arrow.noteEl.setAttribute('x', mx); arrow.noteEl.setAttribute('y', my + 16);
+      arrow.noteEl.textContent = arrow.note;
+    } else { arrow.noteEl.style.display = 'none'; }
+  }
+
+  if (arrow.urlIconEl && arrow.url) {
+    arrow.urlIconEl.style.display = '';
+    arrow.urlIconEl.setAttribute('x', mx + (arrow.label||'').length * 3.5 + 14);
+    arrow.urlIconEl.setAttribute('y', my - 10);
+    if (arrow.urlLinkEl) arrow.urlLinkEl.setAttribute('href', arrow.url);
+  } else if (arrow.urlIconEl) {
+    arrow.urlIconEl.style.display = 'none';
+  }
+
+  // Dashed style setup
+  if (arrow.style === 'dashed') {
+    const totalLen = arrow.pathEl.getTotalLength ? arrow.pathEl.getTotalLength() : 200;
+    arrow.pathEl.style.strokeDasharray = '10 6';
+    if (!arrow._dashPath2 && arrow.bidirectional) { /* skip */ }
+  } else {
+    arrow.pathEl.style.strokeDasharray = '';
+  }
+}
+
+function updateArrows() { arrows.forEach(a => updateArrow(a)); }
+
+// ── DOT ANIMATION ─────────────────────────────────────────────────────────────
+function startDotAnimation(arrow) {
+  if (arrow._animFrame) cancelAnimationFrame(arrow._animFrame);
+  if (arrow.anim === 'none') { arrow.dotEl.style.display = 'none'; if(arrow.dotEl2) arrow.dotEl2.style.display='none'; return; }
+
+  const pathEl = arrow.pathEl;
+  const speed  = arrow.anim === 'fast' ? 2.5 : 1.2;
+
+  if (arrow.style === 'dashed') {
+    arrow.dotEl.style.display = 'none';
+    if(arrow.dotEl2) arrow.dotEl2.style.display='none';
+    let offset = 0;
+    function animDash() {
+      offset -= speed;
+      pathEl.style.strokeDashoffset = offset;
+      arrow._animFrame = requestAnimationFrame(animDash);
+    }
+    animDash();
+    return;
+  }
+
+  arrow.dotEl.style.display = '';
+  arrow.dotEl.setAttribute('fill', arrow.color || '#5cf8c8');
+  let t = 0;
+  const bidir = arrow.bidirectional;
+  if (bidir && arrow.dotEl2) { arrow.dotEl2.style.display = ''; arrow.dotEl2.setAttribute('fill', arrow.color || '#5cf8c8'); }
+
+  function animDot() {
+    if (!pathEl.getTotalLength) { arrow._animFrame = requestAnimationFrame(animDot); return; }
+    const len = pathEl.getTotalLength();
+    t = (t + speed * 0.4) % len;
+    const pt = pathEl.getPointAtLength(t);
+    arrow.dotEl.setAttribute('cx', pt.x); arrow.dotEl.setAttribute('cy', pt.y);
+    if (bidir && arrow.dotEl2) {
+      const t2 = (t + len/2) % len;
+      const pt2 = pathEl.getPointAtLength(t2);
+      arrow.dotEl2.setAttribute('cx', pt2.x); arrow.dotEl2.setAttribute('cy', pt2.y);
+    }
+    arrow._animFrame = requestAnimationFrame(animDot);
+  }
+  animDot();
+}
+
+function updateAllDots() { arrows.forEach(a => startDotAnimation(a)); }
+
+// ── INIT PROJECT ──────────────────────────────────────────────────────────────
+function initProject(data) {
+  nodes = []; arrows = [];
+  arrowsGroup.innerHTML = '';
+
+  // Recreate nodes
+  data.nodes.forEach(nd => {
+    const nodeCopy = { ...nd, el: null };
+    nodes.push(nodeCopy);
+    createNodeEl(nodeCopy);
+    nodeCopy.el.style.width  = (nd.width  || 220) + 'px';
+    if (nd.shape !== 'text') nodeCopy.el.style.height = (nd.height || 190) + 'px';
+  });
+
+  // Recreate arrows
+  data.arrows.forEach(ad => {
+    createArrowEl({ ...ad });
+  });
+
+  updateAllDots();
+  fitToView();
+  showToast('Project geladen ✓');
+  renderLabelFilterDropdown();
+}
+
+// ── INFO PANEL (node) ─────────────────────────────────────────────────────────
+function openInfoPanel(id) {
+  const n = nodes.find(x => x.id === id);
+  if (!n) return;
+  panel.classList.add('open');
+  document.getElementById('view-content').innerHTML = `
+    ${n.img && n.showImg !== false ? `<img class="view-img" src="${n.img}">` : ''}
+    <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${escHtml(n.title || '')}</div></div>
+    ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${escHtml(n.url)}" target="_blank">${escHtml(n.url)}</a></div></div>` : ''}
+    ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${escHtml(n.note)}</div></div>` : ''}
+    ${n.keten ? `<div class="view-line"><div class="view-label">🔗 Keten</div><div class="view-value">${escHtml(n.keten)}</div></div>` : ''}
+    ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">👥 Behandelaarsgroep</div><div class="view-value">${escHtml(n.behandelaarsgroep)}</div></div>` : ''}
+    ${n.leverancier ? `<div class="view-line"><div class="view-label">🏢 Leverancier</div><div class="view-value">${escHtml(n.leverancier)}</div></div>` : ''}
+    ${n.servicelevel ? `<div class="view-line"><div class="view-label">⚡ Servicelevel</div><div class="view-value">${escHtml(n.servicelevel)}</div></div>` : ''}
+    ${n.filterLabel ? `<div class="view-line"><div class="view-label">🏷️ Label</div><div class="view-value">${escHtml(n.filterLabel)}</div></div>` : ''}
+  `;
+}
+
+// ── INFO PANEL (arrow) ────────────────────────────────────────────────────────
+function openArrowInfoPanel(id) {
+  const a = arrows.find(x => x.id === id);
+  if (!a) return;
+  const fromNode = nodes.find(n => n.id === a.from);
+  const toNode   = nodes.find(n => n.id === a.to);
+  panel.classList.add('open');
+  document.getElementById('view-content').innerHTML = `
+    <div class="view-line"><div class="view-label">Verbinding</div><div class="view-value">${escHtml(fromNode?.title || a.from)} → ${escHtml(toNode?.title || a.to)}</div></div>
+    ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${escHtml(a.label)}</div></div>` : ''}
+    ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${escHtml(a.url)}" target="_blank">${escHtml(a.url)}</a></div></div>` : ''}
+    ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${escHtml(a.note)}</div></div>` : ''}
+    ${a.keten ? `<div class="view-line"><div class="view-label">🔗 Keten</div><div class="view-value">${escHtml(a.keten)}</div></div>` : ''}
+    ${a.behandelaarsgroep ? `<div class="view-line"><div class="view-label">👥 Behandelaarsgroep</div><div class="view-value">${escHtml(a.behandelaarsgroep)}</div></div>` : ''}
+    ${a.leverancier ? `<div class="view-line"><div class="view-label">🏢 Leverancier</div><div class="view-value">${escHtml(a.leverancier)}</div></div>` : ''}
+    ${a.servicelevel ? `<div class="view-line"><div class="view-label">⚡ Servicelevel</div><div class="view-value">${escHtml(a.servicelevel)}</div></div>` : ''}
+  `;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('panel-close').addEventListener('click', () => {
+  panel.classList.remove('open');
+  clearSelection();
+});
+
+// ── NODE ANIMATION ON CLICK ───────────────────────────────────────────────────
+function clearSelection() {
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('highlight','dimmed','connected-highlight','selected'));
+  arrows.forEach(a => {
+    if (a._animFrame) cancelAnimationFrame(a._animFrame);
+    a._animFrame = null;
+    a.dotEl.style.display = 'none';
+    if (a.dotEl2) a.dotEl2.style.display = 'none';
+    a.pathEl.classList.remove('active-connection','arrow-dimmed');
+    a.pathEl.style.strokeWidth = '';
+  });
+  selectedNodeId = null;
+  updateAllDots();
+}
+
+function selectNodeForAnim(id) {
+  clearSelection();
+  if (selectedNodeId === id) { selectedNodeId = null; return; }
+  selectedNodeId = id;
+
+  const selEl = document.querySelector(`.node[data-id="${id}"]`);
+  if (selEl) selEl.classList.add('highlight');
+
+  const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
+  const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
+
+  nodes.forEach(n => {
+    if (n.id === id) return;
+    if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
+  });
+
+  arrows.forEach(a => {
+    if (a.from === id || a.to === id) {
+      a.pathEl.classList.add('active-connection');
+      startDotAnimation(a);
+    }
+  });
+}
+
+// ── PAN & ZOOM ─────────────────────────────────────────────────────────────────
+let panStart = null, panOrigin = null;
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 0 || e.button === 1) {
+    panStart = { x: e.clientX, y: e.clientY };
+    panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
+    canvas.classList.add('grabbing');
+  }
+});
+document.addEventListener('mousemove', e => {
+  if (panStart) {
+    world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px';
+    world.style.top  = (panOrigin.y + e.clientY - panStart.y) + 'px';
+  }
+});
+document.addEventListener('mouseup', () => {
+  panStart = null; canvas.classList.remove('grabbing');
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const newZ = Math.max(0.2, Math.min(4, zoomLevel * factor));
+  const cRect = canvas.getBoundingClientRect();
+  const cx = e.clientX - cRect.left, cy = e.clientY - cRect.top;
+  const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
+  const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
+  zoomLevel = newZ;
+  world.style.left = (cx - wx * zoomLevel) + 'px';
+  world.style.top  = (cy - wy * zoomLevel) + 'px';
+  world.style.transform = `scale(${zoomLevel})`;
+  document.getElementById('zoom-label').textContent = Math.round(zoomLevel * 100) + '%';
+}, { passive: false });
+
+// Close panel when clicking outside
+canvas.addEventListener('click', (e) => {
+  if (!e.target.closest('.node') && !e.target.closest('.arrow-hit')) {
+    panel.classList.remove('open');
+    clearSelection();
+  }
+});
+
+// ── ZOOM BUTTONS ──────────────────────────────────────────────────────────────
+function applyZoom(newZ) {
+  const cRect = canvas.getBoundingClientRect();
+  const cx = cRect.width / 2, cy = cRect.height / 2;
+  const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
+  const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
+  zoomLevel = Math.max(0.2, Math.min(4, newZ));
+  world.style.left = (cx - wx * zoomLevel) + 'px';
+  world.style.top  = (cy - wy * zoomLevel) + 'px';
+  world.style.transform = `scale(${zoomLevel})`;
+  document.getElementById('zoom-label').textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+document.getElementById('zoom-in').addEventListener('click',  () => applyZoom(zoomLevel * 1.25));
+document.getElementById('zoom-out').addEventListener('click', () => applyZoom(zoomLevel / 1.25));
+document.getElementById('zoom-fit').addEventListener('click', fitToView);
+
+function fitToView() {
+  if (nodes.length === 0) return;
+  const pad = 60;
+  const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
+  const xe = nodes.map(n => n.x + (n.width  || 220));
+  const ye = nodes.map(n => n.y + (n.height || 190));
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const maxX = Math.max(...xe), maxY = Math.max(...ye);
+  const bW = maxX - minX, bH = maxY - minY;
+  const cW = canvas.offsetWidth  - pad*2;
+  const cH = canvas.offsetHeight - pad*2;
+  const z = Math.min(cW/bW, cH/bH, 1.5);
+  zoomLevel = Math.max(0.2, z);
+  world.style.left = (pad - minX * zoomLevel) + 'px';
+  world.style.top  = (pad - minY * zoomLevel) + 'px';
+  world.style.transform = `scale(${zoomLevel})`;
+  document.getElementById('zoom-label').textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+searchBar.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('highlight'));
+  if (!q) return;
+  let match = null;
+  nodes.forEach(n => {
+    const hit = (n.title || '').toLowerCase().includes(q)
+      || (n.behandelaarsgroep || '').toLowerCase().includes(q)
+      || (n.keten || '').toLowerCase().includes(q)
+      || (n.leverancier || '').toLowerCase().includes(q);
+    if (hit) { n.el.classList.add('highlight'); if (!match) match = n; }
+  });
+  if (match) {
+    world.style.left = (-match.x * zoomLevel + canvas.offsetWidth/2  - (match.width  || 220)/2) + 'px';
+    world.style.top  = (-match.y * zoomLevel + canvas.offsetHeight/2 - (match.height || 190)/2) + 'px';
+  }
+});
+
+// ── LABEL FILTER ──────────────────────────────────────────────────────────────
+let activeFilters = { keten: new Set(), behandelaarsgroep: new Set(), leverancier: new Set(), label: new Set() };
+function activeFiltersEmpty() { return Object.values(activeFilters).every(s => s.size === 0); }
+function activeFiltersCount() { return Object.values(activeFilters).reduce((t,s) => t + s.size, 0); }
+
+function getAllLabels() {
+  const labels = new Set();
+  nodes.forEach(n => { (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean).forEach(l => labels.add(l)); });
+  arrows.forEach(a => { (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean).forEach(l => labels.add(l)); });
+  return Array.from(labels).sort();
+}
+
+function nodeMatches(n) {
+  if (activeFilters.keten.size > 0             && activeFilters.keten.has(n.keten || '')) return true;
+  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')) return true;
+  if (activeFilters.leverancier.size > 0       && activeFilters.leverancier.has(n.leverancier || '')) return true;
+  if (activeFilters.label.size > 0) {
+    const lbls = (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+    if (lbls.some(l => activeFilters.label.has(l))) return true;
+  }
+  return false;
+}
+function arrowMatches(a) {
+  if (activeFilters.keten.size > 0             && activeFilters.keten.has(a.keten || '')) return true;
+  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(a.behandelaarsgroep || '')) return true;
+  if (activeFilters.leverancier.size > 0       && activeFilters.leverancier.has(a.leverancier || '')) return true;
+  if (activeFilters.label.size > 0) {
+    const lbls = (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean);
+    if (lbls.some(l => activeFilters.label.has(l))) return true;
+  }
+  return false;
+}
+
+function applyLabelFilter() {
+  if (activeFiltersEmpty()) {
+    nodes.forEach(n => { n.el.style.opacity = ''; n.el.style.filter = ''; });
+    arrows.forEach(a => { [a.pathEl,a.bgPathEl,a.hitEl,a.dotEl,a.labelEl,a.noteEl,a.urlLinkEl].forEach(el => { if(el){ el.style.opacity=''; el.style.display=''; } }); });
+    updateAllDots();
+  } else {
+    nodes.forEach(n => {
+      const match = nodeMatches(n);
+      n.el.style.opacity = match ? '' : '0.15';
+      n.el.style.filter  = match ? '' : 'grayscale(1)';
+    });
+    arrows.forEach(a => {
+      const match = arrowMatches(a);
+      if (!match && a._animFrame) { cancelAnimationFrame(a._animFrame); a._animFrame = null; if(a.dotEl) a.dotEl.style.display='none'; if(a.dotEl2) a.dotEl2.style.display='none'; }
+      else if (match) startDotAnimation(a);
+      [a.pathEl,a.bgPathEl,a.hitEl,a.labelEl,a.noteEl,a.urlLinkEl].forEach(el => { if(el) el.style.opacity = match ? '' : '0.12'; });
+    });
+  }
+}
+
+function updateFilterBadge() {
+  const badge = document.getElementById('lf-badge');
+  const btn = document.getElementById('btn-label-filter');
+  if (activeFiltersCount() > 0) {
+    badge.textContent = activeFiltersCount(); badge.style.display = 'inline'; btn.classList.add('active');
+  } else {
+    badge.style.display = 'none'; btn.classList.remove('active');
+  }
+}
+
+function renderLabelFilterDropdown() {
+  const list = document.getElementById('lf-list');
+  list.innerHTML = '';
+  const sections = [
+    { key: 'keten',             icon: '🔗', label: 'Keten',             values: [...new Set([...nodes.map(n=>n.keten), ...arrows.map(a=>a.keten)].filter(Boolean))] },
+    { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n=>n.behandelaarsgroep), ...arrows.map(a=>a.behandelaarsgroep)].filter(Boolean))] },
+    { key: 'leverancier',       icon: '🏢', label: 'Leverancier',       values: [...new Set([...nodes.map(n=>n.leverancier), ...arrows.map(a=>a.leverancier)].filter(Boolean))] },
+    { key: 'label',             icon: '🏷️', label: 'Label',             values: getAllLabels() },
+  ];
+  let hasAny = false;
+  sections.forEach(sec => {
+    if (sec.values.length === 0) return;
+    hasAny = true;
+    const hdr = document.createElement('div'); hdr.className = 'lf-section-header'; hdr.textContent = sec.icon + ' ' + sec.label;
+    list.appendChild(hdr);
+    sec.values.sort().forEach(val => {
+      const item = document.createElement('label'); item.className = 'lf-item';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = activeFilters[sec.key].has(val);
+      cb.addEventListener('change', () => {
+        if (cb.checked) activeFilters[sec.key].add(val); else activeFilters[sec.key].delete(val);
+        applyLabelFilter(); updateFilterBadge();
+      });
+      item.appendChild(cb); item.appendChild(document.createTextNode(val)); list.appendChild(item);
+    });
+  });
+  if (!hasAny) list.innerHTML = '<div id="lf-empty">Geen filterwaarden gevonden</div>';
+}
+
+document.getElementById('btn-label-filter').addEventListener('click', e => {
+  e.stopPropagation();
+  renderLabelFilterDropdown();
+  document.getElementById('label-filter-dropdown').classList.toggle('show');
+});
+document.getElementById('label-filter-dropdown').addEventListener('click', e => e.stopPropagation());
+document.getElementById('lf-clear').addEventListener('click', () => {
+  Object.values(activeFilters).forEach(s => s.clear());
+  applyLabelFilter(); updateFilterBadge(); renderLabelFilterDropdown();
+});
+window.addEventListener('click', () => document.getElementById('label-filter-dropdown').classList.remove('show'));
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+document.getElementById('btn-theme').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  document.getElementById('theme-icon').textContent = document.body.classList.contains('dark') ? '🌙' : '☀️';
+  updateArrows();
+});
+
+// ── EXPORT IMAGE ──────────────────────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', async () => {
+  if (nodes.length === 0) { showToast('Geen project geladen'); return; }
+  showToast('Afbeelding wordt gemaakt…');
+  document.body.classList.add('exporting');
+  const pad = 40;
+  const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
+  const xe = nodes.map(n => n.x + (n.width||220)), ye = nodes.map(n => n.y + (n.height||190));
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const maxX = Math.max(...xe), maxY = Math.max(...ye);
+  try {
+    const canvasEl = await html2canvas(world, {
+      scale: 2, useCORS: true,
+      backgroundColor: document.body.classList.contains('dark') ? '#0a0a0f' : '#f8f9fc',
+      logging: false, x: minX - pad, y: minY - pad,
+      width: (maxX - minX) + pad*2, height: (maxY - minY) + pad*2
+    });
+    const link = document.createElement('a');
+    link.download = 'visual-board.png'; link.href = canvasEl.toDataURL('image/png'); link.click();
+    showToast('Afbeelding geëxporteerd ✓');
+  } catch(e) { console.error(e); showToast('Export mislukt'); }
+  document.body.classList.remove('exporting');
+});
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { panel.classList.remove('open'); clearSelection(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); applyZoom(1); }
+  if ((e.ctrlKey || e.metaKey) && e.key === '+') { e.preventDefault(); applyZoom(zoomLevel * 1.25); }
+  if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); applyZoom(zoomLevel / 1.25); }
+});
+
+// ── START ──────────────────────────────────────────────────────────────────────
+loadFromURL();
+</script>
+</body>
+</html>
