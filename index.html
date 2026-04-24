@@ -1540,7 +1540,7 @@ document.addEventListener('mouseup', e => {
 function clearMultiSelection() { multiSelectedNodes.clear(); document.querySelectorAll('.multi-selected').forEach(el => el.classList.remove('multi-selected')); }
 
 function selectNodeForAnim(id) {
-  // Reset alles
+  // 1. Reset alles
   document.querySelectorAll('.node').forEach(n => {
     n.classList.remove('highlight', 'dimmed', 'connected-highlight');
   });
@@ -1548,36 +1548,36 @@ function selectNodeForAnim(id) {
     if (a._animFrame) cancelAnimationFrame(a._animFrame);
     a._animFrame = null;
     a.dotEl.style.display = 'none';
-    a.pathEl.classList.remove('active-connection');
+    a.pathEl.classList.remove('active-connection', 'arrow-dimmed');
     a.pathEl.style.strokeWidth = '';
     if (a.style === 'dashed') a.pathEl.style.strokeDashoffset = '';
   });
 
-  // Zelfde vakje nogmaals: deselecteer
+  // 2. Klik je nogmaals op hetzelfde vakje? Dan deselecteren we alles
   if (selectedNodeId === id) { selectedNodeId = null; return; }
   selectedNodeId = id;
 
-  // Highlight geselecteerd vakje
+  // 3. Highlight het vakje dat je zojuist hebt aangeklikt
   const selEl = document.querySelector(`.node[data-id="${id}"]`);
   if (selEl) selEl.classList.add('highlight');
 
-  // Vind gekoppelde pijlen en vakjes
+  // 4. Vind gekoppelde pijlen en vakjes
   const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
   const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
 
-// Glow op gekoppelde vakjes
-nodes.forEach(n => {
-  if (n.id === id) return;
-  if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
-});
+  // 5. Glow op gekoppelde vakjes (zonder de rest te dimmen!)
+  nodes.forEach(n => {
+    if (n.id === id) return;
+    if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
+  });
 
-  // Highlight gekoppelde pijlen + animatie, dim de rest
-arrows.forEach(a => {
-  if (a.from === id || a.to === id) {
-    a.pathEl.classList.add('active-connection');
-    startDotAnimation(a);
-  }
-});
+  // 6. Highlight gekoppelde pijlen + animatie (zonder de rest te dimmen!)
+  arrows.forEach(a => {
+    if (a.from === id || a.to === id) {
+      a.pathEl.classList.add('active-connection');
+      startDotAnimation(a);
+    }
+  });
 }
 
 // ── SEARCH ─────────────────────────────────────────────────────────────────────
