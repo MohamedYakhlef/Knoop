@@ -1016,7 +1016,6 @@ function attachNodeEvents(node) {
   
 node.el.addEventListener('mousedown', e => {
     // CRUCIALE FIX: Als de tekst-tool aan staat, moet het vakje niks doen
-    // Hierdoor kan het canvas eronder de klik opvangen en tekst plaatsen.
     if (currentTool === 'text') return;
 
     if (e.button !== 0 || e.target.closest('.node-btn, .resize-handle, .node-link')) return;
@@ -1027,7 +1026,8 @@ node.el.addEventListener('mousedown', e => {
     }
     
     if (currentTool === 'arrow') return; // afhandeling via anchors
-if (node.pinned) return; // vastgepind: niet slepen
+
+    // DE OUDE REGEL 'if (node.pinned) return;' IS HIER WEGGEHAALD!
 
     isDragging = false;
     node.el.style.zIndex = ++topZ;
@@ -1039,13 +1039,20 @@ if (node.pinned) return; // vastgepind: niet slepen
       node.el.classList.add('multi-selected');
     }
 
-    dragOffsets = Array.from(multiSelectedNodes).map(id => {
-      const n = nodes.find(nn => nn.id === id);
-      n.el.classList.add('dragging');
-      return { node: n, ox: n.x, oy: n.y };
-    });
+    // Alleen klaarzetten om te slepen als hij NIET is vastgepind
+    if (!node.pinned) {
+      dragOffsets = Array.from(multiSelectedNodes).map(id => {
+        const n = nodes.find(nn => nn.id === id);
+        n.el.classList.add('dragging');
+        return { node: n, ox: n.x, oy: n.y };
+      });
+    } else {
+      dragOffsets = []; // Leeg lijstje, dus we gaan niks slepen
+    }
 
     function onMove(ev) {
+      if (node.pinned) return; // NIEUW: Blokkeer de beweging als hij vastgepind is!
+
       isDragging = true;
       const dx = (ev.clientX - startX) / zoomLevel;
       const dy = (ev.clientY - startY) / zoomLevel;
@@ -1055,12 +1062,15 @@ if (node.pinned) return; // vastgepind: niet slepen
       });
       updateArrows();
     }
+    
     function onUp() {
       dragOffsets.forEach(d => d.node.el.classList.remove('dragging'));
       document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
+      
       if (isDragging) saveState();
       else { clearMultiSelection(); selectNodeForAnim(node.id); openNodePanel(node.id, false); }
     }
+    
     document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
     e.stopPropagation();
   });
