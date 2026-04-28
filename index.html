@@ -803,6 +803,15 @@ node.shape-text {
 
 <script>
 
+function normalizeUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+  if (url && !/^https?:\/\//i.test(url)) {
+    return 'https://' + url;
+  }
+  return url;
+}
+
 // --- HIER DE KLEUREN EN DE FUNCTIE PLAKKEN ---
 const presetColors = [
   '#ffffff', '#f1f5f9', '#cbd5e1', '#64748b', '#334155', '#0f172a',
@@ -1983,7 +1992,7 @@ function applyLiveNodeChanges(n) {
   n.title = document.getElementById('f-title').value; 
   n.bgColor = document.getElementById('f-node-color').value; 
   n.color = document.getElementById('f-text-color').value; 
-  n.url = document.getElementById('f-url').value; 
+  n.url = normalizeUrl(document.getElementById('f-url').value);
   n.note = document.getElementById('f-note').value; 
   n.ketens = collectNodeKetensFromForm();
   n.keten = n.ketens.join(', ');
@@ -2424,7 +2433,7 @@ function openArrowPanelEdit(id) {
     targetArrow.style = document.getElementById('f-arrow-style').value;
     targetArrow.color = document.getElementById('f-arrow-color').value;
     targetArrow.note  = document.getElementById('f-arrow-note').value;
-    targetArrow.url   = document.getElementById('f-arrow-url').value;
+    targetArrow.url   = normalizeUrl(document.getElementById('f-arrow-url').value);
     targetArrow.filterLabel = document.getElementById('f-arrow-filter-label').value;
     targetArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
     targetArrow.ketens = collectArrowKetensFromForm();
@@ -2465,7 +2474,7 @@ document.getElementById('panel-save').onclick = () => {
       activeArrow.style = document.getElementById('f-arrow-style').value;
       activeArrow.color = document.getElementById('f-arrow-color').value;
       activeArrow.note  = document.getElementById('f-arrow-note').value;
-      activeArrow.url   = document.getElementById('f-arrow-url').value;
+      activeArrow.url   = normalizeUrl(document.getElementById('f-arrow-url').value);
       activeArrow.filterLabel = document.getElementById('f-arrow-filter-label').value;
       activeArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
       activeArrow.ketens = collectArrowKetensFromForm();
