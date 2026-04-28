@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "x": 764,
+      "y": 262.5,
+      "width": 220,
+      "height": 190,
+      "shape": "square",
+      "title": "Nieuw vakje",
+      "url": "https://www.nu.nl",
+      "note": "",
+      "bgColor": "#f1f5f9",
+      "color": "#1a1a2e",
+      "fontWeight": "normal",
+      "fontStyle": "normal",
+      "fontSize": 14,
+      "noteFontWeight": "normal",
+      "noteFontStyle": "normal",
+      "noteFontSize": 10,
+      "showImg": true,
+      "img": "",
+      "showNote": true,
+      "keten": "",
+      "ketens": [],
+      "behandelaarsgroep": "",
+      "leverancier": "",
+      "servicelevel": "",
+      "filterLabel": "",
+      "pinned": false,
+      "pinnedTo": "canvas",
+      "pinnedAreaId": null,
+      "rotation": 0,
+      "el": null,
+      "bitteam": ""
+    }
+  ],
+  "arrows": [],
+  "nodeId": 1,
+  "arrowId": 0
+}
