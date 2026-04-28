@@ -533,11 +533,16 @@ node.shape-text {
 }
 #autosave-indicator.saved { color: #22c55e; }
 #autosave-indicator.saving { color: var(--text-dim); }
-  #new-project-modal {
+#new-project-modal {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(10,10,20,0.55); z-index: 2500;
   }
   #new-project-modal.show { display: flex; }
+  #viewer-link-modal {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,20,0.55); z-index: 2500;
+  }
+  #viewer-link-modal.show { display: flex; }
   .np-card {
     width: min(520px, calc(100vw - 32px));
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
@@ -808,6 +813,23 @@ node.shape-text {
       <button class="np-btn" id="btn-np-cancel">Annuleren</button>
       <button class="np-btn" id="btn-np-export">Sla werk op</button>
       <button class="np-btn primary" id="btn-np-create">Maak nieuw canvas</button>
+    </div>
+  </div>
+</div>
+<div id="viewer-link-modal">
+  <div class="np-card">
+    <div class="np-title">🔗 Deel je project</div>
+    <div class="np-text">
+      Kopieer de link hieronder om je project te delen met anderen. Iedereen met deze link kan het project bekijken.
+    </div>
+    <input id="viewer-link-input" type="text" readonly
+      style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);
+             background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;
+             font-size:11px;margin-bottom:14px;outline:none;cursor:text;">
+    <div class="np-actions">
+      <button class="np-btn primary" id="btn-vl-copy">📋 Kopieer link</button>
+      <button class="np-btn" id="btn-vl-whatsapp">💬 Deel via WhatsApp</button>
+      <button class="np-btn" id="btn-vl-close">Sluiten</button>
     </div>
   </div>
 </div>
@@ -2776,12 +2798,11 @@ function generateViewerLink() {
     nodeId,
     arrowId
   });
-  const encoded = btoa(unescape(encodeURIComponent(data)));
-  const viewerUrl = location.href.replace(/\/[^/]*$/, '/viewer.html') + '#' + encoded;
-  navigator.clipboard.writeText(viewerUrl).then(
-    () => showToast('🔗 Viewer link gekopieerd naar klembord!', 3000),
-    () => { prompt('Kopieer deze viewer link:', viewerUrl); }
-  );
+  const encoded = btoa(unescape(encodeURIComponent(data)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const viewerUrl = location.href.replace(/[?#].*$/, '').replace(/\/[^/]*$/, '/viewer.html') + '#' + encoded;
+  document.getElementById('viewer-link-input').value = viewerUrl;
+  document.getElementById('viewer-link-modal').classList.add('show');
 }
 
 function exportProjectJson() {
@@ -2856,12 +2877,35 @@ document.getElementById('btn-export-img').addEventListener('click', () => {
   exportDropdown.style.display = 'none';
   document.getElementById('btn-export') && document.getElementById('btn-export').click();
 });
-document.getElementById('btn-share-viewer').addEventListener('click', () => {
-  exportDropdown.style.display = 'none';
-  generateViewerLink();
-});
+  
+  // Actie voor de Viewer Link knop
+  document.getElementById('btn-share-viewer').addEventListener('click', () => {
+    generateViewerLink();
+    // Sluit het dropdown menu na het klikken
+    document.getElementById('export-dropdown').style.display = 'none';
+  });
+  
 window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
-
+document.getElementById('btn-vl-copy').addEventListener('click', () => {
+  const input = document.getElementById('viewer-link-input');
+  navigator.clipboard.writeText(input.value).then(
+    () => showToast('🔗 Link gekopieerd naar klembord!', 3000),
+    () => { input.select(); document.execCommand('copy'); showToast('🔗 Link gekopieerd!', 3000); }
+  );
+});
+document.getElementById('btn-vl-whatsapp').addEventListener('click', () => {
+  const url = document.getElementById('viewer-link-input').value;
+  window.open('https://wa.me/?text=' + encodeURIComponent(url), '_blank');
+});
+document.getElementById('btn-vl-close').addEventListener('click', () => {
+  document.getElementById('viewer-link-modal').classList.remove('show');
+});
+document.getElementById('viewer-link-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('viewer-link-modal'))
+    document.getElementById('viewer-link-modal').classList.remove('show');
+});
+  
+  
   document.getElementById('btn-import-json').addEventListener('click', () => {
   const importInput = document.getElementById('json-import');
   importInput.value = '';
