@@ -2856,6 +2856,10 @@ document.getElementById('btn-export-img').addEventListener('click', () => {
   exportDropdown.style.display = 'none';
   document.getElementById('btn-export') && document.getElementById('btn-export').click();
 });
+document.getElementById('btn-share-viewer').addEventListener('click', () => {
+  exportDropdown.style.display = 'none';
+  generateViewerLink();
+});
 window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
 
   document.getElementById('btn-import-json').addEventListener('click', () => {
