@@ -1209,35 +1209,13 @@ const hash = location.hash.slice(1);
     return;
   }
 
-// STAP 1: Check eerst of er direct data in de link zit (voor de korte links)
-  const dataParam = getParam('data');
-  if (dataParam) {
-    try {
-      // Decodeer de Base64 data
-      const decodedData = decodeURIComponent(escape(atob(dataParam)));
-      const data = JSON.parse(decodedData);
-      
-      loadProjectData(data);
-      document.getElementById('loading-overlay').style.display = 'none';
-      
-      // Update titels
-      document.title = 'Gedeeld Bord – Visual Board Viewer';
-      const nameEl = document.getElementById('project-name');
-      if (nameEl) nameEl.textContent = 'Gedeeld Bord';
-      
-      return; // Stop hier, data is geladen!
-    } catch (err) {
-      console.error("Fout bij decoderen van URL data:", err);
-    }
-  }
-
-  // STAP 2: Als er geen data is, zoek dan naar een JSON bestand via ?src=
+  // Optie 2: JSON bestand via ?src= parameter (bestaande flow)
   const src = getParam('src');
   if (!src) {
     document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('error-overlay').classList.add('show');
     document.getElementById('err-msg').innerHTML =
-      'Geen geldige data of <code>src</code> parameter gevonden in de URL.';
+      'Geen <code>src</code> parameter gevonden in de URL.<br><br>Verwacht formaat:<br><code>viewer.html?src=projects/project1.json</code>';
     return;
   }
 
