@@ -292,16 +292,15 @@ body.exporting .node-link { display:none !important; }
     </div>
   </div>
 
+<button class="tb-btn" id="btn-fit" title="Alles tonen">⊡ Fit</button>
+  <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
+
   <input type="text" id="search-bar" placeholder="Zoek titel/groep…">
   <div id="search-tools">
     <span id="search-count">0/0</span>
     <button id="search-prev" class="search-nav-btn" title="Vorige resultaat">↑</button>
     <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
   </div>
-
-  <button class="tb-btn" id="btn-fit" title="Alles tonen" style="margin-left:8px;">⊡ Fit</button>
-  <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
-</div>
 
 <!-- Canvas -->
 <div id="canvas">
@@ -833,10 +832,34 @@ canvas.addEventListener('mousedown', e => {
   }
 });
 
+function clampPan() {
+  if (nodes.length === 0) return;
+  const MARGIN = 100; // minimaal 100px van het project blijft zichtbaar
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x);       minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
+  });
+  const left = parseFloat(world.style.left) || 0;
+  const top  = parseFloat(world.style.top)  || 0;
+  const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
+  // schermcoördinaten van de projectranden
+  const cL = left + minX * zoomLevel, cR = left + maxX * zoomLevel;
+  const cT = top  + minY * zoomLevel, cB = top  + maxY * zoomLevel;
+  let nL = left, nT = top;
+  if (cR < MARGIN)       nL = left + (MARGIN - cR);       // rechterrand te ver naar links
+  if (cL > cW - MARGIN)  nL = left - (cL - (cW - MARGIN)); // linkerrand te ver naar rechts
+  if (cB < MARGIN)       nT = top  + (MARGIN - cB);       // onderrand te ver omhoog
+  if (cT > cH - MARGIN)  nT = top  - (cT - (cH - MARGIN)); // bovenrand te ver omlaag
+  world.style.left = nL + 'px';
+  world.style.top  = nT + 'px';
+}
+
 document.addEventListener('mousemove', e => {
   if (!panStart) return;
   world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px';
   world.style.top  = (panOrigin.y + e.clientY - panStart.y) + 'px';
+  clampPan();
 });
 
 document.addEventListener('mouseup', () => {
@@ -857,6 +880,7 @@ canvas.addEventListener('wheel', e => {
   world.style.left = (mx - wx * zoomLevel) + 'px';
   world.style.top  = (my - wy * zoomLevel) + 'px';
   document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
+  clampPan();
 }, { passive: false });
 
 document.getElementById('btn-zoom-in').addEventListener('click', () => applyZoom(zoomLevel * 1.2));
@@ -871,6 +895,7 @@ function applyZoom(newZoom) {
   world.style.left = (cx - wx * zoomLevel) + 'px';
   world.style.top  = (cy - wy * zoomLevel) + 'px';
   document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
+  clampPan();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
