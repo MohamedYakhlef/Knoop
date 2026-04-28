@@ -2792,27 +2792,36 @@ window.addEventListener('click', () => {
 });
 
 async function generateViewerLink() {
-  const data = JSON.stringify({
-    nodes: nodes.map(n => ({...n, el: null})),
-    arrows: arrows.map(a => ({...a, el: null, pathEl: null, hitEl: null, bgEl: null, handleEl: null, markerEl: null}))
-  });
+  // We halen alleen de kern-data op om de URL kort te houden
+  const cleanNodes = nodes.map(n => ({
+    id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, 
+    text: n.text, color: n.color, type: n.type, fontSize: n.fontSize
+  }));
+
+  const cleanArrows = arrows.map(a => ({
+    id: a.id, fromId: a.fromId, toId: a.toId, 
+    text: a.text, color: a.color, 
+    fromSide: a.fromSide, toSide: a.toSide,
+    labelPos: a.labelPos
+  }));
+
+  const data = JSON.stringify({ nodes: cleanNodes, arrows: cleanArrows });
   
   const baseUrl = window.location.href.split('?')[0];
   const viewerUrl = baseUrl.includes('index3.html') ? baseUrl.replace('index3.html', 'viewer.html') : baseUrl + 'viewer.html';
   const longUrl = viewerUrl + '?data=' + encodeURIComponent(btoa(unescape(encodeURIComponent(data))));
 
   const inputEl = document.getElementById('viewer-link-input');
-  inputEl.value = "Bezig met inkorten..."; // Laat zien dat hij werkt
+  inputEl.value = "Bezig met inkorten...";
   document.getElementById('viewer-link-modal').classList.add('show');
 
   try {
-    // We gebruiken de TinyURL API om de link te verkorten
     const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
     if (response.ok) {
       const shortUrl = await response.text();
       inputEl.value = shortUrl;
     } else {
-      inputEl.value = longUrl; // Val terug op de lange link als het mislukt
+      inputEl.value = longUrl;
     }
   } catch (err) {
     inputEl.value = longUrl;
