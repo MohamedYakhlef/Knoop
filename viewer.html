@@ -278,7 +278,6 @@ body.exporting .node-link { display:none !important; }
   <div class="logo">Visual<span>Board</span></div>
   <div class="viewer-badge">Viewer</div>
   <div class="tb-sep"></div>
-  <span id="project-name">—</span>
 
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
 
@@ -292,15 +291,16 @@ body.exporting .node-link { display:none !important; }
     </div>
   </div>
 
-<button class="tb-btn" id="btn-fit" title="Alles tonen">⊡ Fit</button>
+  <button class="tb-btn" id="btn-fit" title="Alles tonen">⊡ Fit</button>
   <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
 
-  <input type="text" id="search-bar" placeholder="Zoek titel/groep…">
+  <input type="text" id="search-bar" placeholder="Zoek…">
   <div id="search-tools">
     <span id="search-count">0/0</span>
     <button id="search-prev" class="search-nav-btn" title="Vorige resultaat">↑</button>
     <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
   </div>
+</div>
 
 <!-- Canvas -->
 <div id="canvas">
@@ -817,6 +817,29 @@ searchBar.addEventListener('keydown', e => {
 // PAN & ZOOM
 // ═══════════════════════════════════════════════════════════════════════════════
 let panStart = null, panOrigin = { x: 0, y: 0 };
+let minZoomLevel = 0.15; // wordt overschreven na laden project
+
+function clampPan() {
+  if (nodes.length === 0) return;
+  const MARGIN = 80;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x);          minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
+  });
+  const left = parseFloat(world.style.left) || 0;
+  const top  = parseFloat(world.style.top)  || 0;
+  const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
+  const cL = left + minX * zoomLevel, cR = left + maxX * zoomLevel;
+  const cT = top  + minY * zoomLevel, cB = top  + maxY * zoomLevel;
+  let nL = left, nT = top;
+  if (cR < MARGIN)        nL = left + (MARGIN - cR);
+  if (cL > cW - MARGIN)   nL = left - (cL - (cW - MARGIN));
+  if (cB < MARGIN)        nT = top  + (MARGIN - cB);
+  if (cT > cH - MARGIN)   nT = top  - (cT - (cH - MARGIN));
+  world.style.left = nL + 'px';
+  world.style.top  = nT + 'px';
+}
 
 canvas.addEventListener('mousedown', e => {
   if (e.button === 0 && (e.target === canvas || e.target === world || e.target.tagName === 'svg')) {
@@ -875,7 +898,7 @@ canvas.addEventListener('wheel', e => {
   const wx = (mx - (parseFloat(world.style.left)||0)) / zoomLevel;
   const wy = (my - (parseFloat(world.style.top)||0)) / zoomLevel;
   const delta = e.deltaY < 0 ? 1.1 : 0.9;
-  zoomLevel = Math.min(3, Math.max(0.15, zoomLevel * delta));
+  zoomLevel = Math.min(3, Math.max(minZoomLevel, zoomLevel * delta));
   world.style.transform = `scale(${zoomLevel})`;
   world.style.left = (mx - wx * zoomLevel) + 'px';
   world.style.top  = (my - wy * zoomLevel) + 'px';
@@ -890,7 +913,7 @@ function applyZoom(newZoom) {
   const cx = canvas.offsetWidth / 2, cy = canvas.offsetHeight / 2;
   const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
   const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
-  zoomLevel = Math.min(3, Math.max(0.15, newZoom));
+  zoomLevel = Math.min(3, Math.max(minZoomLevel, newZoom));
   world.style.transform = `scale(${zoomLevel})`;
   world.style.left = (cx - wx * zoomLevel) + 'px';
   world.style.top  = (cy - wy * zoomLevel) + 'px';
@@ -918,7 +941,10 @@ function fitToContent(padding = 60) {
 
   const scaleX = canvasW / contentW;
   const scaleY = canvasH / contentH;
-  zoomLevel = Math.min(scaleX, scaleY, 1.5); // don't zoom in more than 150%
+  zoomLevel = Math.min(scaleX, scaleY, 1.5);
+
+  // Sla minimale zoom op zodat gebruiker niet verder kan uitzoomen dan dit
+  minZoomLevel = zoomLevel * 0.9;
 
   const scaledW = contentW * zoomLevel;
   const scaledH = contentH * zoomLevel;
