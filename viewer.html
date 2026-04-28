@@ -1140,39 +1140,34 @@ window.addEventListener('click', () => document.getElementById('label-filter-dro
 // LOAD PROJECT FROM URL ?src=
 // ═══════════════════════════════════════════════════════════════════════════════
 function loadProjectData(data) {
-  // Clear existing
-  nodes.forEach(n => n.el.remove());
-  arrows.forEach(a => removeArrowEls(a));
-  nodes = []; arrows = [];
-  nodeId = data.nodeId || 0;
-  arrowId = data.arrowId || 0;
+  // 1. Wis het huidige bord
+  canvas.innerHTML = '';
+  nodes = [];
+  arrows = [];
 
-  // Create nodes
-  data.nodes.forEach(nd => {
-    const n = createNode(nd.x, nd.y, nd.shape || 'square', nd.title, nd.id);
-    const savedEl = n.el;
-    Object.assign(n, nd);
-    n.el = savedEl;
-    n.el.style.width  = n.width  + 'px';
-    n.el.style.height = n.height + 'px';
-    renderNode(n);
-  });
+  // 2. Herstel de Nodes
+  if (data.nodes) {
+    data.nodes.forEach(nData => {
+      // Maak de node opnieuw aan met de gestripte data
+      const node = { ...nData };
+      createNodeElement(node); // Deze functie maakt het visuele element 'el' weer aan
+      nodes.push(node);
+    });
+  }
 
-  // Create arrows
-  data.arrows.forEach(ad => {
-    const a = createArrow(ad.from, ad.to, ad.fromPort, ad.toPort, ad.id);
-    const savedEls = {
-      pathEl: a.pathEl, bgPathEl: a.bgPathEl, hitEl: a.hitEl,
-      dotEl: a.dotEl, dotEl2: a.dotEl2, labelEl: a.labelEl, noteEl: a.noteEl,
-      urlLinkEl: a.urlLinkEl, urlIconEl: a.urlIconEl,
-      markerEl: a.markerEl, markerPathEl: a.markerPathEl,
-      markerStartEl: a.markerStartEl, markerStartPathEl: a.markerStartPathEl,
-      _dashPath2: a._dashPath2
-    };
-    Object.assign(a, ad);
-    Object.assign(a, savedEls);
-    updateArrow(a);
-  });
+  // 3. Herstel de Arrows
+  if (data.arrows) {
+    data.arrows.forEach(aData => {
+      const arrow = { ...aData };
+      // De viewer tekent de pijl op basis van de fromId en toId
+      createArrowElement(arrow); 
+      arrows.push(arrow);
+    });
+  }
+  
+  // 4. Update de weergave
+  updateAllArrows();
+}
 
   startAllAnimations();
   setTimeout(() => fitToContent(), 50);
