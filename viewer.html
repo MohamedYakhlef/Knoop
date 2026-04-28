@@ -278,6 +278,7 @@ body.exporting .node-link { display:none !important; }
   <div class="logo">Visual<span>Board</span></div>
   <div class="viewer-badge">Viewer</div>
   <div class="tb-sep"></div>
+  <span id="project-name" style="display:none">—</span>
 
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
 
@@ -1010,7 +1011,7 @@ document.getElementById('btn-export-img').addEventListener('click', async () => 
 
       const a = document.createElement('a');
       a.href = c2.toDataURL('image/png');
-      a.download = (document.getElementById('project-name').textContent || 'visual-board') + '.png';
+      a.download = (document.getElementById('project-name')?.textContent || 'visual-board') + '.png';
       a.click();
       showToast('Export klaar! ✓');
     }
@@ -1197,8 +1198,9 @@ async function loadFromUrl() {
 
   // Derive project name from filename
   const filename = src.split('/').pop().replace('.json', '');
-  document.getElementById('project-name').textContent = filename;
-  document.title = filename + ' – Visual Board Viewer';
+const nameEl = document.getElementById('project-name');
+if (nameEl) nameEl.textContent = filename;
+document.title = filename + ' – Visual Board Viewer';
 
   try {
     const resp = await fetch(src);
