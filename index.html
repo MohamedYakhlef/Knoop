@@ -582,7 +582,7 @@ node.shape-text {
     </div>
   </div>
 
-<div style="display:flex; align-items:center; gap:10px; margin-left:auto;">
+<div style="display:flex; align-items:center; gap:0px; margin-left:auto;">
     <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
 
     <div id="search-tools">
@@ -2851,16 +2851,14 @@ document.getElementById('btn-export-json').addEventListener('click', () => {
   exportProjectJson();
   exportDropdown.style.display = 'none';
 });
+  
 document.getElementById('btn-export-img').addEventListener('click', () => {
   exportDropdown.style.display = 'none';
   document.getElementById('btn-export') && document.getElementById('btn-export').click();
 });
-document.getElementById('btn-share-viewer').addEventListener('click', () => {
-  exportDropdown.style.display = 'none';
-  generateViewerLink();
-});
 window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
-document.getElementById('btn-import-json').addEventListener('click', () => {
+
+  document.getElementById('btn-import-json').addEventListener('click', () => {
   const importInput = document.getElementById('json-import');
   importInput.value = '';
   importInput.click();
