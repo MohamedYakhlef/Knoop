@@ -1187,6 +1187,27 @@ function removeArrowEls(a) {
 }
 
 async function loadFromUrl() {
+  // Optie 1: Data direct in URL hash (gegenereerd via "Viewer Link" knop)
+  const hash = location.hash.slice(1);
+  if (hash) {
+    try {
+      const json = decodeURIComponent(escape(atob(hash)));
+      const data = JSON.parse(json);
+      const nameEl = document.getElementById('project-name');
+      if (nameEl) nameEl.textContent = 'Gedeeld project';
+      document.title = 'Gedeeld project – Visual Board Viewer';
+      loadProjectData(data);
+      document.getElementById('loading-overlay').style.display = 'none';
+    } catch(err) {
+      document.getElementById('loading-overlay').style.display = 'none';
+      document.getElementById('error-overlay').classList.add('show');
+      document.getElementById('err-msg').innerHTML =
+        `Kan de gedeelde link niet laden.<br><br>Foutmelding: <b>${escHtml(err.message)}</b>`;
+    }
+    return;
+  }
+
+  // Optie 2: JSON bestand via ?src= parameter (bestaande flow)
   const src = getParam('src');
   if (!src) {
     document.getElementById('loading-overlay').style.display = 'none';
