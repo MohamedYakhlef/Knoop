@@ -49,13 +49,13 @@
 
   .tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
   
-  #search-bar {
-    margin-left: auto; width: 200px; padding: 6px 12px; border-radius: 20px;
-    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-    font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s;
-  }
+ #search-bar {
+  width: 200px; padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s;
+}
   #search-bar:focus { border-color: var(--accent); }
-  #search-tools { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+  #search-tools { display: flex; align-items: center; gap: 6px; margin-left: 0; }
   #search-count {
     min-width: 44px; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px;
     color: var(--text-dim);
@@ -274,7 +274,7 @@ node.shape-text {
 
   .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
   .node-thumb.has-img { display: block; }
-  .node-thumb img { width: 100%; height: 100%; object-fit: cover; }
+ .node-thumb img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; user-drag: none; draggable: false; }
 
   .node-body { padding: 12px 12px 10px; flex: 2 1 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; }
   .node.shape-oval .node-body { text-align: center; }
@@ -560,8 +560,14 @@ node.shape-text {
   <div class="logo">Visual<span>Board</span></div>
   <div class="tb-sep"></div>
   <button class="tb-btn" id="btn-new-project" title="Start nieuw project">🆕 Nieuw project</button>
-  <button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
-  <button class="tb-btn" id="btn-export-json" title="Exporteer als Project">💾 Export</button>
+<button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
+  <div id="export-dropdown-wrapper" style="position:relative;">
+    <button class="tb-btn" id="btn-export-dropdown" title="Exporteer">💾 Export ▾</button>
+    <div id="export-dropdown" style="display:none; position:absolute; top:38px; left:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); z-index:2000; min-width:160px; padding:4px; flex-direction:column;">
+      <div class="lt-dropdown-item" id="btn-export-json">💾 Export JSON</div>
+      <div class="lt-dropdown-item" id="btn-export-img">🖼️ Export Image</div>
+    </div>
+  </div>
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
   
 <div id="label-filter-wrapper">
@@ -574,14 +580,19 @@ node.shape-text {
       <button id="lf-clear">✕ Filter wissen</button>
     </div>
   </div>
-  <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
-  <div id="search-tools">
-    <span id="search-count">0/0</span>
-    <button id="search-prev" class="search-nav-btn" title="Vorige resultaat">↑</button>
-    <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
-  </div>
-  <button class="tb-btn" id="btn-export" title="Exporteer als Afbeelding" style="margin-left: 8px;">🖼️ Export Image</button>
-  <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
+
+<div style="display:flex; align-items:center; gap:10px; margin-left:auto;">
+    <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
+
+    <div id="search-tools">
+      <span id="search-count">0/0</span>
+      <button id="search-prev" class="search-nav-btn">↑</button>
+      <button id="search-next" class="search-nav-btn">↓</button>
+    </div>
+
+    <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
+</div>
+
 </div>
 
 <div id="left-toolbar">
@@ -1868,6 +1879,8 @@ function updateSearchCount() {
   else searchCount.textContent = `${searchMatchIndex + 1}/${searchMatches.length}`;
 }
 
+let _searchAnimFrame = null;
+
 function focusSearchMatch(index) {
   if (searchMatches.length === 0) return;
   searchMatchIndex = ((index % searchMatches.length) + searchMatches.length) % searchMatches.length;
@@ -1875,8 +1888,30 @@ function focusSearchMatch(index) {
   document.querySelectorAll('.node').forEach(el => el.classList.remove('search-active'));
   if (match && match.el) {
     match.el.classList.add('search-active');
-    world.style.left = (-match.x * zoomLevel + canvas.offsetWidth/2 - match.width/2) + 'px';
-    world.style.top = (-match.y * zoomLevel + canvas.offsetHeight/2 - match.height/2) + 'px';
+
+    const targetLeft = -match.x * zoomLevel + canvas.offsetWidth / 2 - (match.width * zoomLevel) / 2;
+    const targetTop  = -match.y * zoomLevel + canvas.offsetHeight / 2 - (match.height * zoomLevel) / 2;
+    const startLeft  = parseFloat(world.style.left) || 0;
+    const startTop   = parseFloat(world.style.top)  || 0;
+
+    if (_searchAnimFrame) cancelAnimationFrame(_searchAnimFrame);
+
+    const duration = 380; // ms — snel maar zichtbaar
+    const startTime = performance.now();
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function step(now) {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = easeOutCubic(t);
+      world.style.left = (startLeft + (targetLeft - startLeft) * ease) + 'px';
+      world.style.top  = (startTop  + (targetTop  - startTop)  * ease) + 'px';
+      if (t < 1) _searchAnimFrame = requestAnimationFrame(step);
+      else _searchAnimFrame = null;
+    }
+
+    _searchAnimFrame = requestAnimationFrame(step);
   }
   updateSearchCount();
 }
@@ -1980,8 +2015,8 @@ function renderNode(n) {
     if (n.img && n.showImg) {
       thumbEl.classList.add('has-img');
       let imgEl = thumbEl.querySelector('img');
-      if (!imgEl) { imgEl = document.createElement('img'); thumbEl.appendChild(imgEl); }
-      imgEl.src = n.img;
+     if (!imgEl) { imgEl = document.createElement('img'); imgEl.draggable = false; thumbEl.appendChild(imgEl); }
+imgEl.src = n.img;
     } else {
       thumbEl.classList.remove('has-img');
     }
@@ -2046,8 +2081,8 @@ if (noteEl) {
     if (n.img && n.showImg) {
       thumbEl.classList.add('has-img');
       let imgEl = thumbEl.querySelector('img');
-      if (!imgEl) { imgEl = document.createElement('img'); thumbEl.appendChild(imgEl); }
-      imgEl.src = n.img;
+     if (!imgEl) { imgEl = document.createElement('img'); imgEl.draggable = false; thumbEl.appendChild(imgEl); }
+imgEl.src = n.img;
     } else {
       thumbEl.classList.remove('has-img');
     }
@@ -2518,7 +2553,7 @@ document.getElementById('btn-reanchor').addEventListener('click', () => {
   }
 });
 // ── EXPORT IMAGE (Bounding Box) ────────────────────────────────────────────────
-document.getElementById('btn-export').addEventListener('click', async () => {
+document.getElementById('btn-export-img').addEventListener('click', async () => {
   if (nodes.length === 0) { showToast('Canvas is leeg'); return; }
   showToast('Bezig met exporteren…');
   document.body.classList.add('exporting'); clearMultiSelection(); panel.classList.remove('open');
@@ -2789,7 +2824,22 @@ newProjectModal.addEventListener('click', (e) => {
   if (e.target === newProjectModal) closeNewProjectModal();
 });
 
-document.getElementById('btn-export-json').addEventListener('click', exportProjectJson);
+const exportDropdownWrapper = document.getElementById('export-dropdown-wrapper');
+const exportDropdown = document.getElementById('export-dropdown');
+
+document.getElementById('btn-export-dropdown').addEventListener('click', e => {
+  e.stopPropagation();
+  exportDropdown.style.display = exportDropdown.style.display === 'flex' ? 'none' : 'flex';
+});
+document.getElementById('btn-export-json').addEventListener('click', () => {
+  exportProjectJson();
+  exportDropdown.style.display = 'none';
+});
+document.getElementById('btn-export-img').addEventListener('click', () => {
+  exportDropdown.style.display = 'none';
+  document.getElementById('btn-export') && document.getElementById('btn-export').click();
+});
+window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
 document.getElementById('btn-import-json').addEventListener('click', () => {
   const importInput = document.getElementById('json-import');
   importInput.value = '';
