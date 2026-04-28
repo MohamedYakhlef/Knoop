@@ -3,2017 +3,450 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Visual Board</title>
+<title>Visual Board – Viewer</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg: #f8f9fc; --surface: #ffffff; --surface2: #f1f2f7; --border: #d0d4e0;
-    --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
-    --text: #1a1a2e; --text-dim: #6b6b8a; --shadow: 0 8px 32px rgba(0,0,0,0.15);
-  }
-
-  body.dark {
-    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27; --border: #2a2a3d;
-    --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
-    --text: #e8e8f0; --text-dim: #a0a0c0; --shadow: 0 8px 32px rgba(0,0,0,0.6);
-  }
-
-  html, body {
-    width: 100%; height: 100%; overflow: hidden;
-    background: var(--bg); font-family: 'Syne', sans-serif; color: var(--text); user-select: none;
-  }
-
-
-  /* ── TOOLBARS ── */
-  #toolbar {
-    position: fixed; top: 0; left: 0; right: 0; height: 52px;
-    background: rgba(248,249,252,0.95); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 8px; padding: 0 16px; z-index: 1000;
-  }
-  body.dark #toolbar { background: rgba(13,13,20,0.95); }
-
-  #toolbar .logo { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; margin-right: 12px; }
-  #toolbar .logo span { color: var(--accent); }
-
-  .tb-btn {
-    display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-    font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: all .15s;
-  }
-  .tb-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  .tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
-  
- #search-bar {
-  width: 200px; padding: 6px 12px; border-radius: 20px;
-  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-  font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s;
+:root {
+  --bg: #f8f9fc; --surface: #ffffff; --surface2: #f1f2f7; --border: #d0d4e0;
+  --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
+  --text: #1a1a2e; --text-dim: #6b6b8a; --shadow: 0 8px 32px rgba(0,0,0,0.15);
 }
-  #search-bar:focus { border-color: var(--accent); }
-  #search-tools { display: flex; align-items: center; gap: 6px; margin-left: 0; }
-  #search-count {
-    min-width: 44px; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px;
-    color: var(--text-dim);
-  }
-  .search-nav-btn {
-    width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
-    background: var(--surface2); color: var(--text); cursor: pointer; line-height: 1;
-  }
-  .search-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+body.dark {
+  --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27; --border: #2a2a3d;
+  --accent: #7c5cfc; --accent2: #fc5c7d; --accent3: #5cf8c8;
+  --text: #e8e8f0; --text-dim: #a0a0c0; --shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
 
-  /* LEFT TOOLBAR */
-  #left-toolbar {
-    position: fixed; top: 68px; left: 16px; width: 44px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-    display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px;
-    z-index: 1000; box-shadow: var(--shadow);
-  }
-  .lt-btn {
-    width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;
-    border-radius: 6px; cursor: pointer; color: var(--text); position: relative;
-    transition: all 0.15s; border: 1px solid transparent; font-size: 14px;
-  }
-  .lt-btn:hover { background: var(--surface2); border-color: var(--border); }
-  .lt-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-  
-  /* Dropdown voor add button */
-  .lt-dropdown {
-    position: absolute; left: 40px; top: 0; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
-    display: none; flex-direction: row; gap: 4px; padding: 4px; z-index: 1001;
-  }
-  .lt-dropdown.show { display: flex; }
-  .lt-dropdown-item {
-    padding: 6px 10px; font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer;
-    border-radius: 4px; color: var(--text); white-space: nowrap; transition: background 0.1s;
-  }
-  .lt-dropdown-item:hover { background: var(--surface2); color: var(--accent); }
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); font-family:'Syne',sans-serif; color:var(--text); user-select:none; }
 
-  /* ── CANVAS ── */
-  #canvas {
-    position: fixed; top: 52px; left: 0; right: 0; bottom: 0;
-    overflow: hidden; cursor: default;
-  }
-  #canvas.tool-text { cursor: text; }
-  #canvas.tool-select { cursor: crosshair; }
-  #canvas.tool-text .node { cursor: text !important; }
-  #canvas.tool-eraser { cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') 12 12, pointer; }
-  #canvas.tool-eraser .node, #canvas.tool-eraser .node * { cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14" stroke="%23ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') 12 12, pointer !important; }
+/* ── TOOLBAR ── */
+#toolbar {
+  position:fixed; top:0; left:0; right:0; height:52px;
+  background:rgba(248,249,252,0.95); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px; padding:0 16px; z-index:1000;
+}
+body.dark #toolbar { background:rgba(13,13,20,0.95); }
 
-  #canvas::before {
-    content: ''; position: absolute; inset: 0;
-    background-image: radial-gradient(circle, #d0d4e0 1px, transparent 1px); background-size: 28px 28px; pointer-events: none;
-  }
-  body.dark #canvas::before { background-image: radial-gradient(circle, #2a2a3d 1px, transparent 1px); }
+#toolbar .logo { font-size:15px; font-weight:800; letter-spacing:-0.5px; margin-right:12px; flex-shrink:0; }
+#toolbar .logo span { color:var(--accent); }
+.viewer-badge {
+  font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+  background:rgba(124,92,252,0.12); color:var(--accent);
+  border:1px solid rgba(124,92,252,0.25); border-radius:20px;
+  padding:2px 8px; letter-spacing:.5px; text-transform:uppercase; flex-shrink:0;
+}
 
-  #world { position: absolute; top: 0; left: 0; width: 4000px; height: 4000px; transform-origin: 0 0; }
+.tb-btn {
+  display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:6px;
+  border:1px solid var(--border); background:var(--surface2); color:var(--text);
+  font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; transition:all .15s; flex-shrink:0;
+}
+.tb-btn:hover { border-color:var(--accent); color:var(--accent); }
+.tb-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.tb-sep { width:1px; height:24px; background:var(--border); margin:0 4px; flex-shrink:0; }
 
-  /* Selectie Box */
-  #selection-box {
-    position: absolute; border: 1px solid var(--accent); background: rgba(124, 92, 252, 0.2);
-    pointer-events: none; display: none; z-index: 9999;
-  }
+#project-name {
+  font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim);
+  margin-right:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
+}
 
-/* ── SVG ARROWS ── */
+#search-bar {
+  margin-left:auto; width:200px; padding:6px 12px; border-radius:20px;
+  border:1px solid var(--border); background:var(--surface2); color:var(--text);
+  font-family:'DM Mono',monospace; font-size:12px; outline:none; transition:border-color 0.2s;
+}
+#search-bar:focus { border-color:var(--accent); }
+#search-tools { display:flex; align-items:center; gap:6px; margin-left:8px; }
+#search-count { min-width:44px; text-align:center; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); }
+.search-nav-btn {
+  width:24px; height:24px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface2); color:var(--text); cursor:pointer; line-height:1;
+}
+.search-nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── LABEL FILTER DROPDOWN ── */
+#label-filter-wrapper { position:relative; }
+#label-filter-dropdown {
+  position:absolute; top:40px; left:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; box-shadow:var(--shadow);
+  display:none; flex-direction:column;
+  padding:8px; z-index:2000;
+  min-width:260px; max-height:420px; overflow-y:auto;
+}
+#label-filter-dropdown.show { display:flex; }
+.lf-section-header {
+  font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim);
+  text-transform:uppercase; padding:8px 4px 4px; letter-spacing:.5px;
+  border-top:1px solid var(--border); margin-top:4px;
+}
+.lf-section-header:first-child { border-top:none; margin-top:0; }
+.lf-item {
+  display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:4px;
+  cursor:pointer; font-family:'DM Mono',monospace; font-size:12px; color:var(--text); transition:background 0.1s;
+}
+.lf-item:hover { background:var(--surface2); }
+.lf-item input[type="checkbox"] { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
+#lf-empty { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); padding:6px 8px; }
+#lf-clear {
+  margin-top:6px; padding:6px 8px; border-radius:4px;
+  border:1px solid var(--border); background:var(--surface2);
+  color:var(--text-dim); font-family:'DM Mono',monospace;
+  font-size:11px; cursor:pointer; text-align:center; transition:all .15s;
+}
+#lf-clear:hover { border-color:var(--accent2); color:var(--accent2); }
+#lf-badge {
+  background:var(--accent); color:white; border-radius:10px;
+  padding:1px 6px; font-size:10px; margin-left:2px; display:none;
+}
+
+/* ── CANVAS ── */
+#canvas {
+  position:fixed; top:52px; left:0; right:0; bottom:0;
+  overflow:hidden; cursor:grab;
+}
+#canvas.panning { cursor:grabbing; }
+#canvas::before {
+  content:''; position:absolute; inset:0;
+  background-image:radial-gradient(circle, #d0d4e0 1px, transparent 1px);
+  background-size:28px 28px; pointer-events:none;
+}
+body.dark #canvas::before { background-image:radial-gradient(circle, #2a2a3d 1px, transparent 1px); }
+
+#world { position:absolute; top:0; left:0; width:6000px; height:6000px; transform-origin:0 0; }
+
+/* ── SVG LAYERS ── */
 #svg-layer {
-  position: absolute; 
-  top: 0; left: 0; 
-  width: 4000px; 
-  height: 4000px; 
-  pointer-events: none; 
-  overflow: visible;
-  z-index: 5;                    /* pijlen boven Gebied */
-}
-
-#temp-svg {
-  position: absolute;
-  top: 0; left: 0;
-  width: 4000px; 
-  height: 4000px; 
-  pointer-events: none; 
-  overflow: visible;
-  z-index: 20;                   /* tijdelijke lijn bij het tekenen van pijlen */
-}
-
-#anchors-svg {
-  /* blijft al op z-index:999 (inline) → blijft altijd bovenaan */
+  position:absolute; top:0; left:0; width:6000px; height:6000px;
+  pointer-events:none; overflow:visible; z-index:5;
 }
 #svg-layer .arrow-path {
-    fill: none; stroke: var(--accent); stroke-width: 2.5;
-    pointer-events: stroke; cursor: pointer; transition: stroke .15s;
-  }
-  #svg-layer .arrow-path:hover { stroke: var(--accent2); }
-  #svg-layer .arrow-path.selected { stroke: var(--accent2); stroke-width: 3; }
-  .arrow-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
-  #svg-layer .arrow-bg { fill: none; stroke: var(--surface); stroke-width: 7; stroke-linejoin: round; pointer-events: none; }
-
-.anchor-point {
-    fill: #fff; stroke: var(--accent); stroke-width: 2; r: 5px;
-    pointer-events: all; cursor: crosshair; transition: r 0.15s, fill 0.15s;
-  }
-  .anchor-point:hover { r: 8px; fill: var(--accent3); stroke: #000; }
-.anchor-point.magnet-hover { r: 10px; fill: var(--accent3); stroke: #000; stroke-width: 2.5; }
-
-  /* ── WAYPOINT HANDLES (Vrije Lijnbewerking) ── */
-  .waypoint-handle {
-    fill: #fff; stroke: var(--accent2); stroke-width: 2.5;
-    pointer-events: all; cursor: grab; transition: fill 0.15s, r 0.1s;
-  }
-  .waypoint-handle:hover { fill: var(--accent2); }
-  .waypoint-handle.dragging { cursor: grabbing; fill: var(--accent2); }
-  .waypoint-seg-hit {
-    fill: none; stroke: transparent; stroke-width: 18;
-    pointer-events: stroke; cursor: cell;
-  }
-  /* Route mode toggle buttons */
-  .route-btn {
-    flex: 1; justify-content: center; font-size: 11px;
-    padding: 7px 6px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface2);
-    color: var(--text); font-family: 'DM Mono', monospace;
-    cursor: pointer; transition: all .15s; text-align: center;
-  }
-  .route-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .route-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  /* ── NODE CARDS ── */
-  .node {
-    position: absolute; width: 220px; min-height: 50px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; cursor: grab; transition: border-color .15s, box-shadow .15s, filter .3s ease;
-    box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden;
-  }
-/* Basis stijlen voor vormen */
-/* --- VORM DEFINITIES --- */
-
-  /* 1. Ovaal */
-.node.shape-oval { 
-    border-radius: 100px; 
-    padding: 10px 20px; 
-    align-items: center; 
-    justify-content: center; 
-  }
-  
-  /* Zet het icoontje binnen het gekleurde vlak van de ovaal */
-  .node.shape-oval .resize-handle {
-    right: 20px !important;
-    bottom: 5px !important;
-  }
-
-  .node.shape-area { border: 2px dashed var(--border) !important; z-index: 1 !important; }
-  
-  /* Zorg dat het icoon altijd zichtbaar is voor ovaal en gebied bij hover */
-  .node.shape-oval:hover .resize-handle, 
-  .node.shape-area:hover .resize-handle { 
-    opacity: 1 !important; 
-  }
-
-node.shape-text { 
-    background: transparent !important; 
-    border: 1px dashed transparent; 
-    box-shadow: none; 
-    min-height: unset; 
-    cursor: text; 
-  }
-  .node.shape-text:hover { border-color: var(--border); }
-  .node.shape-text:not(:hover):not(.selected):not(.multi-selected):not(.highlight):not(.connected-highlight) {
-    border-color: transparent !important;
-    box-shadow: none !important;
-  }
-
-  /* Zorg dat de aanwijzer een tekst-streepje blijft boven alle vormen als de T-tool aan staat */
-  #canvas.tool-text .node { cursor: text !important; }
-
-  /* --- RESIZE ICOONTJES VOOR DEZE VORMEN --- */
-  
-/* ── RESIZE ICOONTJES VOOR SPECIALE VORMEN ── */
-
-/* Positie en zichtbaarheid basis voor ovaal en gebied */
-.node.shape-oval .resize-handle,
-.node.shape-area .resize-handle {
-    display: block !important;      /* altijd aanwezig in DOM */
-    visibility: visible !important;
-    right: 32px !important;         /* verder naar binnen (binnen de ronding) */
-    bottom: 18px !important;
-    z-index: 20 !important;
+  fill:none; stroke:var(--accent); stroke-width:2.5;
+  pointer-events:stroke; cursor:pointer; transition:stroke .15s;
 }
+#svg-layer .arrow-path:hover { stroke:var(--accent2); }
+#svg-layer .arrow-path.selected { stroke:var(--accent2); stroke-width:3; }
+.arrow-hit { fill:none; stroke:transparent; stroke-width:16; pointer-events:stroke; cursor:pointer; }
+#svg-layer .arrow-bg { fill:none; stroke:var(--surface); stroke-width:7; stroke-linejoin:round; pointer-events:none; }
+#svg-layer .arrow-path.active-connection { stroke-width:3.5 !important; opacity:1; }
+#svg-layer .arrow-path.arrow-dimmed { opacity:0.12; }
 
-/* Hover: alleen dan zichtbaar (zoals bij normale vierkanten) */
-.node:hover .resize-handle,
-.node.shape-oval:hover .resize-handle,
-.node.shape-area:hover .resize-handle {
-    opacity: 1 !important;
+/* ── NODE CARDS (read-only) ── */
+.node {
+  position:absolute; width:220px; min-height:50px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; cursor:pointer;
+  transition:border-color .15s, box-shadow .15s, filter .3s ease;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden;
 }
-
-/* Zorg dat hij standaard onzichtbaar is (ook bij ovaal) */
-.node .resize-handle {
-    opacity: 0;
-    transition: opacity .2s;
-}
-
-  /* Zorg dat alle normale vakjes BOVEN het Gebied blijven */
-  .node:not(.shape-area) { z-index: 10; }
-
-  .node:hover { border-color: var(--accent); }
-  .node.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
-  .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-  .node.search-active { border-color: var(--accent2) !important; box-shadow: 0 0 0 2px rgba(252,92,125,0.35) !important; }
-  .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
-.node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
+.node.shape-oval { border-radius:100px; padding:10px 20px; align-items:center; justify-content:center; }
+.node.shape-area { border:2px dashed var(--border) !important; z-index:1 !important; }
+.node:not(.shape-area) { z-index:10; }
+.node:hover { border-color:var(--accent); }
+.node.selected { border-color:var(--accent2); box-shadow:0 0 0 1px var(--accent2), 0 8px 28px rgba(252,92,125,0.2); }
+.node.search-active { border-color:var(--accent2) !important; box-shadow:0 0 0 2px rgba(252,92,125,0.35) !important; }
+.node.highlight { filter:brightness(1.18); box-shadow:0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
+.node.dimmed { opacity:0.25; transition:opacity 0.3s ease; }
 .node.connected-highlight {
-  border-color: var(--accent3) !important;
-  box-shadow: 0 0 0 2px rgba(92,248,200,0.25), 0 8px 28px rgba(92,248,200,0.12) !important;
+  border-color:var(--accent3) !important;
+  box-shadow:0 0 0 2px rgba(92,248,200,0.25), 0 8px 28px rgba(92,248,200,0.12) !important;
 }
-#svg-layer .arrow-path.active-connection { stroke-width: 3.5 !important; opacity: 1; }
-#svg-layer .arrow-path.arrow-dimmed { opacity: 0.12; }
-  .node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
-
-  .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
-  .node-thumb.has-img { display: block; }
- .node-thumb img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; user-drag: none; draggable: false; }
-
-  .node-body { padding: 12px 12px 10px; flex: 2 1 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-  .node.shape-oval .node-body { text-align: center; }
-
-  .node-title { font-size: 14px; font-weight: 600; color: #1a1a2e !important; word-break: break-word; line-height: 1.3; }
-.node.shape-text .node-title { 
-  font-size: 16px; 
-  color: inherit !important; /* Neemt de kleur van de node over */
+.node.shape-text {
+  background:transparent !important; border:1px dashed transparent;
+  box-shadow:none; min-height:unset; cursor:pointer;
 }
-#f-title {
-  color: inherit;
+.node.shape-text:hover { border-color:var(--border); }
+.node.shape-text:not(.selected):not(.highlight):not(.connected-highlight):not(.search-active) {
+  border-color:transparent !important; box-shadow:none !important;
 }
 
-.node-note {
-  font-size: 11px;
-  margin-top: 8px;
-  color: var(--text-dim);
-  display: none; 
-  pointer-events: none;
-  white-space: pre-wrap; /* Zorgt dat enters in de tekst werken */
+.node-thumb { width:100%; height:90px; background:var(--surface2); overflow:hidden; position:relative; display:none; flex:1 1 auto; }
+.node-thumb.has-img { display:block; }
+.node-thumb img { width:100%; height:100%; object-fit:cover; }
+.node-body { padding:12px 12px 10px; flex:2 1 auto; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+.node.shape-oval .node-body { text-align:center; }
+.node-title { font-size:14px; font-weight:600; color:#1a1a2e !important; word-break:break-word; line-height:1.3; }
+.node.shape-text .node-title { font-size:16px; color:inherit !important; }
+.node-note { font-size:11px; margin-top:8px; color:var(--text-dim); display:none; pointer-events:none; white-space:pre-wrap; }
+.node-note.visible { display:block !important; }
+.node-link {
+  position:absolute; top:8px; right:8px; background:var(--accent); color:white;
+  width:20px; height:20px; border-radius:4px; display:none; align-items:center;
+  justify-content:center; font-size:10px; text-decoration:none; cursor:pointer; z-index:10;
+}
+.node-link:hover { background:var(--accent2); }
+
+/* No resize handle, no node buttons in viewer */
+
+/* ── PANEL ── */
+#panel {
+  position:fixed; top:52px; right:-380px; width:340px; bottom:0;
+  background:var(--surface); border-left:1px solid var(--border); z-index:900;
+  padding:24px; transition:right .3s cubic-bezier(.4,0,.2,1); overflow-y:auto;
+}
+#panel.open { right:0; }
+#panel h2 { font-size:16px; font-weight:700; margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+#panel-close { width:28px; height:28px; border-radius:6px; background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; transition:all .15s; }
+#panel-close:hover { background:var(--accent2); border-color:var(--accent2); color:#fff; }
+
+.view-line { margin-bottom:16px; }
+.view-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+.view-value { font-size:15px; color:var(--text); margin-top:3px; word-break:break-word; line-height:1.5; }
+.view-value a { color:var(--accent); text-decoration:underline; }
+.view-img { width:100%; border-radius:8px; object-fit:cover; margin-bottom:16px; border:1px solid var(--border); }
+
+/* ── TOGGLE SWITCH ── */
+.switch { position:relative; display:inline-block; width:48px; height:24px; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.4s; border-radius:34px; }
+.slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.4s; border-radius:50%; }
+input:checked + .slider { background-color:#5cf8c8; }
+input:checked + .slider:before { transform:translateX(24px); }
+
+/* ── TOAST ── */
+#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:8px; font-family:'DM Mono',monospace; font-size:12px; opacity:0; transition:all .3s; pointer-events:none; z-index:2000; white-space:nowrap; }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── LOADING ── */
+#loading-overlay {
+  position:fixed; inset:0; background:var(--bg); z-index:9999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+#loading-overlay .logo-big { font-size:28px; font-weight:800; }
+#loading-overlay .logo-big span { color:var(--accent); }
+#loading-overlay .loading-msg { font-family:'DM Mono',monospace; font-size:13px; color:var(--text-dim); }
+#loading-overlay .spinner {
+  width:32px; height:32px; border:3px solid var(--border);
+  border-top-color:var(--accent); border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── ERROR SCREEN ── */
+#error-overlay {
+  position:fixed; inset:0; background:var(--bg); z-index:9998;
+  display:none; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:32px;
+}
+#error-overlay.show { display:flex; }
+#error-overlay .err-icon { font-size:40px; }
+#error-overlay .err-title { font-size:20px; font-weight:700; }
+#error-overlay .err-msg { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim); text-align:center; max-width:420px; line-height:1.8; }
+
+/* ── ZOOM CONTROLS ── */
+#zoom-controls {
+  position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column;
+  gap:4px; z-index:800;
+}
+.zoom-btn {
+  width:32px; height:32px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text); font-size:16px; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow); transition:all .15s;
+}
+.zoom-btn:hover { border-color:var(--accent); color:var(--accent); }
+#zoom-level-indicator {
+  font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim);
+  text-align:center; padding:2px 0;
 }
 
-/* Deze class wordt door JS toegevoegd als de switch aan staat */
-.node-note.visible {
-  display: block !important;
-}
-  .node-note.has-note { display: -webkit-box; }
-
-  .node-link {
-    position: absolute; top: 8px; right: 8px; background: var(--accent); color: white;
-    width: 20px; height: 20px; border-radius: 4px; display: none; align-items: center; justify-content: center;
-    font-size: 10px; text-decoration: none; cursor: pointer; z-index: 10;
-  }
-  .node-link:hover { background: var(--accent2); }
-
-.node-footer {
-    display: flex; justify-content: flex-start; gap: 4px; padding: 6px 10px 8px;
-    border-top: none; margin-top: auto; flex: 0 0 auto;
-  }
- .node.shape-text .node-footer { display: flex; justify-content: flex-start; padding: 6px 8px 6px; }
-
-  /* Voeg dit toe onder je andere node-footer stijlen */
-.node.shape-oval .node-footer {
-    display: flex;
-    justify-content: flex-start; /* Zet de knopjes aan de linkerkant */
-    padding-left: 0px;          /* De afstand vanaf de linkerrand (genoeg voor de ronding) */
-    padding-bottom: 12px;        /* De afstand vanaf de onderkant (zodat ze in de ronding blijven) */
-    gap: 6px;
-    margin-top: auto;            /* Zorgt dat ze altijd onderaan de vorm blijven staan */
-}
-  
-/* Gebied: geen onderste lijn */
-.node.shape-area .node-footer {
-    border-top: none !important;
-    padding: 8px 10px 8px;
-}
-  
-.node-btn {
-    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2);
-    color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all .15s;
-    opacity: 0;
-  }
-  .node:hover .node-btn { opacity: 1; }
-  .node-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .node-btn.del:hover { background: var(--accent2); border-color: var(--accent2); }
-.node-btn.pin { font-size: 11px; }
-.node-btn.duplicate { font-size: 14px; font-weight: 700; }
-.node-btn.rotate { font-size: 12px; }
-.node-btn.pin.pinned { background: #f59e0b; border-color: #f59e0b; color: #fff; }
-.node.pinned { cursor: default !important; }
-.node.pinned .resize-handle { display: none; }
-
-  .node .resize-handle {
-    position: absolute; bottom: 8px; right: 8px; width: 18px; height: 18px; cursor: nwse-resize; opacity: 0; transition: opacity .2s; z-index: 10;
-  }
-  .node.shape-text .resize-handle { bottom: -5px; right: -5px; }/* Zorg dat het icoontje bij tekst iets groter en beter zichtbaar is */
-  .node.shape-text .resize-handle { 
-    bottom: 2px !important; 
-    right: 2px !important; 
-    background: rgba(124, 92, 252, 0.1); /* Een heel licht paars vlekje */
-    border-radius: 4px;
-    padding: 2px;
-  }
-  .node:hover .resize-handle { opacity: 1; }
-  .node .resize-handle::after {
-    content: ''; position: absolute; bottom: 4px; right: 4px; width: 10px; height: 10px;
-    border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent);
-  }
-
-  /* Export Opschoning */
-  body.exporting .node-btn, body.exporting .resize-handle, body.exporting .anchor-point { display: none !important; }
-
-  /* ── TOGGLE SWITCH ── */
-  .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-  .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-  input:checked + .slider { background-color: #5cf8c8; }
-  input:checked + .slider:before { transform: translateX(24px); }
-
-  /* ── PANEL ── */
-.color-palette-grid {
-  display: none; /* Verbergt het raster standaard */
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  margin-top: 10px;
-  background: var(--surface2);
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-
-.color-palette-grid.open {
-    display: grid;
-  }
-
-  /* De 'knop' die de huidige kleur laat zien */
-  .current-color-preview {
-    width: 100%;
-    height: 34px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-    font-size: 12px;
-    background: var(--surface);
-    justify-content: space-between;
-  }
-
-  .current-color-preview::after {
-    content: '▼';
-    font-size: 8px;
-    color: var(--text-dim);
-  }
-
-.color-swatch {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 1px solid rgba(0,0,0,0.1);
-  transition: transform 0.1s, border-color 0.1s;
-}
-
-.color-swatch:hover {
-  transform: scale(1.1);
-  border-color: var(--accent);
-}
-
-.color-swatch.active {
-  border: 2px solid white;
-  box-shadow: 0 0 0 2px var(--accent);
-}
-
-  #panel {
-    position: fixed; top: 52px; right: -380px; width: 340px; bottom: 0;
-    background: var(--surface); border-left: 1px solid var(--border); z-index: 900;
-    padding: 24px; transition: right .3s cubic-bezier(.4,0,.2,1); overflow-y: auto;
-  }
-  #panel.open { right: 0; }
-  #panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  #panel-close { width: 28px; height: 28px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all .15s; }
-  #panel-close:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
-
-  .field { margin-bottom: 16px; }
-  .field label { display: block; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
-  .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 9px 12px; outline: none; resize: vertical; transition: border-color .15s; }
-  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
-  .keten-inline-wrap { display:flex; gap:6px; align-items:flex-start; }
-  .keten-list { flex:1; width:100%; }
-.keten-row-controls { display:flex; gap:6px; flex: 0 0 auto; }
-  .keten-icon-btn {
-    width: 28px !important;
-    min-width: 28px;
-    max-width: 28px;
-    height: 28px;
-    padding: 0 !important;
-    margin-bottom: 0 !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 28px;
-    font-size: 16px;
-    line-height: 1;
-  }
-
-.view-line { margin-bottom: 16px; }
-.view-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-.view-value { font-size: 15px; color: var(--text); margin-top: 3px; word-break: break-word; line-height: 1.5; }
-.view-value a { color: var(--accent); text-decoration: underline; }
-.view-img { width: 100%; border-radius: 8px; object-fit: cover; margin-bottom: 16px; border: 1px solid var(--border); }
-#panel-view { padding-bottom: 16px; }
-
-  .btn-action { width: 100%; padding: 13px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; margin-bottom: 10px; }
-  .btn-save { background: #10b981; color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
-  .btn-save:hover { background: #059669; transform: translateY(-1px); }
-  .btn-edit-mode { background: var(--accent); color: white; }
-  .btn-edit-mode:hover { background: #6243db; }
-  .btn-del-panel { background: transparent; border: 2px solid #ef4444; color: #ef4444; }
-  .btn-del-panel:hover { background: #ef4444; color: #fff; }
-
-  #temp-line { position: absolute; pointer-events: none; stroke: var(--accent2); stroke-width: 2.5; stroke-dasharray: 6 4; fill: none; marker-end: url(#arrowhead-temp); overflow: visible; }
-  
-  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 2000; white-space: nowrap; }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-/* ── LABEL FILTER DROPDOWN ── */
-#label-filter-wrapper { position: relative; }
-#label-filter-dropdown {
-  position: absolute; top: 40px; left: 0;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; box-shadow: var(--shadow);
-  display: none; flex-direction: column;
-  padding: 8px; z-index: 2000;
-  min-width: 260px; max-height: 420px; overflow-y: auto;
-}
-.lf-section-header {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--text-dim); text-transform: uppercase;
-  padding: 8px 4px 4px; letter-spacing: .5px;
-  border-top: 1px solid var(--border); margin-top: 4px;
-}
-.lf-section-header:first-child { border-top: none; margin-top: 0; }
-#label-filter-dropdown.show { display: flex; }
-#label-filter-dropdown .lf-header {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--text-dim); text-transform: uppercase;
-  padding: 2px 4px 6px; letter-spacing: .5px;
-}
-.lf-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 4px; cursor: pointer;
-  font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text);
-  transition: background 0.1s;
-}
-.lf-item:hover { background: var(--surface2); }
-.lf-item input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; }
-#lf-empty { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); padding: 6px 8px; }
-#lf-clear {
-  margin-top: 6px; padding: 6px 8px; border-radius: 4px;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--text-dim); font-family: 'DM Mono', monospace;
-  font-size: 11px; cursor: pointer; text-align: center; transition: all .15s;
-}
-#lf-clear:hover { border-color: var(--accent2); color: var(--accent2); }
-#lf-badge {
-  background: var(--accent); color: white;
-  border-radius: 10px; padding: 1px 6px;
-  font-size: 10px; margin-left: 2px; display: none;
-}
-#autosave-indicator {
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  color: var(--text-dim); margin-left: 8px;
-  transition: color 0.3s;
-}
-#autosave-indicator.saved { color: #22c55e; }
-#autosave-indicator.saving { color: var(--text-dim); }
-#new-project-modal {
-    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    background: rgba(10,10,20,0.55); z-index: 2500;
-  }
-  #new-project-modal.show { display: flex; }
-  #viewer-link-modal {
-    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    background: rgba(10,10,20,0.55); z-index: 2500;
-  }
-  #viewer-link-modal.show { display: flex; }
-  .np-card {
-    width: min(520px, calc(100vw - 32px));
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    box-shadow: var(--shadow); padding: 18px;
-  }
-  .np-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-  .np-text { font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.6; color: var(--text-dim); margin-bottom: 14px; }
-  .np-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-  .np-btn {
-    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-    border-radius: 8px; padding: 8px 12px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 12px;
-  }
-  .np-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .np-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Export opschoning */
+body.exporting .node-link { display:none !important; }
 </style>
 </head>
 <body>
 
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="logo-big">Visual<span>Board</span></div>
+  <div class="spinner"></div>
+  <div class="loading-msg">Project laden…</div>
+</div>
+
+<!-- Error overlay -->
+<div id="error-overlay">
+  <div class="err-icon">⚠️</div>
+  <div class="err-title">Project niet gevonden</div>
+  <div class="err-msg" id="err-msg">Kan het projectbestand niet laden. Controleer de URL of het bestand bestaat.<br><br>Verwacht formaat:<br><code>viewer.html?src=projects/project1.json</code></div>
+</div>
+
+<!-- Toolbar -->
 <div id="toolbar">
   <div class="logo">Visual<span>Board</span></div>
+  <div class="viewer-badge">Viewer</div>
   <div class="tb-sep"></div>
-  <button class="tb-btn" id="btn-new-project" title="Start nieuw project">🆕 Nieuw project</button>
-<button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
-  <div id="export-dropdown-wrapper" style="position:relative;">
-    <button class="tb-btn" id="btn-export-dropdown" title="Exporteer">💾 Export ▾</button>
-<div id="export-dropdown" style="display:none; position:absolute; top:38px; left:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); z-index:2000; min-width:160px; padding:4px; flex-direction:column;">
-  <div class="lt-dropdown-item" id="btn-export-json">💾 Export JSON</div>
-  <div class="lt-dropdown-item" id="btn-export-img">🖼️ Export Image</div>
-  <div class="lt-dropdown-item" id="btn-share-viewer">🔗 Viewer Link</div>
-</div>
-  </div>
+  <span id="project-name" style="display:none">—</span>
+
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
-  
-<div id="label-filter-wrapper">
+
+  <div id="label-filter-wrapper">
     <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
       🏷️ Filter <span id="lf-badge">0</span>
     </button>
     <div id="label-filter-dropdown">
-      <div class="lf-header">Filter op label</div>
-      <div id="lf-list"><div id="lf-empty">Geen labels aangemaakt</div></div>
+      <div id="lf-list"><div id="lf-empty">Geen filterwaarden gevonden</div></div>
       <button id="lf-clear">✕ Filter wissen</button>
     </div>
   </div>
 
-<div style="display:flex; align-items:center; gap:0px; margin-left:auto;">
-    <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
+  <button class="tb-btn" id="btn-fit" title="Alles tonen">⊡ Fit</button>
+  <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
 
-    <div id="search-tools">
-      <span id="search-count">0/0</span>
-      <button id="search-prev" class="search-nav-btn">↑</button>
-      <button id="search-next" class="search-nav-btn">↓</button>
-    </div>
-
-    <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
-</div>
-
-</div>
-
-<div id="left-toolbar">
-  <div class="lt-btn active" id="tool-pointer" title="Aanwijzer / Selectie">👆</div>
-  <div class="lt-btn" id="tool-add" title="Toevoegen">
-    ➕
-<div class="lt-dropdown">
-  <div class="lt-dropdown-item" id="add-square">🟥 Vierkant</div>
-  <div class="lt-dropdown-item" id="add-oval">⭕ Ovaal</div>
-  <div class="lt-dropdown-item" id="add-area">⬜ Gebied</div>
-</div>
+  <input type="text" id="search-bar" placeholder="Zoek…">
+  <div id="search-tools">
+    <span id="search-count">0/0</span>
+    <button id="search-prev" class="search-nav-btn" title="Vorige resultaat">↑</button>
+    <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
   </div>
-  <div class="lt-btn" id="tool-arrow" title="Pijl">↗️</div>
-  <div class="lt-btn" id="tool-select" title="Selecteer meerdere (Box)">⬚</div>
-  <div class="lt-btn" id="tool-text" title="Tekstveld toevoegen">T</div>
-  <div class="lt-btn" id="tool-eraser" title="Gum (Verwijderen)">🗑️</div>
-  <div style="width: 24px; height: 1px; background: var(--border); margin: 4px 0;"></div>
-  <div class="lt-btn" id="tool-undo" title="Ongedaan maken">↶</div>
-  <div class="lt-btn" id="tool-redo" title="Opnieuw uitvoeren">↷</div>
 </div>
 
+<!-- Canvas -->
 <div id="canvas">
   <div id="world">
-
-<svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
+    <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7c5cfc"/></marker>
-        <marker id="arrowhead-sel" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#fc5c7d"/></marker>
-        <marker id="arrowhead-temp" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#5cf8c8"/></marker>
+        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#7c5cfc"/>
+        </marker>
+        <marker id="arrowhead-temp" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#5cf8c8"/>
+        </marker>
       </defs>
       <g id="arrows-group"></g>
     </svg>
-    <svg id="temp-svg" style="position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;overflow:visible;">
-      <path id="temp-line" d=""/>
-    </svg>
-    <svg id="anchors-svg" style="position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;overflow:visible;z-index:999;">
-      <g id="anchors-group"></g>
-      <g id="waypoints-group" style="pointer-events:all;"></g>
-    </svg>
-
-    <div id="selection-box"></div>
   </div>
 </div>
 
+<!-- Info panel -->
 <div id="panel">
   <h2 id="panel-title">Informatie <button id="panel-close">✕</button></h2>
-
-  <div id="panel-view" style="display:none;">
-    <div id="view-content"></div>
-   <button class="btn-action btn-edit-mode" id="btn-to-edit">Bewerken ✎</button>
-    <button class="btn-action btn-del-panel" id="btn-view-delete" style="display:none;">Verwijderen 🗑</button>
-  </div>
-
-  <div id="panel-edit" style="display:none;">
-    <div id="panel-node-fields">
-      <div class="field"><label>Titel / Tekst</label><input type="text" id="f-title" placeholder="Naam..."></div>
-
-<div id="title-style-options" style="margin-bottom:16px;">
-  <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Titel opmaak</label>
-  <div style="display:flex; gap:8px; align-items:center;">
-    <button id="btn-text-bold" class="tb-btn" style="flex:1; justify-content:center;"><b>B</b></button>
-    <button id="btn-text-italic" class="tb-btn" style="flex:1; justify-content:center;"><i>I</i></button>
-    <select id="f-font-size" style="flex:2; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; padding:6px 8px; outline:none; cursor:pointer;">
-      <option value="11">11px</option>
-      <option value="13">13px</option>
-      <option value="14" selected>14px (standaard)</option>
-      <option value="16">16px</option>
-      <option value="18">18px</option>
-      <option value="20">20px</option>
-      <option value="24">24px</option>
-      <option value="28">28px</option>
-      <option value="32">32px</option>
-    </select>
-  </div>
+  <div id="view-content"></div>
 </div>
 
-<div class="field" id="wrap-node-color">
-  <label>Kleur (Achtergrond)</label>
-  <div id="preview-node-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-node')">
-    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9;" id="swatch-node-color"></div>
-    <span>Kies kleur</span>
-  </div>
-  <div id="color-grid-node" class="color-palette-grid"></div>
-  <input type="hidden" id="f-node-color" value="#f1f5f9">
-</div>
-
-<div id="text-node-options" style="display:none; flex-direction: column; gap: 8px; margin-bottom: 16px;">
-  <label style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-top:8px;">Tekstkleur</label>
-  <div id="preview-text-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-text')">
-    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#1a1a2e;" id="swatch-text-color"></div>
-    <span>Kies kleur</span>
-  </div>
-  <div id="color-grid-text" class="color-palette-grid"></div>
-  <input type="hidden" id="f-text-color" value="#1a1a2e">
-</div>
-
-<div class="field" id="wrap-show-img">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Afbeelding Tonen</label><label class="switch"><input type="checkbox" id="f-show-image" checked><span class="slider"></span></label></div>
-        <div id="img-preview" onclick="document.getElementById('f-img-upload').click()" style="width:100%;height:80px;background:var(--surface2);border:1px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px;cursor:pointer;">
-          <span id="img-preview-text" style="font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">📁 Klik om afbeelding te uploaden</span>
-          <img id="img-preview-img" style="width:100%;height:100%;object-fit:cover;display:none;">
-        </div>
-        <input type="file" id="f-img-upload" accept="image/*" style="display:none;">
-        <button type="button" id="btn-img-remove" class="tb-btn" style="width:100%;justify-content:center;display:none;color:#ef4444;border-color:#ef4444;">🗑 Afbeelding verwijderen</button>
-      </div>
-
-      <div class="field"><label>URL</label><input type="url" id="f-url" placeholder="https://…"></div>
-      <div class="field">
-  
-
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-    <label style="margin:0;">Notitie</label>
-    <label class="switch" title="Notitie tonen op canvas">
-      <input type="checkbox" id="f-show-note">
-      <span class="slider"></span>
-    </label>
-  </div>
-  <textarea id="f-note" rows="3"></textarea>
-</div>
-<div id="note-style-options" style="margin-bottom:16px;">
-  <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Notitie opmaak</label>
-  <div style="display:flex; gap:8px; align-items:center;">
-    <button id="btn-note-bold" class="tb-btn" style="flex:1; justify-content:center;"><b>B</b></button>
-    <button id="btn-note-italic" class="tb-btn" style="flex:1; justify-content:center;"><i>I</i></button>
-    <select id="f-note-font-size" style="flex:2; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; padding:6px 8px; outline:none; cursor:pointer;">
-      <option value="10" selected>10px (standaard)</option>
-      <option value="11">11px</option>
-      <option value="12">12px</option>
-      <option value="13">13px</option>
-      <option value="14">14px</option>
-      <option value="16">16px</option>
-      <option value="18">18px</option>
-    </select>
-  </div>
-</div>
-<div class="field" id="wrap-keten">
-  <label>Keten</label>
-  <div class="keten-inline-wrap">
-    <div id="f-keten-list" class="keten-list"></div>
-  </div>
-</div>
-      <div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
-      <div class="field" id="wrap-bitteam"><label>BIT TEAM</label><input type="text" id="f-bitteam"></div>
-      <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
-      <div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
-      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
-      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
-    </div>
-
-<div id="panel-arrow-fields" style="display:none">
-      <button class="btn-action btn-edit-mode" id="btn-reanchor" style="margin-bottom: 20px; background: var(--accent3); color: #000;">🎯 Punt verplaatsen</button>
-      <div class="field"><label>Label</label><input type="text" id="f-arrow-label" placeholder="Verbinding…"></div>
-      <div class="field"><label>URL</label><input type="url" id="f-arrow-url" placeholder="https://…"></div>
-      <div class="field"><label>Vorm</label><select id="f-arrow-shape"><option value="straight">Recht</option><option value="curve">Gebogen</option></select></div>
-
-      <!-- Lijn modus: Vaste vorm vs Vrije vorm -->
-      <div class="field" id="wrap-arrow-route">
-        <label>Lijn modus</label>
-        <div style="display:flex; gap:6px; margin-bottom:6px;">
-          <button id="btn-route-auto" class="route-btn active">📐 Vaste vorm</button>
-          <button id="btn-route-custom" class="route-btn">✏️ Vrije vorm</button>
-        </div>
-        <div id="waypoint-hint" style="display:none; font-size:10px; color:var(--text-dim); font-family:'DM Mono',monospace; padding:8px; background:var(--surface2); border-radius:6px; line-height:1.6;">
-          💡 <b>Klik op de lijn</b> om een punt toe te voegen.<br>
-          <b>Sleep punten</b> om de route te vormen.<br>
-          <b>Dubbelklik</b> op een punt om het te verwijderen.
-        </div>
-      </div>
-      <div class="field"><label>Animatie snelheid</label><select id="f-arrow-anim"><option value="none">Uit</option><option value="normal" selected>Normaal</option><option value="fast">Snel</option></select></div>
-<div class="field" style="display:flex;justify-content:space-between;align-items:center;"><label>Tweerichtingsverkeer</label><label class="switch"><input type="checkbox" id="f-arrow-bidirectional"><span class="slider"></span></label></div>
-      <div class="field"><label>Stijl</label><select id="f-arrow-style"><option value="dot">Groen Balletje</option><option value="dashed">Bewegende Streepjes</option></select></div>
-<div class="field" id="wrap-arrow-color">
-  <label>Kleur pijl</label>
-  <div id="preview-arrow-color" class="current-color-preview" onclick="toggleColorGrid('color-grid-arrow')">
-    <div style="width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); background:#7c5cfc;" id="swatch-arrow-color"></div>
-    <span>Kies kleur</span>
-  </div>
-  <div id="color-grid-arrow" class="color-palette-grid"></div>
-  <input type="hidden" id="f-arrow-color" value="#7c5cfc">
-</div>
-<div class="field">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><label>Notitie tonen op canvas</label><label class="switch"><input type="checkbox" id="f-arrow-show-note"><span class="slider"></span></label></div>
-        <textarea id="f-arrow-note" rows="4" placeholder="Voeg een notitie toe…"></textarea>
-      </div>
-      <div class="field">
-        <label>Keten</label>
-        <div class="keten-inline-wrap">
-          <div id="f-arrow-keten-list" class="keten-list"></div>
-        </div>
-      </div>
-      <div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
-      <div class="field"><label>Leverancier</label><input type="text" id="f-arrow-leverancier"></div>
-      <div class="field"><label>Servicelevel</label><input type="text" id="f-arrow-servicelevel"></div>
-      <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
-      <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
-    </div>
-
-    <button class="btn-action btn-save" id="panel-save">Opslaan</button>
-    <button class="btn-action btn-del-panel" id="panel-delete">Verwijderen</button>
-  </div>
+<!-- Zoom controls -->
+<div id="zoom-controls">
+  <button class="zoom-btn" id="btn-zoom-in" title="Inzoomen">+</button>
+  <div id="zoom-level-indicator">100%</div>
+  <button class="zoom-btn" id="btn-zoom-out" title="Uitzoomen">−</button>
 </div>
 
 <div id="toast"></div>
-<div id="new-project-modal">
-  <div class="np-card">
-    <div class="np-title">Nieuw project starten?</div>
-    <div class="np-text">
-      Niet opgeslagen werk gaat verloren. Weet je het zeker?<br>
-      Klik op export om een lokaal bestand op te slaan.
-    </div>
-    <div class="np-actions">
-      <button class="np-btn" id="btn-np-cancel">Annuleren</button>
-      <button class="np-btn" id="btn-np-export">Sla werk op</button>
-      <button class="np-btn primary" id="btn-np-create">Maak nieuw canvas</button>
-    </div>
-  </div>
-</div>
-<div id="viewer-link-modal">
-  <div class="np-card">
-    <div class="np-title">🔗 Deel je project</div>
-    <div class="np-text">
-      Kopieer de link hieronder om je project te delen met anderen. Iedereen met deze link kan het project bekijken.
-    </div>
-    <input id="viewer-link-input" type="text" readonly
-      style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);
-             background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;
-             font-size:11px;margin-bottom:14px;outline:none;cursor:text;">
-    <div class="np-actions">
-      <button class="np-btn primary" id="btn-vl-copy">📋 Kopieer link</button>
-      <button class="np-btn" id="btn-vl-whatsapp">💬 Deel via WhatsApp</button>
-      <button class="np-btn" id="btn-vl-close">Sluiten</button>
-    </div>
-  </div>
-</div>
-<input type="file" id="json-import" accept=".json" style="display:none">
 
 <script>
-
-function normalizeUrl(url) {
-  if (!url) return '';
-  url = url.trim();
-  if (url && !/^https?:\/\//i.test(url)) {
-    return 'https://' + url;
-  }
-  return url;
-}
-
-// --- HIER DE KLEUREN EN DE FUNCTIE PLAKKEN ---
-const presetColors = [
-  '#ffffff', '#f1f5f9', '#cbd5e1', '#64748b', '#334155', '#0f172a',
-  '#dbeafe', '#93c5fd', '#3b82f6', '#2563eb', '#1e40af', '#172554',
-  '#ffe4e6', '#fda4af', '#f43f5e', '#e11d48', '#9f1239', '#4c0519',
-  '#dcfce7', '#86efac', '#22c55e', '#16a34a', '#15803d', '#052e16',
-  '#fef9c3', '#fde047', '#eab308', '#ca8a04', '#854d0e', '#422006',
-  '#f3e8ff', '#d8b4fe', '#a855f7', '#9333ea', '#6b21a8', '#3b0764'
-];
-
-// Functie om het raster te tonen/verbergen
-function toggleColorGrid(gridId) {
-  const grid = document.getElementById(gridId);
-  grid.classList.toggle('open');
-}
-
-function renderColorGrid(containerId, hiddenInputId, node) {
-  const container = document.getElementById(containerId);
-  const input = document.getElementById(hiddenInputId);
-  if (!container || !input) return;
-  
-  const swatchId = hiddenInputId.replace('f-', 'swatch-');
-  const previewSwatch = document.getElementById(swatchId);
-  
-  // Zet de huidige kleur in de preview-balk
-  if(previewSwatch) {
-    previewSwatch.style.backgroundColor = input.value;
-    if(previewSwatch.nextElementSibling) previewSwatch.nextElementSibling.textContent = input.value.toUpperCase();
-  }
-
-  container.innerHTML = '';
-  presetColors.forEach(color => {
-    const swatch = document.createElement('div');
-    swatch.className = 'color-swatch';
-    // Check of dit de actieve kleur is
-    if(input.value.toLowerCase() === color.toLowerCase()) swatch.classList.add('active');
-    
-    swatch.style.backgroundColor = color;
-    swatch.onclick = (e) => {
-      e.stopPropagation(); 
-      input.value = color; // Update hidden input
-      
-      // Update de preview-balk direct
-      if(previewSwatch) {
-        previewSwatch.style.backgroundColor = color;
-        previewSwatch.nextElementSibling.textContent = color.toUpperCase();
-      }
-      
-      // Update het raster (active class verschuiven)
-// Update het raster (active class verschuiven)
-      container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
-      swatch.classList.add('active');
-      
-      // CHECK OF HET EEN PIJL OF EEN VAKJE IS
-      if (node.from !== undefined) {
-        node.color = color;
-        updateArrow(node); // Werk de pijl bij
-        updateAllDots();   // Werk de animatie bij
-      } else {
-        applyLiveNodeChanges(node); // Voer verandering direct door op vakje
-      }
-      
-      saveState();
-      container.classList.remove('open'); // Klap pallet in
-    };
-    container.appendChild(swatch);
-  });
-}
-// ── STATE ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════════
 let nodes = [], arrows = [];
 let nodeId = 0, arrowId = 0;
-let historyStack = [], historyIndex = -1;
-let isRestoring = false;
-
-let currentTool = 'pointer'; // pointer, select, eraser, text, arrow
-let arrowSource = null, arrowSourcePort = 0;
-let panelTarget = null;
-let selectedNodeId = null;
-let multiSelectedNodes = new Set();
 let zoomLevel = 1;
-let topZ = 10;
-let magnetTarget = null; // { nodeId, port } – voor magnetisch snappen bij pijl tekenen
+let selectedNodeId = null;
+let panelTarget = null;
 
-const canvas = document.getElementById('canvas'), world = document.getElementById('world');
-const svgLayer = document.getElementById('svg-layer'), arrowsGroup = document.getElementById('arrows-group');
-const anchorsGroup = document.getElementById('anchors-group');
-const tempLine = document.getElementById('temp-line'), panel = document.getElementById('panel');
-const selectionBox = document.getElementById('selection-box');
+const canvas  = document.getElementById('canvas');
+const world   = document.getElementById('world');
+const svgLayer = document.getElementById('svg-layer');
+const arrowsGroup = document.getElementById('arrows-group');
+const panel   = document.getElementById('panel');
 const searchBar = document.getElementById('search-bar');
 const searchCount = document.getElementById('search-count');
-const searchPrevBtn = document.getElementById('search-prev');
-const searchNextBtn = document.getElementById('search-next');
 
-// ── UTILS ──────────────────────────────────────────────────────────────────────
-function showToast(msg, ms = 2000) { document.getElementById('toast').textContent = msg; document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), ms); }
+// Active filters
+const activeFilters = {
+  keten: new Set(), behandelaarsgroep: new Set(), bitteam: new Set(),
+  leverancier: new Set(), servicelevel: new Set(), label: new Set()
+};
 
-let _autoSaveTimer = null;
-function triggerAutoSave(state) {
-  const indicator = document.getElementById('autosave-indicator');
-  if (indicator) { indicator.textContent = '⏳ Opslaan…'; indicator.className = 'saving'; }
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem('visualboard_autosave', state);
-      localStorage.setItem('visualboard_autosave_time', Date.now());
-      if (indicator) { indicator.textContent = '✓ Opgeslagen'; indicator.className = 'saved'; }
-    } catch(e) {
-      if (indicator) { indicator.textContent = '⚠ Opslaan mislukt'; indicator.className = 'saving'; }
-    }
-  }, 1500);
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════════════════
+function showToast(msg, ms = 2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
 }
 
-function saveState() {
-  if (isRestoring) return;
-  const state = JSON.stringify({ nodes: nodes.map(n => ({...n, el: null})), arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})), nodeId, arrowId });
-  if (historyIndex < historyStack.length - 1) historyStack.splice(historyIndex + 1);
-  historyStack.push(state);
-  historyIndex++;
-  triggerAutoSave(state);
+function getParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
 }
 
-function loadState(stateStr) {
-  if (!stateStr) return;
-  isRestoring = true;
-  const data = JSON.parse(stateStr);
-  nodes.forEach(n => n.el.remove()); arrows.forEach(a => removeArrowEls(a));
-  nodes = []; arrows = [];
-  nodeId = data.nodeId; arrowId = data.arrowId;
-  
-data.nodes.forEach(nd => {
-    const n = createNode(nd.x, nd.y, nd.shape || 'square', nd.title, nd.id);
-    const savedEl = n.el;           // bewaar DOM-referentie
-    Object.assign(n, nd);           // laad opgeslagen data (overschrijft el met null)
-    n.el = savedEl;                 // herstel DOM-referentie
-  n.el.style.width  = n.width  + 'px';
-n.el.style.height = n.height + 'px';
-if (n.pinned) {
-  n.el.classList.add('pinned');
-  n.el.querySelector('.pin').classList.add('pinned');
-  const pinMode = n.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)';
-  n.el.querySelector('.pin').title = pinMode;
+function normalizeKetens(values) {
+  return (values || []).map(v => (v || '').trim()).filter(Boolean);
 }
-renderNode(n);
-});
-data.arrows.forEach(ad => {
-    const a = createArrow(ad.from, ad.to, ad.fromPort, ad.toPort, ad.id);
-    const savedEls = {
-        pathEl: a.pathEl, bgPathEl: a.bgPathEl, hitEl: a.hitEl,
-        dotEl: a.dotEl, dotEl2: a.dotEl2, labelEl: a.labelEl, noteEl: a.noteEl,
-        urlLinkEl: a.urlLinkEl, urlIconEl: a.urlIconEl,
-        markerEl: a.markerEl, markerPathEl: a.markerPathEl,
-        markerStartEl: a.markerStartEl, markerStartPathEl: a.markerStartPathEl,
-        _dashPath2: a._dashPath2
-    };
-    Object.assign(a, ad);     // laad opgeslagen data (overschrijft SVG-refs met null)
-    Object.assign(a, savedEls); // herstel alle SVG-referenties
-    updateArrow(a);
-});
-  updateAllDots(); isRestoring = false;
+function getNodeKetens(node) {
+  if (Array.isArray(node.ketens) && node.ketens.length > 0) return normalizeKetens(node.ketens);
+  if (typeof node.keten === 'string' && node.keten.trim()) return normalizeKetens(node.keten.split(','));
+  return [];
+}
+function getArrowKetens(arrow) {
+  if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0) return normalizeKetens(arrow.ketens);
+  if (typeof arrow.keten === 'string' && arrow.keten.trim()) return normalizeKetens(arrow.keten.split(','));
+  return [];
 }
 
-// ── AUTOSAVE HERSTEL ───────────────────────────────────────────────────────────
-setTimeout(() => {
-  try {
-    const saved = localStorage.getItem('visualboard_autosave');
-    const savedTime = localStorage.getItem('visualboard_autosave_time');
-    const indicator = document.getElementById('autosave-indicator');
-    if (saved) {
-      const date = savedTime ? new Date(parseInt(savedTime)).toLocaleString('nl-NL') : 'onbekend';
-      if (confirm(`📂 Automatisch opgeslagen werk gevonden (${date}).\n\nWil je dit herstellen?`)) {
-        loadState(saved);
-        saveState();
-        if (indicator) { indicator.textContent = '✓ Hersteld'; indicator.className = 'saved'; }
-      } else {
-        if (indicator) { indicator.textContent = '—'; indicator.className = 'saving'; }
-      }
-    } else {
-      if (indicator) { indicator.textContent = '—'; indicator.className = 'saving'; }
-    }
-  } catch(e) {
-    console.warn('Autosave herstel mislukt:', e);
-  }
-}, 0);
-
-document.getElementById('tool-undo').addEventListener('click', () => { if (historyIndex > 0) loadState(historyStack[--historyIndex]); });
-document.getElementById('tool-redo').addEventListener('click', () => { if (historyIndex < historyStack.length - 1) loadState(historyStack[++historyIndex]); });
-
-// ── TOOL SELECTION ─────────────────────────────────────────────────────────────
-function setTool(tool) {
-  currentTool = tool;
-  document.querySelectorAll('.lt-btn').forEach(btn => btn.classList.remove('active'));
-  const btnId = tool === 'add' ? 'tool-add' : 'tool-' + tool;
-  if(document.getElementById(btnId)) document.getElementById(btnId).classList.add('active');
-  
-  canvas.className = '';
-  if (tool !== 'pointer') canvas.classList.add('tool-' + tool);
-  
-  arrowSource = null; tempLine.setAttribute('d', ''); anchorsGroup.innerHTML = '';
-  if (tool !== 'select' && tool !== 'pointer') clearMultiSelection();
-  if (tool === 'arrow') renderAnchors();
-}
-
-document.getElementById('tool-pointer').addEventListener('click', () => setTool('pointer'));
-document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
-document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
-document.getElementById('tool-text').addEventListener('click', () => setTool('text'));
-document.getElementById('tool-arrow').addEventListener('click', () => setTool('arrow'));
-
-// 1. Zoek de elementen op
-const toolAdd = document.getElementById('tool-add');
-const addDropdown = toolAdd.querySelector('.lt-dropdown');
-
-// 2. Open/sluit het menu als je op de + klikt
-toolAdd.addEventListener('click', (e) => {
-  e.stopPropagation();
-  addDropdown.classList.toggle('show');
-});
-
-// 3. Vierkant toevoegen EN menu direct sluiten
-document.getElementById('add-square').addEventListener('click', (e) => {
-  e.stopPropagation();
-  addDropdown.classList.remove('show');
-  addNewNode('square');
-});
-
-// 4. Ovaal toevoegen EN menu direct sluiten
-document.getElementById('add-oval').addEventListener('click', (e) => {
-  e.stopPropagation();
-  addDropdown.classList.remove('show');
-  addNewNode('oval');
-});
-
-document.getElementById('add-area').addEventListener('click', (e) => {
-  e.stopPropagation();
-  addDropdown.classList.remove('show');
-  addNewNode('area');
-});
-// 5. Sluit het menu als je naast het menu klikt
-window.addEventListener('click', () => {
-  addDropdown.classList.remove('show');
-});
-
-function addNewNode(shape) {
-  setTool('pointer');
-  const cx = (canvas.offsetWidth/2 - parseFloat(world.style.left||0)) / zoomLevel;
-  const cy = (canvas.offsetHeight/2 - parseFloat(world.style.top||0)) / zoomLevel;
-  const offset = (nodes.length % 6) * 25;
-  
-  // Instellingen voor Gebied vs Normaal
-  let defaultTitle = 'Nieuw vakje';
-  let offX = 110; // Helft van breedte
-  let offY = 95;  // Helft van hoogte
-
-  if (shape === 'area') {
-    defaultTitle = 'Gebied';
-    offX = 220; // Helft van 440
-    offY = 190; // Helft van 380
-  }
-  if (shape === 'oval') defaultTitle = 'Ovaal';
-
-  const n = createNode(cx - offX + offset, cy - offY + offset, shape, defaultTitle);
-  saveState();
-  openNodePanel(n.id, true);
-}
-
-// ── NODE CREATION ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// NODE CREATION (read-only)
+// ═══════════════════════════════════════════════════════════════════════════════
 function createNode(x, y, shape = 'square', title = '', forceId = null) {
   const id = forceId || ('n' + (++nodeId));
   const el = document.createElement('div');
   el.className = `node shape-${shape}`;
-  el.style.left = x + 'px'; el.style.top  = y + 'px';
+  el.style.left = x + 'px'; el.style.top = y + 'px';
   el.dataset.id = id;
 
-  const isDark = document.body.classList.contains('dark');
-  const bgColor = shape === 'text' ? 'transparent' : (isDark ? '#1c1c27' : '#f1f5f9');
-  const initTitle = title || (shape === 'text' ? 'Typ hier...' : 'Nieuw vakje');
-
+  const initTitle = title || '';
   el.innerHTML = `
     <a class="node-link" target="_blank">🔗</a>
     <div class="node-thumb" id="thumb-${id}"></div>
     <div class="node-body">
       <div class="node-title" id="ntitle-${id}">${initTitle}</div>
       <div class="node-note" id="nnote-${id}"></div>
-    </div>
-    <div class="node-footer">
-      <button class="node-btn edit" title="Bewerken" data-id="${id}">✎</button>
-      <button class="node-btn duplicate" title="Kopie maken" data-id="${id}">+</button>
-      <button class="node-btn rotate" title="Kantel 90°" data-id="${id}">⤾</button>
-      <button class="node-btn pin" title="Vastpinnen" data-id="${id}">📌</button>
-    </div>
-    <div class="resize-handle"></div>`;
+    </div>`;
   world.appendChild(el);
 
-const node = {
-    id, x, y, 
-    width: shape === 'text' ? 150 : (shape === 'area' ? 440 : 220), 
+  const node = {
+    id, x, y,
+    width: shape === 'text' ? 150 : (shape === 'area' ? 440 : 220),
     height: shape === 'text' ? 50 : (shape === 'area' ? 380 : 190),
-    shape, title: initTitle, url: '', note: '', bgColor, color: '#1a1a2e',
+    shape, title: initTitle, url: '', note: '', bgColor: '#f1f5f9', color: '#1a1a2e',
     fontWeight: 'normal', fontStyle: 'normal', fontSize: 14,
     noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
-    showImg: true, img: '', 
-    showNote: true,                    // ← NIEUWE REGEL
-   keten: '', ketens: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
+    showImg: true, img: '', showNote: true,
+    keten: '', ketens: [], behandelaarsgroep: '', bitteam: '', leverancier: '',
+    servicelevel: '', filterLabel: '', pinned: false, rotation: 0, el
   };
-  
-if (shape === 'text') { 
-    el.style.width = '150px'; el.style.minHeight = '50px'; el.style.height = 'auto'; 
-  } else if (shape === 'area') {
-    el.style.width = '440px'; el.style.height = '380px'; 
-  } else { 
-    el.style.width = '220px'; el.style.height = '190px'; 
-  }
 
+  el.style.width  = node.width  + 'px';
+  el.style.height = node.height + 'px';
   nodes.push(node);
-  attachNodeEvents(node);
+  attachViewerNodeEvents(node);
   return node;
 }
 
-function isNodeInsideArea(node, areaNode) {
-  if (!node || !areaNode || areaNode.shape !== 'area' || node.id === areaNode.id) return false;
-  const cx = node.x + node.width / 2;
-  const cy = node.y + node.height / 2;
-  return cx >= areaNode.x &&
-         cx <= areaNode.x + areaNode.width &&
-         cy >= areaNode.y &&
-         cy <= areaNode.y + areaNode.height;
-}
-
-function findAreaForNode(node) {
-  const areas = nodes.filter(n => n.shape === 'area' && n.id !== node.id);
-  // Kies het kleinste gebied dat de node bevat (meest specifieke "ouder")
-  const containing = areas.filter(area => isNodeInsideArea(node, area));
-  if (containing.length === 0) return null;
-  containing.sort((a, b) => (a.width * a.height) - (b.width * b.height));
-  return containing[0];
-}
-
-function duplicateNode(sourceNode) {
-  const clone = createNode(sourceNode.x + 24, sourceNode.y + 24, sourceNode.shape, sourceNode.title);
-  Object.assign(clone, {
-    width: sourceNode.width,
-    height: sourceNode.height,
-    title: sourceNode.title,
-    url: sourceNode.url || '',
-    note: sourceNode.note || '',
-    bgColor: sourceNode.bgColor,
-    color: sourceNode.color,
-    fontWeight: sourceNode.fontWeight || 'normal',
-    fontStyle: sourceNode.fontStyle || 'normal',
-    fontSize: sourceNode.fontSize || 14,
-    noteFontWeight: sourceNode.noteFontWeight || 'normal',
-    noteFontStyle: sourceNode.noteFontStyle || 'normal',
-    noteFontSize: sourceNode.noteFontSize || 10,
-    showImg: sourceNode.showImg !== false,
-    img: sourceNode.img || '',
-    showNote: sourceNode.showNote !== false,
-    keten: sourceNode.keten || '',
-    ketens: Array.isArray(sourceNode.ketens) ? [...sourceNode.ketens] : [],
-    behandelaarsgroep: sourceNode.behandelaarsgroep || '',
-    leverancier: sourceNode.leverancier || '',
-    servicelevel: sourceNode.servicelevel || '',
-    filterLabel: sourceNode.filterLabel || '',
-    rotation: sourceNode.rotation || 0,
-    pinned: false,
-    pinnedTo: 'canvas',
-    pinnedAreaId: null
-  });
-  clone.el.style.width = clone.width + 'px';
-  clone.el.style.height = clone.height + 'px';
-  renderNode(clone);
-  clone.el.style.zIndex = ++topZ;
-  saveState();
-  showToast('Kopie gemaakt');
-  return clone;
-}
-
-function attachNodeEvents(node) {
-  let isDragging = false, startPos = {}, dragOffsets = [], areaPinnedOffsets = [];
-  
-node.el.addEventListener('mousedown', e => {
-    // CRUCIALE FIX: Als de tekst-tool aan staat, moet het vakje niks doen
-    if (currentTool === 'text') return;
-
-    if (e.button !== 0 || e.target.closest('.node-btn, .resize-handle, .node-link')) return;
-
-    if (currentTool === 'eraser') {
-      if (confirm('Verwijderen?')) { deleteNode(node.id); saveState(); }
-      return;
-    }
-    
-    if (currentTool === 'arrow') return; // afhandeling via anchors
-
-    // DE OUDE REGEL 'if (node.pinned) return;' IS HIER WEGGEHAALD!
-
-    isDragging = false;
-    node.el.style.zIndex = ++topZ;
-    const startX = e.clientX, startY = e.clientY;
-
-    if (!multiSelectedNodes.has(node.id) && !e.shiftKey) {
-      clearMultiSelection();
-      multiSelectedNodes.add(node.id);
-      node.el.classList.add('multi-selected');
-    }
-
-    // Alleen klaarzetten om te slepen als hij NIET is vastgepind
-    if (!node.pinned) {
-      dragOffsets = Array.from(multiSelectedNodes).map(id => {
-        const n = nodes.find(nn => nn.id === id);
-        n.el.classList.add('dragging');
-        return { node: n, ox: n.x, oy: n.y };
-      });
-      const draggedAreaIds = new Set(dragOffsets.filter(d => d.node.shape === 'area').map(d => d.node.id));
-      areaPinnedOffsets = nodes
-        .filter(n => n.pinned && n.pinnedTo === 'area' && draggedAreaIds.has(n.pinnedAreaId) && !multiSelectedNodes.has(n.id))
-        .map(n => ({ node: n, ox: n.x, oy: n.y }));
-      areaPinnedOffsets.forEach(d => d.node.el.classList.add('dragging'));
-    } else {
-      dragOffsets = []; // Leeg lijstje, dus we gaan niks slepen
-      areaPinnedOffsets = [];
-    }
-
-    function onMove(ev) {
-      if (node.pinned) return; // NIEUW: Blokkeer de beweging als hij vastgepind is!
-
-      isDragging = true;
-      const dx = (ev.clientX - startX) / zoomLevel;
-      const dy = (ev.clientY - startY) / zoomLevel;
-      dragOffsets.forEach(d => {
-        d.node.x = d.ox + dx; d.node.y = d.oy + dy;
-        d.node.el.style.left = d.node.x + 'px'; d.node.el.style.top  = d.node.y + 'px';
-      });
-      areaPinnedOffsets.forEach(d => {
-        d.node.x = d.ox + dx; d.node.y = d.oy + dy;
-        d.node.el.style.left = d.node.x + 'px'; d.node.el.style.top  = d.node.y + 'px';
-      });
-      updateArrows();
-    }
-    
-    function onUp() {
-      dragOffsets.forEach(d => d.node.el.classList.remove('dragging'));
-      areaPinnedOffsets.forEach(d => d.node.el.classList.remove('dragging'));
-      document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
-      
-      if (isDragging) saveState();
-      else { clearMultiSelection(); selectNodeForAnim(node.id); openNodePanel(node.id, false); }
-    }
-    
-    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+function attachViewerNodeEvents(node) {
+  // Click only — no drag, no resize
+  node.el.addEventListener('click', e => {
     e.stopPropagation();
-  });
-
-  // Resize
-  node.el.querySelector('.resize-handle').addEventListener('mousedown', e => {
-    if (node.pinned) return;
-    e.stopPropagation(); const startX = e.clientX, startY = e.clientY, startW = node.width, startH = node.height;
-    function onMove(ev) {
-      node.width = Math.max(50, startW + (ev.clientX - startX)/zoomLevel);
-      node.height = Math.max(30, startH + (ev.clientY - startY)/zoomLevel);
-      node.el.style.width = node.width+'px'; node.el.style.height = node.height+'px';
-      updateArrows(); if(currentTool==='arrow') renderAnchors();
-    }
-    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); saveState(); }
-    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-  });
-  
-  node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
-node.el.querySelector('.duplicate').addEventListener('click', e => {
-  e.stopPropagation();
-  duplicateNode(node);
-});
-node.el.querySelector('.rotate').addEventListener('click', e => {
-  e.stopPropagation();
-  node.rotation = node.rotation === 90 ? 0 : 90;
-  node.el.style.transform = `rotate(${node.rotation}deg)`;
-  updateArrows();
-  saveState();
-});
-node.el.querySelector('.pin').addEventListener('click', e => {
-  e.stopPropagation();
-  node.pinned = !node.pinned;
-  if (node.pinned) {
-    const parentArea = findAreaForNode(node);
-    if (parentArea) {
-      node.pinnedTo = 'area';
-      node.pinnedAreaId = parentArea.id;
-    } else {
-      node.pinnedTo = 'canvas';
-      node.pinnedAreaId = null;
-    }
-  } else {
-    node.pinnedTo = 'canvas';
-    node.pinnedAreaId = null;
-  }
-  node.el.classList.toggle('pinned', node.pinned);
-  node.el.querySelector('.pin').classList.toggle('pinned', node.pinned);
-  node.el.querySelector('.pin').title = node.pinned
-    ? (node.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)')
-    : 'Vastpinnen';
-  saveState();
-});
-}
-
-// ── ANCHOR MATH (Voor pijlen) ────────────────────────────────────────────────
-function getAnchorPos(node, port) {
-  // port: 0=Top, 1=TR, 2=Right, 3=BR, 4=Bottom, 5=BL, 6=Left, 7=TL
-  let px = 0.5, py = 0.5;
-  if(port===0) { px=0.5; py=0; } else if(port===1) { px=1; py=0; }
-  else if(port===2) { px=1; py=0.5; } else if(port===3) { px=1; py=1; }
-  else if(port===4) { px=0.5; py=1; } else if(port===5) { px=0; py=1; }
-  else if(port===6) { px=0; py=0.5; } else if(port===7) { px=0; py=0; }
-
-  if (node.shape === 'oval') {
-    // Ellipse wiskunde benadering voor de 8 punten
-    const a = node.width/2, b = node.height/2;
-    const cx = node.x + a, cy = node.y + b;
-    const angle = (port * 45 - 90) * (Math.PI/180);
-    return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
-  }
-  return { x: node.x + node.width*px, y: node.y + node.height*py };
-}
-
-function renderAnchors() {
-  anchorsGroup.innerHTML = '';
-  nodes.forEach(n => {
-    // Deze regel zorgt ervoor dat alle 9 punten per vakje worden getekend
-    for (let i = 0; i < 8; i++) { 
-      const pos = getAnchorPos(n, i);
-      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      c.classList.add('anchor-point');
-      c.setAttribute('cx', pos.x);
-      c.setAttribute('cy', pos.y);
-      c.setAttribute('r', '6');
-      c.dataset.node = n.id;
-      c.dataset.port = i;
-
-      c.addEventListener('click', e => {
-        e.stopPropagation();
-        
-        // Logica voor her-ankeren (bestaande pijl verplaatsen)
-        if (reanchoringArrowId) {
-          const a = arrows.find(x => x.id === reanchoringArrowId);
-          if (a) {
-            a.to = n.id;
-            a.toPort = i;
-            updateArrow(a);
-            saveState();
-            showToast("Pijlpunt verplaatst!");
-          }
-          reanchoringArrowId = null;
-          anchorsGroup.innerHTML = ''; 
-          return;
-        }
-
-        // Logica voor een nieuwe pijl trekken
-        if (!arrowSource) {
-          arrowSource = n.id;
-          arrowSourcePort = i;
-          showToast("Kies nu het eindpunt");
-        } else {
-          if (n.id !== arrowSource) {
-            const newArrow = createArrow(arrowSource, n.id, arrowSourcePort, i);
-            saveState();
-            setTool('pointer');
-            openArrowPanelEdit(newArrow.id);
-          }
-          arrowSource = null;
-          tempLine.setAttribute('d', '');
-        }
-      });
-      anchorsGroup.appendChild(c);
-    }
+    selectNodeForAnim(node.id);
+    openNodeInfoPanel(node.id);
   });
 }
 
-// ── ARROW CREATION ─────────────────────────────────────────────────────────────
-function createArrow(fromId, toId, fromPort=4, toPort=0, forceId=null) {
-  const id = forceId || ('a' + (++arrowId));
-  const bgPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path'); bgPathEl.classList.add('arrow-bg');
-  const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path'); pathEl.classList.add('arrow-path'); pathEl.id = 'path-'+id;
-  const hitEl = document.createElementNS('http://www.w3.org/2000/svg', 'path'); hitEl.classList.add('arrow-hit');
-  const dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dotEl.setAttribute('r','5'); dotEl.setAttribute('fill','#5cf8c8'); dotEl.style.display='none';
-  const labelEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); labelEl.setAttribute('fill','#b0b0d0'); labelEl.setAttribute('font-size','11'); labelEl.setAttribute('text-anchor','middle');
-  const noteEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); noteEl.setAttribute('fill','#a0a0c0'); noteEl.setAttribute('font-size','10'); noteEl.setAttribute('font-style','italic'); noteEl.setAttribute('text-anchor','middle'); noteEl.style.display='none';
-  const urlLinkEl = document.createElementNS('http://www.w3.org/2000/svg', 'a'); urlLinkEl.setAttribute('target','_blank');
-const urlIconEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); urlIconEl.setAttribute('font-size','12'); urlIconEl.setAttribute('fill','#7c5cfc'); urlIconEl.setAttribute('pointer-events','all'); urlIconEl.style.cursor='pointer'; urlIconEl.style.display='none'; urlIconEl.textContent='🔗';
-urlIconEl.addEventListener('click', e => { e.stopPropagation(); if(arrow.url) window.open(arrow.url, '_blank'); });
-      urlLinkEl.appendChild(urlIconEl);
-
-      [bgPathEl, pathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl].forEach(el => arrowsGroup.appendChild(el));
-
- // --- NIEUW: Maak een unieke pijlpunt voor deze specifieke pijl ---
-      const markerId = 'arrowhead-' + id;
-      const markerEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-      markerEl.setAttribute('id', markerId); markerEl.setAttribute('markerWidth', '8'); markerEl.setAttribute('markerHeight', '8'); markerEl.setAttribute('refX', '7'); markerEl.setAttribute('refY', '3'); markerEl.setAttribute('orient', 'auto');
-      const markerPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      markerPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z');
-      markerPathEl.setAttribute('fill', '#7c5cfc');
-      markerEl.appendChild(markerPathEl);
-      document.querySelector('defs').appendChild(markerEl);
-      // -----------------------------------------------------------------
-
-      const dotEl2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dotEl2.setAttribute('r','5'); dotEl2.setAttribute('fill','#5cf8c8'); dotEl2.style.display='none';
-arrowsGroup.appendChild(dotEl2);
-const markerStartId = 'arrowhead-start-' + id;
-const markerStartEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('markerWidth', '8'); markerStartEl.setAttribute('markerHeight', '8'); markerStartEl.setAttribute('refX', '1'); markerStartEl.setAttribute('refY', '3'); markerStartEl.setAttribute('orient', 'auto-start-reverse');
-const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-markerStartPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', '#7c5cfc');
-markerStartEl.appendChild(markerStartPathEl); document.querySelector('defs').appendChild(markerStartEl);
-const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };
-      arrows.push(arrow);
-
-  hitEl.addEventListener('click', e => {
-    if (currentTool === 'eraser') { if(confirm('Pijl wissen?')){ deleteArrow(id); saveState(); } }
-    else { e.stopPropagation(); openArrowPanel(id); }
-  });
-  updateArrow(arrow); startDotAnimation(arrow);
-  return arrow;
-}
-
-function updateArrow(arrow) {
-  const f = nodes.find(n => n.id === arrow.from), t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-  let p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
-if (arrow.bidirectional) {
-  const dx = p2.x - p1.x, dy = p2.y - p1.y;
-  const len = Math.sqrt(dx*dx + dy*dy) || 1;
-  p1 = { x: p1.x + dx/len * 14, y: p1.y + dy/len * 14 };
-}
-
-let d = '';
-  if (arrow.routeMode === 'custom' && arrow.waypoints && arrow.waypoints.length > 0) {
-    d = `M ${p1.x} ${p1.y}`;
-    arrow.waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
-    d += ` L ${p2.x} ${p2.y}`;
-  } else if (arrow.shape === 'straight') {
-    d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
-  } else {
-    const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy), offset = Math.min(60, len * 0.3);
-    const nx = -dy/len, ny = dx/len;
-    d = `M ${p1.x} ${p1.y} Q ${p1.x + dx/2 + nx*offset} ${p1.y + dy/2 + ny*offset} ${p2.x} ${p2.y}`;
-  }
-
-arrow.bgPathEl.setAttribute('d', d); arrow.pathEl.setAttribute('d', d); arrow.hitEl.setAttribute('d', d);
-  arrow.pathEl.style.stroke = arrow.color;
-  
-  // --- NIEUW: Kleur van de punt gelijktrekken met de pijl ---
-  if (arrow.markerPathEl) arrow.markerPathEl.setAttribute('fill', arrow.color);
-if (arrow.markerStartPathEl) arrow.markerStartPathEl.setAttribute('fill', arrow.color);
-arrow.pathEl.setAttribute('marker-start', arrow.bidirectional ? `url(#${arrow.markerStartEl.id})` : '');
-
-  const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
-  arrow.labelEl.setAttribute('x', mx); arrow.labelEl.setAttribute('y', my - 10);
-  arrow.labelEl.textContent = arrow.label || '';
-  // Gebruik onze unieke pijlpunt (behalve als hij is geselecteerd, dan tijdelijk roze)
- arrow.pathEl.setAttribute('marker-end', `url(#${arrow.markerEl.id})`);
-
-  // Notitie tonen op canvas
-  if (arrow.noteEl) {
-    if (arrow.showNote && arrow.note) {
-      arrow.noteEl.style.display = ''; arrow.noteEl.setAttribute('x', mx); arrow.noteEl.setAttribute('y', my + 16);
-      arrow.noteEl.textContent = arrow.note;
-    } else { arrow.noteEl.style.display = 'none'; }
-  }
-
-  // URL-icoon naast label
-  if (arrow.urlIconEl && arrow.urlLinkEl) {
-    if (arrow.url) {
-      arrow.urlIconEl.style.display = '';
-      arrow.urlIconEl.setAttribute('x', mx + (arrow.label || '').length * 3.5 + 14);
-      arrow.urlIconEl.setAttribute('y', my - 10);
-      arrow.urlLinkEl.setAttribute('href', arrow.url);
-    } else { arrow.urlIconEl.style.display = 'none'; }
-  }
-
-  if (arrow.style === 'dashed') {
-    arrow.pathEl.style.strokeDasharray = "8,8"; arrow.dotEl.style.display = 'none';
-  } else {
-    arrow.pathEl.style.strokeDasharray = "none";
-  }
-}
-function updateArrows() { arrows.forEach(updateArrow); }
-
-function startDotAnimation(arrow) {
-  if (arrow._animFrame) cancelAnimationFrame(arrow._animFrame);
-  let t = 0;
-  function tick() {
-    if (arrow.anim === 'none') { arrow.dotEl.style.display = 'none'; return; }
-    const speed = arrow.anim === 'fast' ? 0.008 : 0.003;
-    
-    if (arrow.style === 'dashed') {
-      arrow.dashOffset -= speed * 200;
-      arrow.pathEl.style.strokeDashoffset = arrow.dashOffset;
-      if (arrow.bidirectional) {
-        if (!arrow._dashPath2) {
-          arrow._dashPath2 = arrow.pathEl.cloneNode();
-          arrow._dashPath2.style.strokeDashoffset = '';
-          arrow._dashPath2.setAttribute('marker-end', '');
-          arrow.pathEl.parentNode.insertBefore(arrow._dashPath2, arrow.pathEl.nextSibling);
-        }
-        arrow._dashPath2.setAttribute('d', arrow.pathEl.getAttribute('d'));
-        arrow._dashPath2.style.stroke = arrow.color;
-        arrow._dashPath2.style.strokeDasharray = '8,8';
-        arrow._dashPath2.style.strokeDashoffset = -arrow.dashOffset;
-      }
-    } else {
-      t = (t + speed) % 1;
-      arrow.dotEl.style.display = '';
-      try { const pt = arrow.pathEl.getPointAtLength(t * arrow.pathEl.getTotalLength()); arrow.dotEl.setAttribute('cx', pt.x); arrow.dotEl.setAttribute('cy', pt.y); } catch(e){}
-      if (arrow.bidirectional && arrow.dotEl2) {
-        const t2 = (1 - t) % 1;
-        arrow.dotEl2.style.display = '';
-        try { const pt2 = arrow.pathEl.getPointAtLength(t2 * arrow.pathEl.getTotalLength()); arrow.dotEl2.setAttribute('cx', pt2.x); arrow.dotEl2.setAttribute('cy', pt2.y); } catch(e){}
-      } else if (arrow.dotEl2) { arrow.dotEl2.style.display = 'none'; }
-    }
-    arrow._animFrame = requestAnimationFrame(tick);
-  }
-  tick();
-}
-function updateAllDots() {
-  arrows.forEach(a => {
-    if (a._animFrame) cancelAnimationFrame(a._animFrame);
-    a._animFrame = null;
-    a.dotEl.style.display = 'none';
-    if (a.style === 'dashed') {
-      a.pathEl.style.strokeDashoffset = '';
-    }
-  });
-  // Herstart animaties alleen voor pijlen van geselecteerd vakje
-  if (selectedNodeId) {
-    arrows.forEach(a => {
-      if (a.from === selectedNodeId || a.to === selectedNodeId) startDotAnimation(a);
-    });
-  }
-}
-
-function deleteNode(id) {
-  const node = nodes.find(n => n.id === id); if (!node) return; node.el.remove();
-  if (node.shape === 'area') {
-    nodes.forEach(n => {
-      if (n.pinned && n.pinnedTo === 'area' && n.pinnedAreaId === id) {
-        n.pinnedTo = 'canvas';
-        n.pinnedAreaId = null;
-        if (n.el) {
-          const pinBtn = n.el.querySelector('.pin');
-          if (pinBtn) pinBtn.title = 'Losmaken (vast op canvas)';
-        }
-      }
-    });
-  }
-  nodes = nodes.filter(n => n.id !== id);
-  arrows.filter(a => a.from === id || a.to === id).forEach(a => removeArrowEls(a));
-  arrows = arrows.filter(a => a.from !== id && a.to !== id);
-  if (panelTarget && panelTarget.id === id) panel.classList.remove('open');
-}
-function deleteArrow(id) {
-  const a = arrows.find(x => x.id === id); if(!a) return; removeArrowEls(a);
-  arrows = arrows.filter(x => x.id !== id);
-  if (panelTarget && panelTarget.id === id) panel.classList.remove('open');
-}
-function removeArrowEls(a) { if (a._animFrame) cancelAnimationFrame(a._animFrame); a.bgPathEl.remove(); a.pathEl.remove(); a.hitEl.remove(); a.dotEl.remove(); if(a.dotEl2) a.dotEl2.remove(); a.labelEl.remove(); if(a.noteEl) a.noteEl.remove(); if(a.urlLinkEl) a.urlLinkEl.remove(); if(a.markerEl) a.markerEl.remove(); if(a.markerStartEl) a.markerStartEl.remove(); if(a._dashPath2) a._dashPath2.remove(); }
-
-// ── VRIJE LIJNBEWERKING (Waypoints) ─────────────────────────────────────────
-const waypointsGroup = document.getElementById('waypoints-group');
-let draggingWaypoint = null; // { arrow, idx }
-let reanchoringArrowId = null;
-let editingArrow = null;
-
-function clearWaypointHandles() {
-  waypointsGroup.innerHTML = '';
-  editingArrow = null;
-}
-
-function renderWaypointHandles(arrow) {
-  waypointsGroup.innerHTML = '';
-  if (!arrow || arrow.routeMode !== 'custom') return;
-  editingArrow = arrow;
-
-  const f = nodes.find(n => n.id === arrow.from);
-  const t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-
-  const p1 = getAnchorPos(f, arrow.fromPort);
-  const p2 = getAnchorPos(t, arrow.toPort);
-  const allPoints = [p1, ...arrow.waypoints, p2];
-
-  // Invisible hit segments between handles to click-add waypoints
-  for (let i = 0; i < allPoints.length - 1; i++) {
-    const seg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    seg.setAttribute('x1', allPoints[i].x);
-    seg.setAttribute('y1', allPoints[i].y);
-    seg.setAttribute('x2', allPoints[i+1].x);
-    seg.setAttribute('y2', allPoints[i+1].y);
-    seg.classList.add('waypoint-seg-hit');
-    seg.dataset.segIndex = i;
-    (function(segIdx) {
-      seg.addEventListener('click', e => {
-        e.stopPropagation();
-        const cRect = canvas.getBoundingClientRect();
-        const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
-        const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
-        // segIdx: 0 = between p1 and first wp, 1 = between first/second wp, etc.
-        arrow.waypoints.splice(segIdx, 0, { x: mx, y: my });
-        updateArrow(arrow);
-        renderWaypointHandles(arrow);
-        saveState();
-      });
-    })(i);
-    waypointsGroup.appendChild(seg);
-  }
-
-
-  // Draggable handles for each waypoint
-  arrow.waypoints.forEach((wp, idx) => {
-    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.classList.add('waypoint-handle');
-    c.setAttribute('cx', wp.x);
-    c.setAttribute('cy', wp.y);
-    c.setAttribute('r', 7);
-
-    c.addEventListener('dblclick', e => {
-      e.stopPropagation();
-      arrow.waypoints.splice(idx, 1);
-      updateArrow(arrow);
-      renderWaypointHandles(arrow);
-      saveState();
-    });
-
-    c.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      draggingWaypoint = { arrow, idx };
-      c.classList.add('dragging');
-    });
-
-    waypointsGroup.appendChild(c);
-  });
-}
-
-function initDefaultWaypoints(arrow) {
-  const f = nodes.find(n => n.id === arrow.from);
-  const t = nodes.find(n => n.id === arrow.to);
-  if (!f || !t) return;
-  const p1 = getAnchorPos(f, arrow.fromPort);
-  const p2 = getAnchorPos(t, arrow.toPort);
-  // Start with two waypoints forming an orthogonal route
-  const midX = (p1.x + p2.x) / 2;
-  arrow.waypoints = [
-    { x: midX, y: p1.y },
-    { x: midX, y: p2.y }
-  ];
-}// ── MULTI-SELECT (Box) ─────────────────────────────────────────────────────────
-let selectBoxStart = null;
-canvas.addEventListener('mousedown', e => {
-
-if (currentTool === 'text') {
-    const rect = world.getBoundingClientRect();
-    const cx = (e.clientX - rect.left) / zoomLevel;
-    const cy = (e.clientY - rect.top) / zoomLevel;
-    
-    const n = createNode(cx, cy, 'text', 'Typ hier...');
-    saveState();
-    
-    // DIT IS DE BELANGRIJKSTE REGEL: 
-    // Meteen terug naar muis, nog voordat je begint met typen
-    setTool('pointer'); 
-
-    openNodePanel(n.id, true);
-    
-    setTimeout(() => {
-      const inputField = document.getElementById('f-title');
-      if (inputField) {
-        inputField.focus();
-        inputField.select();
-        
-        // Zorg dat Enter het paneel netjes sluit
-        inputField.onkeydown = (e) => {
-          if (e.key === 'Enter') {
-            panel.classList.remove('open');
-          }
-        };
-      }
-    }, 100);
-    return; 
-  }
-  if (currentTool !== 'select') return;
-  selectBoxStart = { x: e.clientX, y: e.clientY };
-  selectionBox.style.display = 'block'; selectionBox.style.left = selectBoxStart.x + 'px'; selectionBox.style.top = selectBoxStart.y + 'px'; selectionBox.style.width = '0px'; selectionBox.style.height = '0px';
-  clearMultiSelection();
-});
-document.addEventListener('mousemove', e => {
-  // Waypoint dragging
-  if (draggingWaypoint) {
-    const cRect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - cRect.left - (parseFloat(world.style.left)||0)) / zoomLevel;
-    const my = (e.clientY - cRect.top  - (parseFloat(world.style.top) ||0)) / zoomLevel;
-    draggingWaypoint.arrow.waypoints[draggingWaypoint.idx] = { x: mx, y: my };
-    updateArrow(draggingWaypoint.arrow);
-    renderWaypointHandles(draggingWaypoint.arrow);
-    return;
-  }
-if (arrowSource && currentTool === 'arrow') {
-    const cRect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - cRect.left - (parseFloat(world.style.left) || 0)) / zoomLevel;
-    const my = (e.clientY - cRect.top - (parseFloat(world.style.top) || 0)) / zoomLevel;
-
-    const sourceNode = nodes.find(n => n.id === arrowSource);
-    if (sourceNode) {
-      const startPos = getAnchorPos(sourceNode, arrowSourcePort);
-
-      // ── MAGNETISCH SNAPPEN ────────────────────────────────────────────
-      const SNAP_THRESHOLD = 40; // pixels in world-coördinaten
-      let snapX = mx, snapY = my;
-      let foundMagnet = null;
-
-      // Reset alle anchor highlights
-      anchorsGroup.querySelectorAll('.anchor-point').forEach(c => c.classList.remove('magnet-hover'));
-
-      let bestDist = SNAP_THRESHOLD;
-      nodes.forEach(n => {
-        if (n.id === arrowSource) return; // sla bronknooppunt over
-        for (let i = 0; i < 8; i++) {
-          const pos = getAnchorPos(n, i);
-          const dist = Math.sqrt((pos.x - mx) ** 2 + (pos.y - my) ** 2);
-          if (dist < bestDist) {
-            bestDist = dist;
-            snapX = pos.x;
-            snapY = pos.y;
-            foundMagnet = { nodeId: n.id, port: i };
-          }
-        }
-      });
-
-      magnetTarget = foundMagnet;
-
-      // Highlight het dichtstbijzijnde ankerpunt
-      if (foundMagnet) {
-        anchorsGroup.querySelectorAll('.anchor-point').forEach(c => {
-          if (c.dataset.node === foundMagnet.nodeId && parseInt(c.dataset.port) === foundMagnet.port) {
-            c.classList.add('magnet-hover');
-          }
-        });
-      }
-      // ──────────────────────────────────────────────────────────────────
-
-      tempLine.setAttribute('d', `M ${startPos.x} ${startPos.y} L ${snapX} ${snapY}`);
-    }
-  }
-  if (!selectBoxStart) return;
-  const x = Math.min(e.clientX, selectBoxStart.x), y = Math.min(e.clientY, selectBoxStart.y);
-  const w = Math.abs(e.clientX - selectBoxStart.x), h = Math.abs(e.clientY - selectBoxStart.y);
-  selectionBox.style.left = x + 'px'; selectionBox.style.top = y + 'px'; selectionBox.style.width = w + 'px'; selectionBox.style.height = h + 'px';
-});
-document.addEventListener('mouseup', e => {
-  if (draggingWaypoint) { saveState(); draggingWaypoint = null; return; }
-if (currentTool === 'arrow') {
-    const targetEl = document.elementFromPoint(e.clientX, e.clientY);
-    const isAnchor = targetEl && targetEl.classList.contains('anchor-point');
-
-    if (isAnchor) {
-      // Exacte klik op ankerpunt → afhandeling via anchor click event
-      magnetTarget = null;
-      return;
-    }
-
-    if (magnetTarget && arrowSource && magnetTarget.nodeId !== arrowSource) {
-      // Magnetisch snap: maak pijl naar het dichtstbijzijnde ankerpunt
-      const newArrow = createArrow(arrowSource, magnetTarget.nodeId, arrowSourcePort, magnetTarget.port);
-      saveState();
-      setTool('pointer');
-      openArrowPanelEdit(newArrow.id);
-      arrowSource = null;
-      magnetTarget = null;
-      tempLine.setAttribute('d', '');
-      anchorsGroup.querySelectorAll('.anchor-point').forEach(c => c.classList.remove('magnet-hover'));
-      return;
-    }
-
-    // Geen anchor getroffen en geen magneet: annuleer tekenen
-    arrowSource = null;
-    magnetTarget = null;
-    tempLine.setAttribute('d', '');
-    anchorsGroup.querySelectorAll('.anchor-point').forEach(c => c.classList.remove('magnet-hover'));
-    return;
-  }
-
-  // De rest van de code voor selecteren en pannen
-  if (selectBoxStart) {
-    const rx = Math.min(e.clientX, selectBoxStart.x), ry = Math.min(e.clientY, selectBoxStart.y);
-    const rw = Math.abs(e.clientX - selectBoxStart.x), rh = Math.abs(e.clientY - selectBoxStart.y);
-    const rRect = { left: rx, top: ry, right: rx+rw, bottom: ry+rh };
-    nodes.forEach(n => {
-      const nRect = n.el.getBoundingClientRect();
-      if (!(nRect.right < rRect.left || nRect.left > rRect.right || nRect.bottom < rRect.top || nRect.top > rRect.bottom)) {
-        multiSelectedNodes.add(n.id); n.el.classList.add('multi-selected');
-      }
-    });
-    selectionBox.style.display = 'none'; selectBoxStart = null; setTool('pointer');
-  }
-  if (panStart) { panStart = null; canvas.style.cursor = ''; }
-});
-
-
-function clearMultiSelection() { multiSelectedNodes.clear(); document.querySelectorAll('.multi-selected').forEach(el => el.classList.remove('multi-selected')); }
-
-function selectNodeForAnim(id) {
-  // 1. Reset alles
-  document.querySelectorAll('.node').forEach(n => {
-    n.classList.remove('highlight', 'dimmed', 'connected-highlight');
-  });
-  arrows.forEach(a => {
-    if (a._animFrame) cancelAnimationFrame(a._animFrame);
-    a._animFrame = null;
-    a.dotEl.style.display = 'none';
-    a.pathEl.classList.remove('active-connection', 'arrow-dimmed');
-    a.pathEl.style.strokeWidth = '';
-    if (a.style === 'dashed') a.pathEl.style.strokeDashoffset = '';
-  });
-
-  // 2. Klik je nogmaals op hetzelfde vakje? Dan deselecteren we alles
-  if (selectedNodeId === id) { selectedNodeId = null; return; }
-  selectedNodeId = id;
-
-  // 3. Highlight het vakje dat je zojuist hebt aangeklikt
-  const selEl = document.querySelector(`.node[data-id="${id}"]`);
-  if (selEl) selEl.classList.add('highlight');
-
-  // 4. Vind gekoppelde pijlen en vakjes
-  const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
-  const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
-
-  // 5. Glow op gekoppelde vakjes (zonder de rest te dimmen!)
-  nodes.forEach(n => {
-    if (n.id === id) return;
-    if (connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight');
-  });
-
-  // 6. Highlight gekoppelde pijlen + animatie (zonder de rest te dimmen!)
-  arrows.forEach(a => {
-    if (a.from === id || a.to === id) {
-      a.pathEl.classList.add('active-connection');
-      startDotAnimation(a);
-    }
-  });
-}
-
-// ── SEARCH ─────────────────────────────────────────────────────────────────────
-let searchMatches = [];
-let searchMatchIndex = -1;
-
-function updateSearchCount() {
-  if (!searchCount) return;
-  if (searchMatches.length === 0) searchCount.textContent = '0/0';
-  else searchCount.textContent = `${searchMatchIndex + 1}/${searchMatches.length}`;
-}
-
-let _searchAnimFrame = null;
-
-function focusSearchMatch(index) {
-  if (searchMatches.length === 0) return;
-  searchMatchIndex = ((index % searchMatches.length) + searchMatches.length) % searchMatches.length;
-  const match = searchMatches[searchMatchIndex];
-  document.querySelectorAll('.node').forEach(el => el.classList.remove('search-active'));
-  if (match && match.el) {
-    match.el.classList.add('search-active');
-
-    const targetLeft = -match.x * zoomLevel + canvas.offsetWidth / 2 - (match.width * zoomLevel) / 2;
-    const targetTop  = -match.y * zoomLevel + canvas.offsetHeight / 2 - (match.height * zoomLevel) / 2;
-    const startLeft  = parseFloat(world.style.left) || 0;
-    const startTop   = parseFloat(world.style.top)  || 0;
-
-    if (_searchAnimFrame) cancelAnimationFrame(_searchAnimFrame);
-
-    const duration = 380; // ms — snel maar zichtbaar
-    const startTime = performance.now();
-
-    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-
-    function step(now) {
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const ease = easeOutCubic(t);
-      world.style.left = (startLeft + (targetLeft - startLeft) * ease) + 'px';
-      world.style.top  = (startTop  + (targetTop  - startTop)  * ease) + 'px';
-      if (t < 1) _searchAnimFrame = requestAnimationFrame(step);
-      else _searchAnimFrame = null;
-    }
-
-    _searchAnimFrame = requestAnimationFrame(step);
-  }
-  updateSearchCount();
-}
-
-function runSearch() {
-  const q = (searchBar.value || '').trim().toLowerCase();
-  document.querySelectorAll('.node').forEach(el => el.classList.remove('highlight', 'search-active'));
-  searchMatches = [];
-  searchMatchIndex = -1;
-  if (!q) { updateSearchCount(); return; }
-
-  searchMatches = nodes.filter(n =>
-    (n.title || '').toLowerCase().includes(q) ||
-    (n.behandelaarsgroep || '').toLowerCase().includes(q) ||
-    (n.note || '').toLowerCase().includes(q) ||
-    (n.keten || '').toLowerCase().includes(q)
-  );
-
-  searchMatches.forEach(n => n.el.classList.add('highlight'));
-  if (searchMatches.length > 0) focusSearchMatch(0);
-  else updateSearchCount();
-}
-
-searchBar.addEventListener('input', runSearch);
-searchBar.addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  if (searchMatches.length === 0) return;
-  focusSearchMatch(searchMatchIndex + (e.shiftKey ? -1 : 1));
-});
-searchPrevBtn.addEventListener('click', () => { if (searchMatches.length > 0) focusSearchMatch(searchMatchIndex - 1); });
-searchNextBtn.addEventListener('click', () => { if (searchMatches.length > 0) focusSearchMatch(searchMatchIndex + 1); });
-
-// ── PAN & ZOOM ─────────────────────────────────────────────────────────────────
-let panStart = null, panOrigin = null;
-canvas.addEventListener('wheel', e => {
-  if (currentTool === 'arrow') return;
-  e.preventDefault(); const factor = e.deltaY < 0 ? 1.1 : 0.9;
-  const newZ = Math.max(0.3, Math.min(4, zoomLevel * factor));
-  const cRect = canvas.getBoundingClientRect(), cx = e.clientX - cRect.left, cy = e.clientY - cRect.top;
-  const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
-  const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
-  zoomLevel = newZ; world.style.left = (cx - wx * zoomLevel) + 'px'; world.style.top = (cy - wy * zoomLevel) + 'px';
-  world.style.transform = `scale(${zoomLevel})`; if(currentTool==='arrow') renderAnchors();
-});
-canvas.addEventListener('mousedown', e => {
-  // NIEUWE LOGICA: met pointer-tool op de lege achtergrond → canvas slepen
-  if (currentTool === 'pointer' && e.button === 0 && !e.target.closest('.node')) {
-    panStart = {x: e.clientX, y: e.clientY};
-    panOrigin = {x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0};
-    canvas.style.cursor = 'grabbing';
-    return; // voorkom dat andere tools per ongeluk triggeren
-  }
-
-  // Middelste muisknop blijft altijd werken (handig bij andere tools)
-  if (e.button === 1) {
-    panStart = {x: e.clientX, y: e.clientY};
-    panOrigin = {x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0};
-    canvas.style.cursor = 'grabbing';
-  }
-});
-document.addEventListener('mousemove', e => { if (panStart) { world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px'; world.style.top = (panOrigin.y + e.clientY - panStart.y) + 'px'; } });
-document.addEventListener('mouseup', () => { if (panStart) { panStart = null; canvas.style.cursor = ''; } });
-
-// ── PANEL & LIVE UPDATES ───────────────────────────────────────────────────────
 function renderNode(n) {
   n.rotation = n.rotation || 0;
   n.el.style.transform = `rotate(${n.rotation}deg)`;
-  const titleEl = document.getElementById('ntitle-'+n.id);
+  const titleEl = document.getElementById('ntitle-' + n.id);
   if (!titleEl) return;
   titleEl.textContent = n.title || '';
- titleEl.style.fontWeight = n.fontWeight || 'normal';
+  titleEl.style.fontWeight = n.fontWeight || 'normal';
   titleEl.style.fontStyle  = n.fontStyle  || 'normal';
   titleEl.style.fontSize   = (n.fontSize  || 14) + 'px';
-  
 
   if (n.shape === 'area') {
-    const hex = (n.bgColor || '#f1f5f9').replace('#','');
-    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    const hex = (n.bgColor || '#f1f5f9').replace('#', '');
+    const r = parseInt(hex.slice(0,2), 16), g = parseInt(hex.slice(2,4), 16), b = parseInt(hex.slice(4,6), 16);
     n.el.style.backgroundColor = `rgba(${r},${g},${b},0.15)`;
   } else {
     n.el.style.backgroundColor = n.bgColor || '#f1f5f9';
@@ -2024,673 +457,612 @@ function renderNode(n) {
   if (n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
   else { linkEl.style.display = 'none'; }
 
-  const noteEl = document.getElementById('nnote-'+n.id);
+  const noteEl = document.getElementById('nnote-' + n.id);
   if (noteEl) {
     noteEl.textContent = n.note || '';
     noteEl.style.fontWeight = n.noteFontWeight || 'normal';
-    noteEl.style.fontStyle = n.noteFontStyle || 'normal';
-    noteEl.style.fontSize = (n.noteFontSize || 10) + 'px';
+    noteEl.style.fontStyle  = n.noteFontStyle  || 'normal';
+    noteEl.style.fontSize   = (n.noteFontSize  || 10) + 'px';
     noteEl.style.display = (n.showNote && n.note && n.note.trim()) ? 'block' : 'none';
   }
 
-  const thumbEl = document.getElementById('thumb-'+n.id);
+  const thumbEl = document.getElementById('thumb-' + n.id);
   if (thumbEl) {
     if (n.img && n.showImg) {
       thumbEl.classList.add('has-img');
       let imgEl = thumbEl.querySelector('img');
-     if (!imgEl) { imgEl = document.createElement('img'); imgEl.draggable = false; thumbEl.appendChild(imgEl); }
-imgEl.src = n.img;
+      if (!imgEl) { imgEl = document.createElement('img'); thumbEl.appendChild(imgEl); }
+      imgEl.src = n.img;
     } else {
       thumbEl.classList.remove('has-img');
     }
   }
 }
 
-function applyLiveNodeChanges(n) {
-  n.title = document.getElementById('f-title').value; 
-  n.bgColor = document.getElementById('f-node-color').value; 
-  n.color = document.getElementById('f-text-color').value; 
-  n.url = normalizeUrl(document.getElementById('f-url').value);
-  n.note = document.getElementById('f-note').value; 
-  n.ketens = collectNodeKetensFromForm();
-  n.keten = n.ketens.join(', ');
-  n.behandelaarsgroep = document.getElementById('f-behandelaarsgroep').value;
-  n.bitteam = document.getElementById('f-bitteam').value;
-  n.leverancier = document.getElementById('f-leverancier').value;
-  n.servicelevel = document.getElementById('f-servicelevel').value;
-  n.showImg = document.getElementById('f-show-image').checked;
-  n.showNote = document.getElementById('f-show-note').checked;
-  n.filterLabel = document.getElementById('f-node-label').value;
+// ═══════════════════════════════════════════════════════════════════════════════
+// ANCHOR MATH
+// ═══════════════════════════════════════════════════════════════════════════════
+function getAnchorPos(node, port) {
+  let px = 0.5, py = 0.5;
+  if (port===0) { px=0.5; py=0; } else if (port===1) { px=1; py=0; }
+  else if (port===2) { px=1; py=0.5; } else if (port===3) { px=1; py=1; }
+  else if (port===4) { px=0.5; py=1; } else if (port===5) { px=0; py=1; }
+  else if (port===6) { px=0; py=0.5; } else if (port===7) { px=0; py=0; }
 
-  
-const titleEl = document.getElementById('ntitle-'+n.id);
- n.fontSize = parseInt(document.getElementById('f-font-size').value) || 14;
-  titleEl.textContent = n.title;
-  titleEl.style.fontWeight = n.fontWeight;
-  titleEl.style.fontStyle = n.fontStyle;
-  titleEl.style.fontSize = n.fontSize + 'px';
-  n.el.style.backgroundColor = n.bgColor;
-  n.el.style.color = n.color;
+  if (node.shape === 'oval') {
+    const a = node.width/2, b = node.height/2;
+    const cx = node.x + a, cy = node.y + b;
+    const angle = (port * 45 - 90) * (Math.PI / 180);
+    return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
+  }
+  return { x: node.x + node.width * px, y: node.y + node.height * py };
+}
 
-if (n.shape === 'area') {
-    let r = parseInt(n.bgColor.slice(1, 3), 16);
-    let g = parseInt(n.bgColor.slice(3, 5), 16);
-    let b = parseInt(n.bgColor.slice(5, 7), 16);
-    n.el.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+// ═══════════════════════════════════════════════════════════════════════════════
+// ARROW CREATION (read-only)
+// ═══════════════════════════════════════════════════════════════════════════════
+function createArrow(fromId, toId, fromPort = 4, toPort = 0, forceId = null) {
+  const id = forceId || ('a' + (++arrowId));
+
+  const bgPathEl  = document.createElementNS('http://www.w3.org/2000/svg', 'path'); bgPathEl.classList.add('arrow-bg');
+  const pathEl    = document.createElementNS('http://www.w3.org/2000/svg', 'path'); pathEl.classList.add('arrow-path'); pathEl.id = 'path-' + id;
+  const hitEl     = document.createElementNS('http://www.w3.org/2000/svg', 'path'); hitEl.classList.add('arrow-hit');
+  const dotEl     = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dotEl.setAttribute('r','5'); dotEl.setAttribute('fill','#5cf8c8'); dotEl.style.display='none';
+  const labelEl   = document.createElementNS('http://www.w3.org/2000/svg', 'text'); labelEl.setAttribute('fill','#b0b0d0'); labelEl.setAttribute('font-size','11'); labelEl.setAttribute('text-anchor','middle');
+  const noteEl    = document.createElementNS('http://www.w3.org/2000/svg', 'text'); noteEl.setAttribute('fill','#a0a0c0'); noteEl.setAttribute('font-size','10'); noteEl.setAttribute('font-style','italic'); noteEl.setAttribute('text-anchor','middle'); noteEl.style.display='none';
+  const urlLinkEl = document.createElementNS('http://www.w3.org/2000/svg', 'a'); urlLinkEl.setAttribute('target','_blank');
+  const urlIconEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); urlIconEl.setAttribute('font-size','12'); urlIconEl.setAttribute('fill','#7c5cfc'); urlIconEl.setAttribute('pointer-events','all'); urlIconEl.style.cursor='pointer'; urlIconEl.style.display='none'; urlIconEl.textContent='🔗';
+  urlLinkEl.appendChild(urlIconEl);
+
+  [bgPathEl, pathEl, hitEl, dotEl, labelEl, noteEl, urlLinkEl].forEach(el => arrowsGroup.appendChild(el));
+
+  // Per-arrow unique marker
+  const markerId = 'arrowhead-' + id;
+  const markerEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  markerEl.setAttribute('id', markerId); markerEl.setAttribute('markerWidth','8'); markerEl.setAttribute('markerHeight','8'); markerEl.setAttribute('refX','7'); markerEl.setAttribute('refY','3'); markerEl.setAttribute('orient','auto');
+  const markerPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  markerPathEl.setAttribute('d','M0,0 L0,6 L8,3 z'); markerPathEl.setAttribute('fill','#7c5cfc');
+  markerEl.appendChild(markerPathEl);
+  document.querySelector('defs').appendChild(markerEl);
+
+  const dotEl2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dotEl2.setAttribute('r','5'); dotEl2.setAttribute('fill','#5cf8c8'); dotEl2.style.display='none';
+  arrowsGroup.appendChild(dotEl2);
+
+  const markerStartId = 'arrowhead-start-' + id;
+  const markerStartEl = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('markerWidth','8'); markerStartEl.setAttribute('markerHeight','8'); markerStartEl.setAttribute('refX','1'); markerStartEl.setAttribute('refY','3'); markerStartEl.setAttribute('orient','auto-start-reverse');
+  const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  markerStartPathEl.setAttribute('d','M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill','#7c5cfc');
+  markerStartEl.appendChild(markerStartPathEl);
+  document.querySelector('defs').appendChild(markerStartEl);
+
+  const arrow = {
+    id, from: fromId, to: toId, fromPort, toPort,
+    label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot',
+    note: '', showNote: false, url: '', filterLabel: '',
+    keten: '', ketens: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '',
+    bidirectional: false, routeMode: 'auto', waypoints: [],
+    pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl,
+    _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl
+  };
+  arrows.push(arrow);
+
+  // Click to open info panel (view only)
+  hitEl.addEventListener('click', e => {
+    e.stopPropagation();
+    openArrowInfoPanel(id);
+  });
+
+  urlIconEl.addEventListener('click', e => {
+    e.stopPropagation();
+    if (arrow.url) window.open(arrow.url, '_blank');
+  });
+
+  updateArrow(arrow);
+  return arrow;
+}
+
+function updateArrow(arrow) {
+  const f = nodes.find(n => n.id === arrow.from), t = nodes.find(n => n.id === arrow.to);
+  if (!f || !t) return;
+  let p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
+
+  if (arrow.bidirectional) {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    p1 = { x: p1.x + dx/len * 14, y: p1.y + dy/len * 14 };
+  }
+
+  let d = '';
+  if (arrow.routeMode === 'custom' && arrow.waypoints && arrow.waypoints.length > 0) {
+    d = `M ${p1.x} ${p1.y}`;
+    arrow.waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
+    d += ` L ${p2.x} ${p2.y}`;
+  } else if (arrow.shape === 'straight') {
+    d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
   } else {
-    n.el.style.backgroundColor = n.bgColor;
+    const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.sqrt(dx*dx+dy*dy), offset = Math.min(60, len*0.3);
+    const nx = -dy/len, ny = dx/len;
+    d = `M ${p1.x} ${p1.y} Q ${p1.x+dx/2+nx*offset} ${p1.y+dy/2+ny*offset} ${p2.x} ${p2.y}`;
   }
-  n.el.style.color = n.color;
-  
-  const linkEl = n.el.querySelector('.node-link');
-  if(n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; } else { linkEl.style.display = 'none'; }
-  
-const noteEl = document.getElementById('nnote-'+n.id); 
-if (noteEl) {
-  noteEl.textContent = n.note;
-  n.noteFontSize = parseInt(document.getElementById('f-note-font-size').value) || 10;
-  noteEl.style.fontWeight = n.noteFontWeight || 'normal';
-  noteEl.style.fontStyle = n.noteFontStyle || 'normal';
-  noteEl.style.fontSize = n.noteFontSize + 'px';
-  if(n.showNote && n.note.trim() !== '') {
-    noteEl.style.display = 'block';
+
+  arrow.bgPathEl.setAttribute('d', d);
+  arrow.pathEl.setAttribute('d', d);
+  arrow.hitEl.setAttribute('d', d);
+  arrow.pathEl.style.stroke = arrow.color;
+  if (arrow.markerPathEl) arrow.markerPathEl.setAttribute('fill', arrow.color);
+  if (arrow.markerStartPathEl) arrow.markerStartPathEl.setAttribute('fill', arrow.color);
+  arrow.pathEl.setAttribute('marker-end', `url(#${arrow.markerEl.id})`);
+  arrow.pathEl.setAttribute('marker-start', arrow.bidirectional ? `url(#${arrow.markerStartEl.id})` : '');
+
+  const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+  arrow.labelEl.setAttribute('x', mx); arrow.labelEl.setAttribute('y', my - 10);
+  arrow.labelEl.textContent = arrow.label || '';
+
+  if (arrow.noteEl) {
+    if (arrow.showNote && arrow.note) {
+      arrow.noteEl.style.display = '';
+      arrow.noteEl.setAttribute('x', mx); arrow.noteEl.setAttribute('y', my + 16);
+      arrow.noteEl.textContent = arrow.note;
+    } else { arrow.noteEl.style.display = 'none'; }
+  }
+
+  if (arrow.urlIconEl && arrow.urlLinkEl) {
+    if (arrow.url) {
+      arrow.urlIconEl.style.display = '';
+      arrow.urlIconEl.setAttribute('x', mx + (arrow.label || '').length * 3.5 + 14);
+      arrow.urlIconEl.setAttribute('y', my - 10);
+      arrow.urlLinkEl.setAttribute('href', arrow.url);
+    } else { arrow.urlIconEl.style.display = 'none'; }
+  }
+
+  if (arrow.style === 'dashed') {
+    arrow.pathEl.style.strokeDasharray = '8,8'; arrow.dotEl.style.display = 'none';
   } else {
-    noteEl.style.display = 'none';
+    arrow.pathEl.style.strokeDasharray = 'none';
   }
 }
 
-  const thumbEl = document.getElementById('thumb-'+n.id);
-  if (thumbEl) {
-    if (n.img && n.showImg) {
-      thumbEl.classList.add('has-img');
-      let imgEl = thumbEl.querySelector('img');
-     if (!imgEl) { imgEl = document.createElement('img'); imgEl.draggable = false; thumbEl.appendChild(imgEl); }
-imgEl.src = n.img;
+function updateArrows() { arrows.forEach(updateArrow); }
+
+function startDotAnimation(arrow) {
+  if (arrow._animFrame) cancelAnimationFrame(arrow._animFrame);
+  let t = 0;
+  function tick() {
+    if (arrow.anim === 'none') { arrow.dotEl.style.display = 'none'; return; }
+    const speed = arrow.anim === 'fast' ? 0.008 : 0.003;
+    if (arrow.style === 'dashed') {
+      arrow.dashOffset -= speed * 200;
+      arrow.pathEl.style.strokeDashoffset = arrow.dashOffset;
+      if (arrow.bidirectional && arrow._dashPath2) {
+        arrow._dashPath2.setAttribute('d', arrow.pathEl.getAttribute('d'));
+        arrow._dashPath2.style.stroke = arrow.color;
+        arrow._dashPath2.style.strokeDasharray = '8,8';
+        arrow._dashPath2.style.strokeDashoffset = -arrow.dashOffset;
+      }
     } else {
-      thumbEl.classList.remove('has-img');
+      t = (t + speed) % 1;
+      arrow.dotEl.style.display = '';
+      try {
+        const pt = arrow.pathEl.getPointAtLength(t * arrow.pathEl.getTotalLength());
+        arrow.dotEl.setAttribute('cx', pt.x); arrow.dotEl.setAttribute('cy', pt.y);
+      } catch(e) {}
+      if (arrow.bidirectional && arrow.dotEl2) {
+        const t2 = (1 - t) % 1;
+        arrow.dotEl2.style.display = '';
+        try {
+          const pt2 = arrow.pathEl.getPointAtLength(t2 * arrow.pathEl.getTotalLength());
+          arrow.dotEl2.setAttribute('cx', pt2.x); arrow.dotEl2.setAttribute('cy', pt2.y);
+        } catch(e) {}
+      } else if (arrow.dotEl2) { arrow.dotEl2.style.display = 'none'; }
     }
+    arrow._animFrame = requestAnimationFrame(tick);
   }
-  updateArrows();
+  tick();
 }
 
-document.getElementById('btn-text-bold').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.fontWeight = n.fontWeight==='bold'?'normal':'bold'; applyLiveNodeChanges(n); });
-document.getElementById('btn-text-italic').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.fontStyle = n.fontStyle==='italic'?'normal':'italic'; applyLiveNodeChanges(n); });
-document.getElementById('btn-note-bold').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.noteFontWeight = n.noteFontWeight==='bold'?'normal':'bold'; applyLiveNodeChanges(n); });
-document.getElementById('btn-note-italic').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.noteFontStyle = n.noteFontStyle==='italic'?'normal':'italic'; applyLiveNodeChanges(n); });
-
-function openNodePanel(id, editMode = false) {
-  const n = nodes.find(x => x.id === id); if(!n) return; panelTarget = { type: 'node', id }; panel.classList.add('open');
-  
-  if (editMode) {
-    document.getElementById('panel-view').style.display = 'none'; 
-    document.getElementById('panel-edit').style.display = 'block'; 
-    document.getElementById('panel-node-fields').style.display = 'block'; 
-    document.getElementById('panel-arrow-fields').style.display = 'none'; 
-    document.getElementById('panel-title').childNodes[0].textContent = 'Bewerken';
-
-    document.getElementById('f-title').value = n.title; 
-    document.getElementById('f-node-color').value = n.bgColor || '#f1f5f9'; 
-    document.getElementById('f-text-color').value = n.color || '#1a1a2e'; 
-    document.getElementById('f-url').value = n.url || ''; 
-    document.getElementById('f-note').value = n.note || ''; 
-    renderNodeKetenFields(getNodeKetens(n), () => applyLiveNodeChanges(n));
-    document.getElementById('f-behandelaarsgroep').value = n.behandelaarsgroep || '';
-    document.getElementById('f-bitteam').value = n.bitteam || '';
-    document.getElementById('f-leverancier').value = n.leverancier || '';
-    document.getElementById('f-servicelevel').value = n.servicelevel || '';
-    document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
-    document.getElementById('f-node-label').value = n.filterLabel || '';
-    document.getElementById('f-font-size').value = n.fontSize || 14;
-    document.getElementById('f-note-font-size').value = n.noteFontSize || 10;
-
-// 2. Zorg dat de kleur-rasters gesloten zijn als je het paneel opent
-    const gNode = document.getElementById('color-grid-node');
-    const gText = document.getElementById('color-grid-text');
-    if (gNode) gNode.classList.remove('open'); // Gebruik de variabele met een check
-    if (gText) gText.classList.remove('open');
-
-    // 3. Teken de kleurtjes in de rasters voor de huidige node 'n'
-    renderColorGrid('color-grid-node', 'f-node-color', n);
-    renderColorGrid('color-grid-text', 'f-text-color', n);
-
-
-    if (n.shape === 'text') { document.getElementById('text-node-options').style.display = 'flex'; 
-                             document.getElementById('wrap-show-img').style.display = 'none'; 
-                             document.getElementById('wrap-keten').style.display = 'none';
-                             document.getElementById('wrap-behandelaar').style.display = 'none'; 
-                             document.getElementById('wrap-leverancier').style.display = 'none'; }
-else { document.getElementById('text-node-options').style.display = 'none'; 
-      document.getElementById('wrap-show-img').style.display = 'block';
-      document.getElementById('wrap-keten').style.display = 'block';
-      document.getElementById('wrap-behandelaar').style.display = 'block'; 
-      document.getElementById('wrap-leverancier').style.display = 'block'; }
-    const titleInput = document.getElementById('f-title');
-    if (titleInput) {
-      titleInput.onkeydown = (e) => {
-        if (e.key === 'Enter') { document.getElementById('panel-save').click(); }
-      };
-    }
-
-
-
-
-['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
-  document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
-  document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
-});
-
-    const previewImg = document.getElementById('img-preview-img');
-    const previewText = document.getElementById('img-preview-text');
-    const btnRemove = document.getElementById('btn-img-remove');
-    if (n.img) {
-      previewImg.src = n.img; previewImg.style.display = 'block';
-      previewText.style.display = 'none'; btnRemove.style.display = 'block';
-    } else {
-      previewImg.style.display = 'none'; previewText.style.display = '';
-      btnRemove.style.display = 'none';
-    }
-    document.getElementById('f-img-upload').onchange = e => {
-      const file = e.target.files[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        n.img = ev.target.result;
-        previewImg.src = n.img; previewImg.style.display = 'block';
-        previewText.style.display = 'none'; btnRemove.style.display = 'block';
-        applyLiveNodeChanges(n); saveState();
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    };
-    document.getElementById('btn-img-remove').onclick = () => {
-      n.img = ''; previewImg.style.display = 'none';
-      previewText.style.display = ''; btnRemove.style.display = 'none';
-      applyLiveNodeChanges(n); saveState();
-    };
-} else {
-    document.getElementById('panel-view').style.display = 'block';
-    document.getElementById('panel-edit').style.display = 'none';
-    document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
-    document.getElementById('view-content').innerHTML = `
-      ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
-      <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.title}</div></div>
-      ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
-      ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
-      ${getNodeKetens(n).length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${getNodeKetens(n).join(', ')}</div></div>` : ''}
-      ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
-      ${n.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${n.bitteam}</div></div>` : ''}
-      ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
-      ${n.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${n.servicelevel}</div></div>` : ''}
-      ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
-    `;
-    const btnViewDelete = document.getElementById('btn-view-delete');
-    if (btnViewDelete) {
-      btnViewDelete.style.display = 'block';
-      btnViewDelete.onclick = () => {
-        if (confirm('Weet je het zeker? Dit vakje wordt verwijderd.')) {
-          deleteNode(n.id); saveState(); panel.classList.remove('open');
-        }
-      };
-    }
-  }
+function startAllAnimations() {
+  arrows.forEach(a => startDotAnimation(a));
 }
 
-
-function openArrowPanel(id) {
-  const a = arrows.find(x => x.id === id); if(!a) return; panelTarget = { type: 'arrow', id }; panel.classList.add('open');
-  arrows.forEach(arr => { if(arr.markerEl) arr.pathEl.setAttribute('marker-end', `url(#${arr.markerEl.id})`); });
-
-document.getElementById('panel-view').style.display = 'block';
-  document.getElementById('panel-edit').style.display = 'none';
-  document.getElementById('btn-view-delete').style.display = 'none';
-  document.getElementById('panel-title').childNodes[0].textContent = 'Pijl info';
-  const ketenText = getArrowKetens(a).join(', ');
+// ═══════════════════════════════════════════════════════════════════════════════
+// INFO PANELS (view-only)
+// ═══════════════════════════════════════════════════════════════════════════════
+function openNodeInfoPanel(id) {
+  const n = nodes.find(x => x.id === id); if (!n) return;
+  panelTarget = { type: 'node', id };
+  document.getElementById('panel-title').childNodes[0].textContent = 'Informatie ';
+  const ketens = getNodeKetens(n);
   document.getElementById('view-content').innerHTML = `
-    ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.label}</div></div>` : ''}
-    ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${a.url}" target="_blank">${a.url}</a></div></div>` : ''}
-    ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
-    ${ketenText ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${ketenText}</div></div>` : ''}
-    ${a.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${a.behandelaarsgroep}</div></div>` : ''}
-    ${a.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${a.bitteam}</div></div>` : ''}
-    ${a.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${a.leverancier}</div></div>` : ''}
-    ${a.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${a.servicelevel}</div></div>` : ''}
+    ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
+    <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${escHtml(n.title)}</div></div>
+    ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${escHtml(n.url)}" target="_blank">${escHtml(n.url)}</a></div></div>` : ''}
+    ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value" style="white-space:pre-wrap">${escHtml(n.note)}</div></div>` : ''}
+    ${ketens.length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${escHtml(ketens.join(', '))}</div></div>` : ''}
+    ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${escHtml(n.behandelaarsgroep)}</div></div>` : ''}
+    ${n.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${escHtml(n.bitteam)}</div></div>` : ''}
+    ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${escHtml(n.leverancier)}</div></div>` : ''}
+    ${n.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${escHtml(n.servicelevel)}</div></div>` : ''}
+    ${n.filterLabel ? `<div class="view-line"><div class="view-label">Labels</div><div class="view-value">${escHtml(n.filterLabel)}</div></div>` : ''}
+  `;
+  panel.classList.add('open');
+}
+
+function openArrowInfoPanel(id) {
+  const a = arrows.find(x => x.id === id); if (!a) return;
+  panelTarget = { type: 'arrow', id };
+  document.getElementById('panel-title').childNodes[0].textContent = 'Verbinding ';
+  const ketenText = getArrowKetens(a).join(', ');
+  const fNode = nodes.find(n => n.id === a.from);
+  const tNode = nodes.find(n => n.id === a.to);
+  document.getElementById('view-content').innerHTML = `
+    ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${escHtml(a.label)}</div></div>` : ''}
+    ${fNode ? `<div class="view-line"><div class="view-label">Van</div><div class="view-value">${escHtml(fNode.title)}</div></div>` : ''}
+    ${tNode ? `<div class="view-line"><div class="view-label">Naar</div><div class="view-value">${escHtml(tNode.title)}</div></div>` : ''}
+    ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${escHtml(a.url)}" target="_blank">${escHtml(a.url)}</a></div></div>` : ''}
+    ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value" style="white-space:pre-wrap">${escHtml(a.note)}</div></div>` : ''}
+    ${ketenText ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${escHtml(ketenText)}</div></div>` : ''}
+    ${a.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${escHtml(a.behandelaarsgroep)}</div></div>` : ''}
+    ${a.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${escHtml(a.leverancier)}</div></div>` : ''}
+    ${a.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${escHtml(a.servicelevel)}</div></div>` : ''}
     <div class="view-line"><div class="view-label">Stijl</div><div class="view-value">${a.shape === 'curve' ? 'Gebogen' : 'Recht'} · ${a.style === 'dot' ? 'Balletje' : 'Streepjes'}</div></div>
   `;
+  panel.classList.add('open');
 }
 
-function normalizeKetens(values) {
-  return (values || []).map(v => (v || '').trim()).filter(Boolean);
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function getNodeKetens(node) {
-  if (Array.isArray(node.ketens) && node.ketens.length > 0) return normalizeKetens(node.ketens);
-  if (typeof node.keten === 'string' && node.keten.trim()) return normalizeKetens(node.keten.split(','));
-  return [];
-}
+document.getElementById('panel-close').addEventListener('click', () => {
+  panel.classList.remove('open');
+  panelTarget = null;
+  // Clear selection animation
+  document.querySelectorAll('.node').forEach(el => el.classList.remove('highlight','connected-highlight'));
+  arrows.forEach(a => {
+    if (a._animFrame) { cancelAnimationFrame(a._animFrame); a._animFrame = null; }
+    a.dotEl.style.display = 'none';
+    a.pathEl.classList.remove('active-connection');
+  });
+  selectedNodeId = null;
+  startAllAnimations();
+});
 
-function getArrowKetens(arrow) {
-  if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0) return normalizeKetens(arrow.ketens);
-  if (typeof arrow.keten === 'string' && arrow.keten.trim()) return normalizeKetens(arrow.keten.split(','));
-  return [];
-}
-
-function collectNodeKetensFromForm() {
-  const inputs = Array.from(document.querySelectorAll('#f-keten-list .f-keten-item'));
-  return normalizeKetens(inputs.map(i => i.value));
-}
-
-function collectArrowKetensFromForm() {
-  const inputs = Array.from(document.querySelectorAll('#f-arrow-keten-list .f-arrow-keten-item'));
-  return normalizeKetens(inputs.map(i => i.value));
-}
-
-function renderNodeKetenFields(values, onChange) {
-  const listEl = document.getElementById('f-keten-list');
-  if (!listEl) return;
-
-  let ketens = normalizeKetens(values);
-  if (ketens.length === 0) ketens = [''];
-
-  const render = () => {
-    listEl.innerHTML = '';
-    ketens.forEach((value, idx) => {
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.gap = '6px';
-      row.style.marginBottom = '6px';
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'f-keten-item';
-      input.placeholder = `Keten ${idx + 1}`;
-      input.value = value;
-      input.style.flex = '1';
-      input.style.width = '100%';
-      input.oninput = (e) => { ketens[idx] = e.target.value; onChange(); };
-      input.onchange = (e) => { ketens[idx] = e.target.value; onChange(); };
-
-      const controls = document.createElement('div');
-      controls.className = 'keten-row-controls';
-
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.textContent = '-';
-      removeBtn.className = 'btn-action keten-icon-btn';
-      removeBtn.disabled = ketens.length <= 1;
-      removeBtn.onclick = () => {
-        if (ketens.length <= 1) return;
-        ketens.splice(idx, 1);
-        render();
-        onChange();
-      };
-
-      const addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.textContent = '+';
-      addBtn.className = 'btn-action keten-icon-btn';
-      addBtn.style.visibility = idx === ketens.length - 1 ? 'visible' : 'hidden';
-      addBtn.onclick = () => {
-        const last = ketens[ketens.length - 1];
-        if (!last || !last.trim()) {
-          showToast('Vul eerst de laatste Keten in');
-          return;
-        }
-        ketens.push('');
-        render();
-      };
-
-      controls.appendChild(removeBtn);
-      controls.appendChild(addBtn);
-      row.appendChild(input);
-      row.appendChild(controls);
-      listEl.appendChild(row);
+canvas.addEventListener('click', e => {
+  if (e.target === canvas || e.target === world) {
+    panel.classList.remove('open');
+    panelTarget = null;
+    document.querySelectorAll('.node').forEach(el => el.classList.remove('highlight','connected-highlight','selected'));
+    arrows.forEach(a => a.pathEl.classList.remove('active-connection', 'selected'));
+    selectedNodeId = null;
+    // Restart all animations when deselected
+    arrows.forEach(a => {
+      if (a._animFrame) cancelAnimationFrame(a._animFrame);
+      a._animFrame = null;
+      a.dotEl.style.display = 'none';
     });
-  };
-
-  render();
-}
-
-function renderArrowKetenFields(values, onChange) {
-  const listEl = document.getElementById('f-arrow-keten-list');
-  if (!listEl) return;
-
-  let ketens = normalizeKetens(values);
-  if (ketens.length === 0) ketens = [''];
-
-  const render = () => {
-    listEl.innerHTML = '';
-    ketens.forEach((value, idx) => {
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.gap = '6px';
-      row.style.marginBottom = '6px';
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'f-arrow-keten-item';
-      input.placeholder = `Keten ${idx + 1}`;
-      input.value = value;
-      input.style.flex = '1';
-      input.style.width = '100%';
-      input.oninput = (e) => { ketens[idx] = e.target.value; onChange(); };
-      input.onchange = (e) => { ketens[idx] = e.target.value; onChange(); };
-
-      const controls = document.createElement('div');
-      controls.className = 'keten-row-controls';
-
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.textContent = '-';
-      removeBtn.className = 'btn-action keten-icon-btn';
-      removeBtn.disabled = ketens.length <= 1;
-      removeBtn.onclick = () => {
-        if (ketens.length <= 1) return;
-        ketens.splice(idx, 1);
-        render();
-        onChange();
-      };
-
-      const addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.textContent = '+';
-      addBtn.className = 'btn-action keten-icon-btn';
-      addBtn.style.visibility = idx === ketens.length - 1 ? 'visible' : 'hidden';
-      addBtn.onclick = () => {
-        const last = ketens[ketens.length - 1];
-        if (!last || !last.trim()) {
-          showToast('Vul eerst de laatste Keten in');
-          return;
-        }
-        ketens.push('');
-        render();
-      };
-
-      controls.appendChild(removeBtn);
-      controls.appendChild(addBtn);
-      row.appendChild(input);
-      row.appendChild(controls);
-      listEl.appendChild(row);
-    });
-  };
-
-  render();
-}
-
-function openArrowPanelEdit(id) {
-  const a = arrows.find(x => x.id === id); if(!a) return; panelTarget = { type: 'arrow', id }; panel.classList.add('open');
-  arrows.forEach(arr => { if(arr.markerEl) arr.pathEl.setAttribute('marker-end', `url(#${arr.markerEl.id})`); });
-
-  document.getElementById('panel-view').style.display = 'none';
-  document.getElementById('panel-edit').style.display = 'block';
-  document.getElementById('panel-node-fields').style.display = 'none';
-  document.getElementById('panel-arrow-fields').style.display = 'block';
-  document.getElementById('panel-title').childNodes[0].textContent = 'Pijl bewerken';
-  document.getElementById('f-arrow-label').value = a.label; 
-  document.getElementById('f-arrow-shape').value = a.shape; 
-  document.getElementById('f-arrow-anim').value = a.anim; 
-  document.getElementById('f-arrow-style').value = a.style; 
-  renderArrowKetenFields(getArrowKetens(a), syncArrow);
-  document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
-  document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
-  document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
-  
-  // Zorg dat de kleur in het palet wordt geladen
-  document.getElementById('f-arrow-color').value = a.color; 
-  const gArrow = document.getElementById('color-grid-arrow');
-  if (gArrow) gArrow.classList.remove('open');
-  renderColorGrid('color-grid-arrow', 'f-arrow-color', a);
-  
-  document.getElementById('f-arrow-note').value = a.note || ''; 
-  document.getElementById('f-arrow-url').value = a.url || ''; 
-  document.getElementById('f-arrow-show-note').checked = a.showNote || false;
-  document.getElementById('f-arrow-filter-label').value = a.filterLabel || '';
-  document.getElementById('f-arrow-bidirectional').checked = a.bidirectional || false;
-  document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
-  document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
-  document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
-
-// ── Route Mode Toggle ──────────────────────────────
-  const btnAuto   = document.getElementById('btn-route-auto');
-  const btnCustom = document.getElementById('btn-route-custom');
-  const hint      = document.getElementById('waypoint-hint');
-  const shapeField = document.getElementById('f-arrow-shape').closest('.field');  
-
-  function setRouteMode(mode) {
-    a.routeMode = mode;
-    if (mode === 'custom') {
-      btnAuto.classList.remove('active'); btnCustom.classList.add('active');
-      hint.style.display = 'block';
-      shapeField.style.opacity = '0.4'; shapeField.style.pointerEvents = 'none';
-      if (!a.waypoints || a.waypoints.length === 0) initDefaultWaypoints(a);
-      updateArrow(a); renderWaypointHandles(a);
-    } else {
-      btnCustom.classList.remove('active'); btnAuto.classList.add('active');
-      hint.style.display = 'none';
-      shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
-      clearWaypointHandles(); updateArrow(a);
-    }
-    saveState();
+    startAllAnimations();
   }
+});
 
-  // Init button state
-  if (a.routeMode === 'custom') {
-    setRouteMode('custom');
-  } else {
-    btnAuto.classList.add('active'); btnCustom.classList.remove('active');
-    hint.style.display = 'none';
-    shapeField.style.opacity = ''; shapeField.style.pointerEvents = '';
-    clearWaypointHandles();
-  }
-  btnAuto.onclick   = () => setRouteMode('auto');
-  btnCustom.onclick = () => setRouteMode('custom');
-  // ─────────────────────────────────────────────────
-
-  function applyArrowFormToModel(targetArrow) {
-    targetArrow.label = document.getElementById('f-arrow-label').value;
-    targetArrow.shape = document.getElementById('f-arrow-shape').value;
-    targetArrow.anim  = document.getElementById('f-arrow-anim').value;
-    targetArrow.style = document.getElementById('f-arrow-style').value;
-    targetArrow.color = document.getElementById('f-arrow-color').value;
-    targetArrow.note  = document.getElementById('f-arrow-note').value;
-    targetArrow.url   = normalizeUrl(document.getElementById('f-arrow-url').value);
-    targetArrow.filterLabel = document.getElementById('f-arrow-filter-label').value;
-    targetArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
-    targetArrow.ketens = collectArrowKetensFromForm();
-    targetArrow.keten = targetArrow.ketens.join(', ');
-    targetArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
-    targetArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
-    targetArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
-    targetArrow.showNote = document.getElementById('f-arrow-show-note').checked;
-  }
-
-function syncArrow() {
-    applyArrowFormToModel(a);
-    updateArrow(a); updateAllDots();
-  }
-
-['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label','f-arrow-bidirectional','f-arrow-behandelaarsgroep','f-arrow-leverancier','f-arrow-servicelevel'].forEach(fid => {
-    document.getElementById(fid).oninput = syncArrow;
-    document.getElementById(fid).onchange = syncArrow;
+// ═══════════════════════════════════════════════════════════════════════════════
+// SELECTION ANIMATION
+// ═══════════════════════════════════════════════════════════════════════════════
+function selectNodeForAnim(id) {
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('highlight','dimmed','connected-highlight'));
+  arrows.forEach(a => {
+    if (a._animFrame) cancelAnimationFrame(a._animFrame);
+    a._animFrame = null; a.dotEl.style.display = 'none';
+    a.pathEl.classList.remove('active-connection','arrow-dimmed');
+    a.pathEl.style.strokeWidth = '';
+    if (a.style === 'dashed') a.pathEl.style.strokeDashoffset = '';
+  });
+  if (selectedNodeId === id) { selectedNodeId = null; startAllAnimations(); return; }
+  selectedNodeId = id;
+  const selEl = document.querySelector(`.node[data-id="${id}"]`);
+  if (selEl) selEl.classList.add('highlight');
+  const connectedArrows = arrows.filter(a => a.from === id || a.to === id);
+  const connectedNodeIds = new Set(connectedArrows.map(a => a.from === id ? a.to : a.from));
+  nodes.forEach(n => { if (n.id !== id && connectedNodeIds.has(n.id)) n.el.classList.add('connected-highlight'); });
+  arrows.forEach(a => {
+    if (a.from === id || a.to === id) { a.pathEl.classList.add('active-connection'); startDotAnimation(a); }
   });
 }
 
-// Paneel sluiten (Kruisje)
-document.getElementById('panel-close').onclick = () => {
-  panel.classList.remove('open');
-  panelTarget = null;
-  clearWaypointHandles();
-  arrows.forEach(arr => { if(arr.markerEl) arr.pathEl.setAttribute('marker-end', `url(#${arr.markerEl.id})`); });
-};
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════════════════════════
+let searchMatches = [], searchMatchIndex = -1;
 
-// Opslaan & Sluiten
-document.getElementById('panel-save').onclick = () => {
-  if (panelTarget?.type === 'arrow') {
-    const activeArrow = arrows.find(x => x.id === panelTarget.id);
-    if (activeArrow) {
-      activeArrow.label = document.getElementById('f-arrow-label').value;
-      activeArrow.shape = document.getElementById('f-arrow-shape').value;
-      activeArrow.anim  = document.getElementById('f-arrow-anim').value;
-      activeArrow.style = document.getElementById('f-arrow-style').value;
-      activeArrow.color = document.getElementById('f-arrow-color').value;
-      activeArrow.note  = document.getElementById('f-arrow-note').value;
-      activeArrow.url   = normalizeUrl(document.getElementById('f-arrow-url').value);
-      activeArrow.filterLabel = document.getElementById('f-arrow-filter-label').value;
-      activeArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
-      activeArrow.ketens = collectArrowKetensFromForm();
-      activeArrow.keten = activeArrow.ketens.join(', ');
-      activeArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
-      activeArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
-      activeArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
-      activeArrow.showNote = document.getElementById('f-arrow-show-note').checked;
-      updateArrow(activeArrow);
-      updateAllDots();
-    }
+function updateSearchCount() {
+  if (!searchCount) return;
+  searchCount.textContent = searchMatches.length === 0 ? '0/0' : `${searchMatchIndex+1}/${searchMatches.length}`;
+}
+
+function focusSearchMatch(index) {
+  if (searchMatches.length === 0) return;
+  searchMatchIndex = ((index % searchMatches.length) + searchMatches.length) % searchMatches.length;
+  const match = searchMatches[searchMatchIndex];
+  document.querySelectorAll('.node').forEach(el => el.classList.remove('search-active'));
+  if (match && match.el) {
+    match.el.classList.add('search-active');
+    const newLeft = -match.x * zoomLevel + canvas.offsetWidth / 2 - match.width / 2;
+    const newTop  = -match.y * zoomLevel + canvas.offsetHeight / 2 - match.height / 2;
+    world.style.left = newLeft + 'px';
+    world.style.top  = newTop  + 'px';
   }
-  panel.classList.remove('open');
-  panelTarget = null;
-  clearWaypointHandles();
-  saveState();
-  showToast('Opgeslagen ✓');
-};
+  updateSearchCount();
+}
 
-// Bewerken modus activeren
-document.getElementById('btn-to-edit').onclick = () => {
-  if (panelTarget?.type === 'node') openNodePanel(panelTarget.id, true);
-  else if (panelTarget?.type === 'arrow') openArrowPanelEdit(panelTarget.id);
-};
+function runSearch() {
+  const q = searchBar.value.trim().toLowerCase();
+  document.querySelectorAll('.node').forEach(el => el.classList.remove('search-active'));
+  if (!q) { searchMatches = []; searchMatchIndex = -1; updateSearchCount(); return; }
+  searchMatches = nodes.filter(n => {
+    const fields = [n.title, n.behandelaarsgroep, n.bitteam, n.leverancier, n.servicelevel, n.note, n.filterLabel,
+      getNodeKetens(n).join(' ')].join(' ').toLowerCase();
+    return fields.includes(q);
+  });
+  searchMatchIndex = -1;
+  focusSearchMatch(0);
+}
 
-// Verwijderen knop in paneel
-document.getElementById('panel-delete').onclick = () => {
-  if (!panelTarget) return;
-  if (confirm('Zeker weten verwijderen?')) {
-    if (panelTarget.type === 'node') deleteNode(panelTarget.id);
-    else deleteArrow(panelTarget.id);
-    saveState();
-    panel.classList.remove('open');
+searchBar.addEventListener('input', runSearch);
+document.getElementById('search-next').addEventListener('click', () => focusSearchMatch(searchMatchIndex + 1));
+document.getElementById('search-prev').addEventListener('click', () => focusSearchMatch(searchMatchIndex - 1));
+searchBar.addEventListener('keydown', e => {
+  if (e.key === 'Enter') focusSearchMatch(e.shiftKey ? searchMatchIndex - 1 : searchMatchIndex + 1);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAN & ZOOM
+// ═══════════════════════════════════════════════════════════════════════════════
+let panStart = null, panOrigin = { x: 0, y: 0 };
+let minZoomLevel = 0.15; // wordt overschreven na laden project
+
+function clampPan() {
+  if (nodes.length === 0) return;
+  const MARGIN = 80;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x);          minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
+  });
+  const left = parseFloat(world.style.left) || 0;
+  const top  = parseFloat(world.style.top)  || 0;
+  const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
+  const cL = left + minX * zoomLevel, cR = left + maxX * zoomLevel;
+  const cT = top  + minY * zoomLevel, cB = top  + maxY * zoomLevel;
+  let nL = left, nT = top;
+  if (cR < MARGIN)        nL = left + (MARGIN - cR);
+  if (cL > cW - MARGIN)   nL = left - (cL - (cW - MARGIN));
+  if (cB < MARGIN)        nT = top  + (MARGIN - cB);
+  if (cT > cH - MARGIN)   nT = top  - (cT - (cH - MARGIN));
+  world.style.left = nL + 'px';
+  world.style.top  = nT + 'px';
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 0 && (e.target === canvas || e.target === world || e.target.tagName === 'svg')) {
+    panStart = { x: e.clientX, y: e.clientY };
+    panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
+    canvas.classList.add('panning');
   }
-};
-document.getElementById('btn-reanchor').addEventListener('click', () => {
-  if (panelTarget && panelTarget.type === 'arrow') {
-    reanchoringArrowId = panelTarget.id;
-    renderAnchors(); // Toon de ankerpunten (balletjes)
-    showToast("Klik op een rondje om de pijlpunt te verplaatsen");
+  // Middle button pan
+  if (e.button === 1) {
+    panStart = { x: e.clientX, y: e.clientY };
+    panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
+    canvas.classList.add('panning');
   }
 });
-// ── EXPORT IMAGE (Bounding Box) ────────────────────────────────────────────────
+
+function clampPan() {
+  if (nodes.length === 0) return;
+  const MARGIN = 100; // minimaal 100px van het project blijft zichtbaar
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x);       minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
+  });
+  const left = parseFloat(world.style.left) || 0;
+  const top  = parseFloat(world.style.top)  || 0;
+  const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
+  // schermcoördinaten van de projectranden
+  const cL = left + minX * zoomLevel, cR = left + maxX * zoomLevel;
+  const cT = top  + minY * zoomLevel, cB = top  + maxY * zoomLevel;
+  let nL = left, nT = top;
+  if (cR < MARGIN)       nL = left + (MARGIN - cR);       // rechterrand te ver naar links
+  if (cL > cW - MARGIN)  nL = left - (cL - (cW - MARGIN)); // linkerrand te ver naar rechts
+  if (cB < MARGIN)       nT = top  + (MARGIN - cB);       // onderrand te ver omhoog
+  if (cT > cH - MARGIN)  nT = top  - (cT - (cH - MARGIN)); // bovenrand te ver omlaag
+  world.style.left = nL + 'px';
+  world.style.top  = nT + 'px';
+}
+
+document.addEventListener('mousemove', e => {
+  if (!panStart) return;
+  world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px';
+  world.style.top  = (panOrigin.y + e.clientY - panStart.y) + 'px';
+  clampPan();
+});
+
+document.addEventListener('mouseup', () => {
+  panStart = null;
+  canvas.classList.remove('panning');
+});
+
+// Scroll to zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const wx = (mx - (parseFloat(world.style.left)||0)) / zoomLevel;
+  const wy = (my - (parseFloat(world.style.top)||0)) / zoomLevel;
+  const delta = e.deltaY < 0 ? 1.1 : 0.9;
+  zoomLevel = Math.min(3, Math.max(minZoomLevel, zoomLevel * delta));
+  world.style.transform = `scale(${zoomLevel})`;
+  world.style.left = (mx - wx * zoomLevel) + 'px';
+  world.style.top  = (my - wy * zoomLevel) + 'px';
+  document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
+  clampPan();
+}, { passive: false });
+
+document.getElementById('btn-zoom-in').addEventListener('click', () => applyZoom(zoomLevel * 1.2));
+document.getElementById('btn-zoom-out').addEventListener('click', () => applyZoom(zoomLevel * 0.8));
+
+function applyZoom(newZoom) {
+  const cx = canvas.offsetWidth / 2, cy = canvas.offsetHeight / 2;
+  const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
+  const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
+  zoomLevel = Math.min(3, Math.max(minZoomLevel, newZoom));
+  world.style.transform = `scale(${zoomLevel})`;
+  world.style.left = (cx - wx * zoomLevel) + 'px';
+  world.style.top  = (cy - wy * zoomLevel) + 'px';
+  document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
+  clampPan();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIT TO CONTENT — shows all nodes, no empty canvas
+// ═══════════════════════════════════════════════════════════════════════════════
+function fitToContent(padding = 60) {
+  if (nodes.length === 0) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x);
+    minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width);
+    maxY = Math.max(maxY, n.y + n.height);
+  });
+
+  const contentW = maxX - minX + padding * 2;
+  const contentH = maxY - minY + padding * 2;
+  const canvasW  = canvas.offsetWidth;
+  const canvasH  = canvas.offsetHeight;
+
+  const scaleX = canvasW / contentW;
+  const scaleY = canvasH / contentH;
+  zoomLevel = Math.min(scaleX, scaleY, 1.5);
+
+  // Sla minimale zoom op zodat gebruiker niet verder kan uitzoomen dan dit
+  minZoomLevel = zoomLevel * 0.9;
+
+  const scaledW = contentW * zoomLevel;
+  const scaledH = contentH * zoomLevel;
+
+  world.style.transform = `scale(${zoomLevel})`;
+  world.style.left = ((canvasW - scaledW) / 2 - (minX - padding) * zoomLevel) + 'px';
+  world.style.top  = ((canvasH - scaledH) / 2 - (minY - padding) * zoomLevel) + 'px';
+  document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+document.getElementById('btn-fit').addEventListener('click', () => fitToContent());
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-theme').addEventListener('click', () => {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('vb_viewer_theme', isDark ? 'dark' : 'light');
+});
+// Restore theme
+if (localStorage.getItem('vb_viewer_theme') === 'dark') {
+  document.body.classList.add('dark');
+  document.getElementById('theme-icon').textContent = '🌙';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORT IMAGE
+// ═══════════════════════════════════════════════════════════════════════════════
 document.getElementById('btn-export-img').addEventListener('click', async () => {
-  if (nodes.length === 0) { showToast('Canvas is leeg'); return; }
-  showToast('Bezig met exporteren…');
-  document.body.classList.add('exporting'); clearMultiSelection(); panel.classList.remove('open');
-  
-  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-  nodes.forEach(n => { if(n.x<minX)minX=n.x; if(n.y<minY)minY=n.y; if(n.x+n.width>maxX)maxX=n.x+n.width; if(n.y+n.height>maxY)maxY=n.y+n.height; });
-  
-  const pad = 40;
+  panel.classList.remove('open');
+  document.body.classList.add('exporting');
+  showToast('Afbeelding exporteren…', 3000);
+  await new Promise(r => setTimeout(r, 100));
   try {
-    const canvasEl = await html2canvas(world, {
-      scale: 2, useCORS: true, backgroundColor: document.body.classList.contains('dark')?'#0a0a0f':'#f8f9fc', logging: false,
-      x: minX - pad, y: minY - pad, width: (maxX - minX) + pad*2, height: (maxY - minY) + pad*2
-    });
-    const link = document.createElement('a'); link.download = 'visual-board.png'; link.href = canvasEl.toDataURL('image/png'); link.click(); showToast('Afbeelding geëxporteerd ✓');
-  } catch(e) { console.error(e); showToast('Export mislukt'); }
+    const savedZoom = zoomLevel;
+    const savedLeft = world.style.left, savedTop = world.style.top;
+
+    // Temporarily set zoom=1 and position world at origin so html2canvas captures correctly
+    zoomLevel = 1;
+    world.style.transform = 'scale(1)';
+
+    if (nodes.length > 0) {
+      const PADDING = 40;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodes.forEach(n => {
+        minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
+      });
+      world.style.left = (-minX + PADDING) + 'px';
+      world.style.top  = (-minY + PADDING) + 'px';
+
+      const W = maxX - minX + PADDING * 2;
+      const H = maxY - minY + PADDING * 2;
+
+      const c2 = await html2canvas(canvas, {
+        backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#f8f9fc',
+        width: W, height: H,
+        scrollX: 0, scrollY: 0,
+        logging: false,
+        useCORS: true
+      });
+
+      const a = document.createElement('a');
+      a.href = c2.toDataURL('image/png');
+      a.download = (document.getElementById('project-name')?.textContent || 'visual-board') + '.png';
+      a.click();
+      showToast('Export klaar! ✓');
+    }
+
+    // Restore
+    zoomLevel = savedZoom;
+    world.style.transform = `scale(${savedZoom})`;
+    world.style.left = savedLeft;
+    world.style.top  = savedTop;
+  } catch(err) {
+    showToast('Export mislukt: ' + err.message);
+  }
   document.body.classList.remove('exporting');
 });
 
-// ── THEME & INIT ───────────────────────────────────────────────────────────────
-document.getElementById('btn-theme').addEventListener('click', () => { document.body.classList.toggle('dark'); document.getElementById('theme-icon').textContent = document.body.classList.contains('dark') ? '🌙' : '☀️'; updateArrows(); });
-
-setTimeout(() => { saveState(); }, 500); // init history
-window.addEventListener('beforeunload', e => {
-  e.preventDefault();
-  e.returnValue = '';
-});
-// ── LABEL FILTER ───────────────────────────────────────────────────────────────
-const activeFilters = {
-  keten: new Set(),
-  behandelaarsgroep: new Set(),
-  bitteam: new Set(),
-  leverancier: new Set(),
-  servicelevel: new Set(),
-  label: new Set()
-};
-function activeFiltersEmpty() { return Object.values(activeFilters).every(s => s.size === 0); }
-function activeFiltersCount() { return Object.values(activeFilters).reduce((t,s) => t + s.size, 0); }
-
+// ═══════════════════════════════════════════════════════════════════════════════
+// LABEL FILTER
+// ═══════════════════════════════════════════════════════════════════════════════
 function getAllLabels() {
-  const labels = new Set();
-  nodes.forEach(n => {
-    (n.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean).forEach(l => labels.add(l));
-  });
-  arrows.forEach(a => {
-    (a.filterLabel || '').split(',').map(l => l.trim()).filter(Boolean).forEach(l => labels.add(l));
-  });
-  return Array.from(labels).sort();
+  const s = new Set();
+  nodes.forEach(n => (n.filterLabel||'').split(',').map(l=>l.trim()).filter(Boolean).forEach(l=>s.add(l)));
+  arrows.forEach(a => (a.filterLabel||'').split(',').map(l=>l.trim()).filter(Boolean).forEach(l=>s.add(l)));
+  return [...s];
 }
-
+function activeFiltersEmpty() {
+  return Object.values(activeFilters).every(s => s.size === 0);
+}
+function activeFiltersCount() {
+  return Object.values(activeFilters).reduce((t, s) => t + s.size, 0);
+}
 function nodeMatches(n) {
-
-  if (
-    activeFilters.keten.size > 0 &&
-    !getNodeKetens(n).some(k => activeFilters.keten.has(k))
-  ) return false;
-
-  if (
-    activeFilters.behandelaarsgroep.size > 0 &&
-    !activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')
-  ) return false;
-
-  if (
-    activeFilters.bitteam.size > 0 &&
-    !activeFilters.bitteam.has(n.bitteam || '')
-  ) return false;
-
-  if (
-    activeFilters.leverancier.size > 0 &&
-    !activeFilters.leverancier.has(n.leverancier || '')
-  ) return false;
-
-  if (
-    activeFilters.servicelevel.size > 0 &&
-    !activeFilters.servicelevel.has(n.servicelevel || '')
-  ) return false;
-
+  if (activeFilters.keten.size > 0 && getNodeKetens(n).some(k => activeFilters.keten.has(k))) return true;
+  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(n.behandelaarsgroep)) return true;
+  if (activeFilters.bitteam.size > 0 && activeFilters.bitteam.has(n.bitteam)) return true;
+  if (activeFilters.leverancier.size > 0 && activeFilters.leverancier.has(n.leverancier)) return true;
+  if (activeFilters.servicelevel.size > 0 && activeFilters.servicelevel.has(n.servicelevel)) return true;
   if (activeFilters.label.size > 0) {
-    const lbls = (n.filterLabel || '')
-      .split(',')
-      .map(l => l.trim())
-      .filter(Boolean);
-
-    if (!lbls.some(l => activeFilters.label.has(l))) {
-      return false;
-    }
-  }
-
-  return true;
-}
-function arrowMatches(a) {
-  const arrowKetens = getArrowKetens(a);
-  if (activeFilters.keten.size > 0 && arrowKetens.some(k => activeFilters.keten.has(k))) return true;
-
-  if (activeFilters.behandelaarsgroep.size > 0 &&
-      activeFilters.behandelaarsgroep.has(a.behandelaarsgroep || '')) return true;
-
-  if (activeFilters.bitteam.size > 0 &&
-      activeFilters.bitteam.has(a.bitteam || '')) return true;
-
-  if (activeFilters.leverancier.size > 0 &&
-      activeFilters.leverancier.has(a.leverancier || '')) return true;
-
-  if (activeFilters.servicelevel.size > 0 &&
-      activeFilters.servicelevel.has(a.servicelevel || '')) return true;
-
-  if (activeFilters.label.size > 0) {
-    const lbls = (a.filterLabel || '')
-      .split(',')
-      .map(l => l.trim())
-      .filter(Boolean);
-
+    const lbls = (n.filterLabel||'').split(',').map(l=>l.trim()).filter(Boolean);
     if (lbls.some(l => activeFilters.label.has(l))) return true;
   }
-
+  return false;
+}
+function arrowMatches(a) {
+  if (activeFilters.keten.size > 0 && getArrowKetens(a).some(k => activeFilters.keten.has(k))) return true;
+  if (activeFilters.behandelaarsgroep.size > 0 && activeFilters.behandelaarsgroep.has(a.behandelaarsgroep)) return true;
+  if (activeFilters.leverancier.size > 0 && activeFilters.leverancier.has(a.leverancier)) return true;
+  if (activeFilters.servicelevel.size > 0 && activeFilters.servicelevel.has(a.servicelevel)) return true;
+  if (activeFilters.label.size > 0) {
+    const lbls = (a.filterLabel||'').split(',').map(l=>l.trim()).filter(Boolean);
+    if (lbls.some(l => activeFilters.label.has(l))) return true;
+  }
   return false;
 }
 function applyLabelFilter() {
@@ -2704,71 +1076,49 @@ function applyLabelFilter() {
   } else {
     nodes.forEach(n => {
       const match = nodeMatches(n);
-      n.el.style.opacity = match ? '' : '0.50';
+      n.el.style.opacity = match ? '' : '0.15';
       n.el.style.filter  = match ? '' : 'grayscale(1)';
     });
     arrows.forEach(a => {
       const match = arrowMatches(a);
-      if (!match) {
-        if (a._animFrame) { cancelAnimationFrame(a._animFrame); a._animFrame = null; }
-        if (a.dotEl) a.dotEl.style.display = 'none';
-      } else { updateArrow(a); }
+      if (!match && a._animFrame) { cancelAnimationFrame(a._animFrame); a._animFrame = null; if (a.dotEl) a.dotEl.style.display = 'none'; }
+      else if (match) updateArrow(a);
       [a.pathEl, a.bgPathEl, a.hitEl, a.labelEl, a.noteEl, a.urlLinkEl]
-        .forEach(el => { if (el) el.style.opacity = match ? '' : '0.50'; });
+        .forEach(el => { if (el) el.style.opacity = match ? '' : '0.12'; });
     });
   }
 }
-
 function updateFilterBadge() {
   const badge = document.getElementById('lf-badge');
-  const btn = document.getElementById('btn-label-filter');
-  if (activeFiltersCount() > 0) {
-    badge.textContent = activeFiltersCount();
-    badge.style.display = 'inline';
-    btn.classList.add('active');
-  } else {
-    badge.style.display = 'none';
-    btn.classList.remove('active');
-  }
+  const btn   = document.getElementById('btn-label-filter');
+  if (activeFiltersCount() > 0) { badge.textContent = activeFiltersCount(); badge.style.display = 'inline'; btn.classList.add('active'); }
+  else { badge.style.display = 'none'; btn.classList.remove('active'); }
 }
-
 function renderLabelFilterDropdown() {
   const list = document.getElementById('lf-list');
   list.innerHTML = '';
-  
   const sections = [
-    { key: 'keten',             icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.flatMap(n => getNodeKetens(n)), ...arrows.flatMap(a => getArrowKetens(a))].filter(Boolean))] },
-    { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n => n.behandelaarsgroep), ...arrows.map(a => a.behandelaarsgroep)].filter(Boolean))] },
-    { key: 'bitteam',           icon: '🛠️', label: 'BIT TEAM',          values: [...new Set(nodes.map(n => n.bitteam).filter(Boolean))] },
-    { key: 'leverancier',       icon: '🏢', label: 'Leverancier',       values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
-    { key: 'servicelevel',      icon: '📊', label: 'Servicelevel',      values: [...new Set(nodes.map(n => n.servicelevel).filter(Boolean))] },
-    
-    { key: 'label',             icon: '🏷️', label: 'Label',             values: getAllLabels() },
+    { key:'keten',             icon:'🔗', label:'Keten',            values:[...new Set([...nodes.flatMap(n => getNodeKetens(n)), ...arrows.flatMap(a => getArrowKetens(a))].filter(Boolean))] },
+    { key:'behandelaarsgroep', icon:'👥', label:'Behandelaarsgroep', values:[...new Set([...nodes.map(n=>n.behandelaarsgroep), ...arrows.map(a=>a.behandelaarsgroep)].filter(Boolean))] },
+    { key:'bitteam',           icon:'🛠️', label:'BIT TEAM',          values:[...new Set(nodes.map(n=>n.bitteam).filter(Boolean))] },
+    { key:'leverancier',       icon:'🏢', label:'Leverancier',       values:[...new Set([...nodes.map(n=>n.leverancier), ...arrows.map(a=>a.leverancier)].filter(Boolean))] },
+    { key:'servicelevel',      icon:'📊', label:'Servicelevel',      values:[...new Set(nodes.map(n=>n.servicelevel).filter(Boolean))] },
+    { key:'label',             icon:'🏷️', label:'Label',             values:getAllLabels() },
   ];
-
-  // ... rest van je bestaande render code ...
   let hasAny = false;
   sections.forEach(sec => {
     if (sec.values.length === 0) return;
     hasAny = true;
-    const hdr = document.createElement('div');
-    hdr.className = 'lf-section-header';
-    hdr.textContent = sec.icon + ' ' + sec.label;
+    const hdr = document.createElement('div'); hdr.className = 'lf-section-header'; hdr.textContent = sec.icon + ' ' + sec.label;
     list.appendChild(hdr);
     sec.values.sort().forEach(val => {
-      const item = document.createElement('label');
-      item.className = 'lf-item';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = activeFilters[sec.key]?.has(val) || false;
+      const item = document.createElement('label'); item.className = 'lf-item';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = activeFilters[sec.key]?.has(val) || false;
       cb.addEventListener('change', () => {
-        if (cb.checked) activeFilters[sec.key].add(val);
-        else activeFilters[sec.key].delete(val);
-        applyLabelFilter();
-        updateFilterBadge();
+        if (cb.checked) activeFilters[sec.key].add(val); else activeFilters[sec.key].delete(val);
+        applyLabelFilter(); updateFilterBadge();
       });
-      item.appendChild(cb);
-      item.appendChild(document.createTextNode(val));
+      item.appendChild(cb); item.appendChild(document.createTextNode(val));
       list.appendChild(item);
     });
   });
@@ -2776,174 +1126,147 @@ function renderLabelFilterDropdown() {
 }
 
 document.getElementById('btn-label-filter').addEventListener('click', e => {
-  e.stopPropagation();
-  renderLabelFilterDropdown();
+  e.stopPropagation(); renderLabelFilterDropdown();
   document.getElementById('label-filter-dropdown').classList.toggle('show');
 });
 document.getElementById('label-filter-dropdown').addEventListener('click', e => e.stopPropagation());
 document.getElementById('lf-clear').addEventListener('click', () => {
   Object.values(activeFilters).forEach(s => s.clear());
-  applyLabelFilter();
-  updateFilterBadge();
-  renderLabelFilterDropdown();
+  applyLabelFilter(); updateFilterBadge(); renderLabelFilterDropdown();
 });
-window.addEventListener('click', () => {
-  document.getElementById('label-filter-dropdown').classList.remove('show');
-});
+window.addEventListener('click', () => document.getElementById('label-filter-dropdown').classList.remove('show'));
 
-async function generateViewerLink() {
-  const data = JSON.stringify({
-    nodes: nodes.map(n => ({...n, el: null})),
-    arrows: arrows.map(a => ({...a, el: null, pathEl: null, hitEl: null, bgEl: null, handleEl: null, markerEl: null}))
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOAD PROJECT FROM URL ?src=
+// ═══════════════════════════════════════════════════════════════════════════════
+function loadProjectData(data) {
+  // Clear existing
+  nodes.forEach(n => n.el.remove());
+  arrows.forEach(a => removeArrowEls(a));
+  nodes = []; arrows = [];
+  nodeId = data.nodeId || 0;
+  arrowId = data.arrowId || 0;
+
+  // Create nodes
+  data.nodes.forEach(nd => {
+    const n = createNode(nd.x, nd.y, nd.shape || 'square', nd.title, nd.id);
+    const savedEl = n.el;
+    Object.assign(n, nd);
+    n.el = savedEl;
+    n.el.style.width  = n.width  + 'px';
+    n.el.style.height = n.height + 'px';
+    renderNode(n);
   });
-  
-  const baseUrl = window.location.href.split('?')[0];
-  const viewerUrl = baseUrl.includes('index3.html') ? baseUrl.replace('index3.html', 'viewer.html') : baseUrl + 'viewer.html';
-  const longUrl = viewerUrl + '?data=' + encodeURIComponent(btoa(unescape(encodeURIComponent(data))));
 
-  const inputEl = document.getElementById('viewer-link-input');
-  inputEl.value = "Bezig met inkorten..."; // Laat zien dat hij werkt
-  document.getElementById('viewer-link-modal').classList.add('show');
+  // Create arrows
+  data.arrows.forEach(ad => {
+    const a = createArrow(ad.from, ad.to, ad.fromPort, ad.toPort, ad.id);
+    const savedEls = {
+      pathEl: a.pathEl, bgPathEl: a.bgPathEl, hitEl: a.hitEl,
+      dotEl: a.dotEl, dotEl2: a.dotEl2, labelEl: a.labelEl, noteEl: a.noteEl,
+      urlLinkEl: a.urlLinkEl, urlIconEl: a.urlIconEl,
+      markerEl: a.markerEl, markerPathEl: a.markerPathEl,
+      markerStartEl: a.markerStartEl, markerStartPathEl: a.markerStartPathEl,
+      _dashPath2: a._dashPath2
+    };
+    Object.assign(a, ad);
+    Object.assign(a, savedEls);
+    updateArrow(a);
+  });
+
+  startAllAnimations();
+  setTimeout(() => fitToContent(), 50);
+}
+
+function removeArrowEls(a) {
+  if (a._animFrame) cancelAnimationFrame(a._animFrame);
+  [a.bgPathEl, a.pathEl, a.hitEl, a.dotEl, a.dotEl2, a.labelEl, a.noteEl, a.urlLinkEl].forEach(el => { if (el) el.remove(); });
+  if (a.markerEl) a.markerEl.remove();
+  if (a.markerStartEl) a.markerStartEl.remove();
+  if (a._dashPath2) a._dashPath2.remove();
+}
+
+async function loadFromUrl() {
+  // Optie 1: Data direct in URL hash (gegenereerd via "Viewer Link" knop)
+const hash = location.hash.slice(1);
+  if (hash) {
+    try {
+      const b64 = hash.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = b64.length % 4 ? '='.repeat(4 - b64.length % 4) : '';
+      const json = decodeURIComponent(escape(atob(b64 + padding)));
+      const data = JSON.parse(json);
+      const nameEl = document.getElementById('project-name');
+      if (nameEl) nameEl.textContent = 'Gedeeld project';
+      document.title = 'Gedeeld project – Visual Board Viewer';
+      loadProjectData(data);
+      document.getElementById('loading-overlay').style.display = 'none';
+    } catch(err) {
+      document.getElementById('loading-overlay').style.display = 'none';
+      document.getElementById('error-overlay').classList.add('show');
+      document.getElementById('err-msg').innerHTML =
+        `Kan de gedeelde link niet laden.<br><br>Foutmelding: <b>${escHtml(err.message)}</b>`;
+    }
+    return;
+  }
+
+// STAP 1: Check eerst of er direct data in de link zit (voor de korte links)
+  const dataParam = getParam('data');
+  if (dataParam) {
+    try {
+      // Decodeer de Base64 data
+      const decodedData = decodeURIComponent(escape(atob(dataParam)));
+      const data = JSON.parse(decodedData);
+      
+      loadProjectData(data);
+      document.getElementById('loading-overlay').style.display = 'none';
+      
+      // Update titels
+      document.title = 'Gedeeld Bord – Visual Board Viewer';
+      const nameEl = document.getElementById('project-name');
+      if (nameEl) nameEl.textContent = 'Gedeeld Bord';
+      
+      return; // Stop hier, data is geladen!
+    } catch (err) {
+      console.error("Fout bij decoderen van URL data:", err);
+    }
+  }
+
+  // STAP 2: Als er geen data is, zoek dan naar een JSON bestand via ?src=
+  const src = getParam('src');
+  if (!src) {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('error-overlay').classList.add('show');
+    document.getElementById('err-msg').innerHTML =
+      'Geen geldige data of <code>src</code> parameter gevonden in de URL.';
+    return;
+  }
+
+  // Derive project name from filename
+  const filename = src.split('/').pop().replace('.json', '');
+const nameEl = document.getElementById('project-name');
+if (nameEl) nameEl.textContent = filename;
+document.title = filename + ' – Visual Board Viewer';
 
   try {
-    // We gebruiken de TinyURL API om de link te verkorten
-    const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
-    if (response.ok) {
-      const shortUrl = await response.text();
-      inputEl.value = shortUrl;
-    } else {
-      inputEl.value = longUrl; // Val terug op de lange link als het mislukt
-    }
-  } catch (err) {
-    inputEl.value = longUrl;
+    const resp = await fetch(src);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
+    const data = await resp.json();
+    loadProjectData(data);
+    document.getElementById('loading-overlay').style.display = 'none';
+  } catch(err) {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('error-overlay').classList.add('show');
+    document.getElementById('err-msg').innerHTML =
+      `Kan <code>${escHtml(src)}</code> niet laden.<br><br>` +
+      `Foutmelding: <b>${escHtml(err.message)}</b><br><br>` +
+      `Zorg dat het JSON-bestand op dezelfde server staat (CORS) en de URL correct is.`;
   }
 }
 
-function exportProjectJson() {
-  const data = JSON.stringify({
-    nodes: nodes.map(n => ({...n, el: null})),
-    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})),
-    nodeId,
-    arrowId
-  }, null, 2);
-  
-  const blob = new Blob([data], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'visual-board-project.json';
-  a.click();
-  showToast("Project geëxporteerd!");
-}
-
-function createNewCanvas() {
-  nodes.forEach(n => n.el.remove());
-  arrows.forEach(a => removeArrowEls(a));
-  nodes = [];
-  arrows = [];
-  nodeId = 0;
-  arrowId = 0;
-  panel.classList.remove('open');
-  panelTarget = null;
-  clearWaypointHandles();
-  clearMultiSelection();
-  selectedNodeId = null;
-  anchorsGroup.innerHTML = '';
-  waypointsGroup.innerHTML = '';
-  tempLine.setAttribute('d', '');
-  historyStack = [];
-  historyIndex = -1;
-  saveState();
-  showToast('Nieuw canvas gestart');
-}
-
-const newProjectModal = document.getElementById('new-project-modal');
-const closeNewProjectModal = () => newProjectModal.classList.remove('show');
-document.getElementById('btn-new-project').addEventListener('click', () => {
-  newProjectModal.classList.add('show');
-});
-document.getElementById('btn-np-cancel').addEventListener('click', closeNewProjectModal);
-document.getElementById('btn-np-export').addEventListener('click', () => {
-  exportProjectJson();
-  closeNewProjectModal();
-});
-document.getElementById('btn-np-create').addEventListener('click', () => {
-  createNewCanvas();
-  closeNewProjectModal();
-});
-newProjectModal.addEventListener('click', (e) => {
-  if (e.target === newProjectModal) closeNewProjectModal();
-});
-
-const exportDropdownWrapper = document.getElementById('export-dropdown-wrapper');
-const exportDropdown = document.getElementById('export-dropdown');
-
-document.getElementById('btn-export-dropdown').addEventListener('click', e => {
-  e.stopPropagation();
-  exportDropdown.style.display = exportDropdown.style.display === 'flex' ? 'none' : 'flex';
-});
-document.getElementById('btn-export-json').addEventListener('click', () => {
-  exportProjectJson();
-  exportDropdown.style.display = 'none';
-});
-  
-document.getElementById('btn-export-img').addEventListener('click', () => {
-  exportDropdown.style.display = 'none';
-  document.getElementById('btn-export') && document.getElementById('btn-export').click();
-});
-  
-  // Actie voor de Viewer Link knop
-  document.getElementById('btn-share-viewer').addEventListener('click', () => {
-    generateViewerLink();
-    // Sluit het dropdown menu na het klikken
-    document.getElementById('export-dropdown').style.display = 'none';
-  });
-  
-window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
-document.getElementById('btn-vl-copy').addEventListener('click', () => {
-  const input = document.getElementById('viewer-link-input');
-  navigator.clipboard.writeText(input.value).then(
-    () => showToast('🔗 Link gekopieerd naar klembord!', 3000),
-    () => { input.select(); document.execCommand('copy'); showToast('🔗 Link gekopieerd!', 3000); }
-  );
-});
-document.getElementById('btn-vl-whatsapp').addEventListener('click', () => {
-  const url = document.getElementById('viewer-link-input').value;
-  window.open('https://wa.me/?text=' + encodeURIComponent(url), '_blank');
-});
-document.getElementById('btn-vl-close').addEventListener('click', () => {
-  document.getElementById('viewer-link-modal').classList.remove('show');
-});
-document.getElementById('viewer-link-modal').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('viewer-link-modal'))
-    document.getElementById('viewer-link-modal').classList.remove('show');
-});
-  
-  
-  document.getElementById('btn-import-json').addEventListener('click', () => {
-  const importInput = document.getElementById('json-import');
-  importInput.value = '';
-  importInput.click();
-});
-
-document.getElementById('json-import').addEventListener('change', (e) => {
-  const inputEl = e.target;
-  const file = inputEl.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      loadState(e.target.result);
-      saveState();
-      showToast("Project succesvol geïmporteerd!");
-    } catch (err) {
-      showToast("Fout bij importeren: " + err.message);
-    } finally {
-      inputEl.value = '';
-    }
-  };
-  reader.readAsText(file);
-});
+// ═══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+loadFromUrl();
 </script>
 </body>
 </html>
