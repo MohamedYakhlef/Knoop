@@ -563,10 +563,11 @@ node.shape-text {
 <button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
   <div id="export-dropdown-wrapper" style="position:relative;">
     <button class="tb-btn" id="btn-export-dropdown" title="Exporteer">💾 Export ▾</button>
-    <div id="export-dropdown" style="display:none; position:absolute; top:38px; left:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); z-index:2000; min-width:160px; padding:4px; flex-direction:column;">
-      <div class="lt-dropdown-item" id="btn-export-json">💾 Export JSON</div>
-      <div class="lt-dropdown-item" id="btn-export-img">🖼️ Export Image</div>
-    </div>
+<div id="export-dropdown" style="display:none; position:absolute; top:38px; left:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); z-index:2000; min-width:160px; padding:4px; flex-direction:column;">
+  <div class="lt-dropdown-item" id="btn-export-json">💾 Export JSON</div>
+  <div class="lt-dropdown-item" id="btn-export-img">🖼️ Export Image</div>
+  <div class="lt-dropdown-item" id="btn-share-viewer">🔗 Viewer Link</div>
+</div>
   </div>
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
   
@@ -2768,6 +2769,21 @@ window.addEventListener('click', () => {
   document.getElementById('label-filter-dropdown').classList.remove('show');
 });
 
+function generateViewerLink() {
+  const data = JSON.stringify({
+    nodes: nodes.map(n => ({...n, el: null})),
+    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})),
+    nodeId,
+    arrowId
+  });
+  const encoded = btoa(unescape(encodeURIComponent(data)));
+  const viewerUrl = location.href.replace(/\/[^/]*$/, '/viewer.html') + '#' + encoded;
+  navigator.clipboard.writeText(viewerUrl).then(
+    () => showToast('🔗 Viewer link gekopieerd naar klembord!', 3000),
+    () => { prompt('Kopieer deze viewer link:', viewerUrl); }
+  );
+}
+
 function exportProjectJson() {
   const data = JSON.stringify({
     nodes: nodes.map(n => ({...n, el: null})),
@@ -2835,12 +2851,14 @@ document.getElementById('btn-export-json').addEventListener('click', () => {
   exportProjectJson();
   exportDropdown.style.display = 'none';
 });
+  
 document.getElementById('btn-export-img').addEventListener('click', () => {
   exportDropdown.style.display = 'none';
   document.getElementById('btn-export') && document.getElementById('btn-export').click();
 });
 window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
-document.getElementById('btn-import-json').addEventListener('click', () => {
+
+  document.getElementById('btn-import-json').addEventListener('click', () => {
   const importInput = document.getElementById('json-import');
   importInput.value = '';
   importInput.click();
