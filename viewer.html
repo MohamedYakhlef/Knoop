@@ -1141,7 +1141,10 @@ async function loadFromUrl() {
   // ── Gist-modus (nieuw, primair) ──────────────────────────────────────────
   if (gistId) {
     try {
-      const resp = await fetch(`https://api.github.com/gists/${gistId}`);
+      const GITHUB_TOKEN = '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'; // ← zelfde token
+      const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}` }
+      });
       if (!resp.ok) throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
       const gist = await resp.json();
       const file = Object.values(gist.files)[0];
