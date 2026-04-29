@@ -2802,9 +2802,13 @@ async function generateViewerLink() {
   document.getElementById('viewer-link-modal').classList.add('show');
 
   try {
+ const GITHUB_TOKEN = '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'; // ← alleen gist-rechten
     const response = await fetch('https://api.github.com/gists', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GITHUB_TOKEN}`
+      },
       body: JSON.stringify({
         description: 'Visual Board project',
         public: false,
@@ -2814,8 +2818,6 @@ async function generateViewerLink() {
     if (!response.ok) throw new Error(`GitHub API fout: ${response.status}`);
     const gist = await response.json();
     inputEl.value = `https://mohamedyakhlef.github.io/Knoop/viewer.html?gist=${gist.id}`;
-  } catch (err) {
-    inputEl.value = '❌ Fout: ' + err.message;
   }
 }
 
