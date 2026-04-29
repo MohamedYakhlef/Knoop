@@ -270,7 +270,8 @@ node.shape-text {
 }
 #svg-layer .arrow-path.active-connection { stroke-width: 3.5 !important; opacity: 1; }
 #svg-layer .arrow-path.arrow-dimmed { opacity: 0.12; }
-  .node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
+.node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
+.node.dragging:not(.shape-area) { z-index: 502 !important; }
 
   .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
   .node-thumb.has-img { display: block; }
@@ -1166,12 +1167,11 @@ if (shape === 'text') {
 
 function isNodeInsideArea(node, areaNode) {
   if (!node || !areaNode || areaNode.shape !== 'area' || node.id === areaNode.id) return false;
-  const cx = node.x + node.width / 2;
-  const cy = node.y + node.height / 2;
-  return cx >= areaNode.x &&
-         cx <= areaNode.x + areaNode.width &&
-         cy >= areaNode.y &&
-         cy <= areaNode.y + areaNode.height;
+  const nRect = node.el.getBoundingClientRect();
+  const aRect = areaNode.el.getBoundingClientRect();
+  const cx = nRect.left + nRect.width / 2;
+  const cy = nRect.top + nRect.height / 2;
+  return cx >= aRect.left && cx <= aRect.right && cy >= aRect.top && cy <= aRect.bottom;
 }
 
 function findAreaForNode(node) {
@@ -1179,7 +1179,11 @@ function findAreaForNode(node) {
   // Kies het kleinste gebied dat de node bevat (meest specifieke "ouder")
   const containing = areas.filter(area => isNodeInsideArea(node, area));
   if (containing.length === 0) return null;
-  containing.sort((a, b) => (a.width * a.height) - (b.width * b.height));
+  containing.sort((a, b) => {
+    const ra = a.el.getBoundingClientRect();
+    const rb = b.el.getBoundingClientRect();
+    return (ra.width * ra.height) - (rb.width * rb.height);
+  });
   return containing[0];
 }
 
