@@ -278,7 +278,7 @@ body.exporting .node-link { display:none !important; }
   <div class="logo">Visual<span>Board</span></div>
   <div class="viewer-badge">Viewer</div>
   <div class="tb-sep"></div>
-  <span id="project-name" style="display:none">—</span>
+  <span id="project-name">—</span>
 
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
 
@@ -292,15 +292,15 @@ body.exporting .node-link { display:none !important; }
     </div>
   </div>
 
-  <button class="tb-btn" id="btn-fit" title="Alles tonen">⊡ Fit</button>
-  <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
-
-  <input type="text" id="search-bar" placeholder="Zoek…">
+  <input type="text" id="search-bar" placeholder="Zoek titel/groep…">
   <div id="search-tools">
     <span id="search-count">0/0</span>
     <button id="search-prev" class="search-nav-btn" title="Vorige resultaat">↑</button>
     <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
   </div>
+
+  <button class="tb-btn" id="btn-fit" title="Alles tonen" style="margin-left:8px;">⊡ Fit</button>
+  <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
 </div>
 
 <!-- Canvas -->
@@ -818,29 +818,6 @@ searchBar.addEventListener('keydown', e => {
 // PAN & ZOOM
 // ═══════════════════════════════════════════════════════════════════════════════
 let panStart = null, panOrigin = { x: 0, y: 0 };
-let minZoomLevel = 0.15; // wordt overschreven na laden project
-
-function clampPan() {
-  if (nodes.length === 0) return;
-  const MARGIN = 80;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  nodes.forEach(n => {
-    minX = Math.min(minX, n.x);          minY = Math.min(minY, n.y);
-    maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
-  });
-  const left = parseFloat(world.style.left) || 0;
-  const top  = parseFloat(world.style.top)  || 0;
-  const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
-  const cL = left + minX * zoomLevel, cR = left + maxX * zoomLevel;
-  const cT = top  + minY * zoomLevel, cB = top  + maxY * zoomLevel;
-  let nL = left, nT = top;
-  if (cR < MARGIN)        nL = left + (MARGIN - cR);
-  if (cL > cW - MARGIN)   nL = left - (cL - (cW - MARGIN));
-  if (cB < MARGIN)        nT = top  + (MARGIN - cB);
-  if (cT > cH - MARGIN)   nT = top  - (cT - (cH - MARGIN));
-  world.style.left = nL + 'px';
-  world.style.top  = nT + 'px';
-}
 
 canvas.addEventListener('mousedown', e => {
   if (e.button === 0 && (e.target === canvas || e.target === world || e.target.tagName === 'svg')) {
@@ -856,34 +833,10 @@ canvas.addEventListener('mousedown', e => {
   }
 });
 
-function clampPan() {
-  if (nodes.length === 0) return;
-  const MARGIN = 100; // minimaal 100px van het project blijft zichtbaar
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  nodes.forEach(n => {
-    minX = Math.min(minX, n.x);       minY = Math.min(minY, n.y);
-    maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
-  });
-  const left = parseFloat(world.style.left) || 0;
-  const top  = parseFloat(world.style.top)  || 0;
-  const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
-  // schermcoördinaten van de projectranden
-  const cL = left + minX * zoomLevel, cR = left + maxX * zoomLevel;
-  const cT = top  + minY * zoomLevel, cB = top  + maxY * zoomLevel;
-  let nL = left, nT = top;
-  if (cR < MARGIN)       nL = left + (MARGIN - cR);       // rechterrand te ver naar links
-  if (cL > cW - MARGIN)  nL = left - (cL - (cW - MARGIN)); // linkerrand te ver naar rechts
-  if (cB < MARGIN)       nT = top  + (MARGIN - cB);       // onderrand te ver omhoog
-  if (cT > cH - MARGIN)  nT = top  - (cT - (cH - MARGIN)); // bovenrand te ver omlaag
-  world.style.left = nL + 'px';
-  world.style.top  = nT + 'px';
-}
-
 document.addEventListener('mousemove', e => {
   if (!panStart) return;
   world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px';
   world.style.top  = (panOrigin.y + e.clientY - panStart.y) + 'px';
-  clampPan();
 });
 
 document.addEventListener('mouseup', () => {
@@ -899,12 +852,11 @@ canvas.addEventListener('wheel', e => {
   const wx = (mx - (parseFloat(world.style.left)||0)) / zoomLevel;
   const wy = (my - (parseFloat(world.style.top)||0)) / zoomLevel;
   const delta = e.deltaY < 0 ? 1.1 : 0.9;
-  zoomLevel = Math.min(3, Math.max(minZoomLevel, zoomLevel * delta));
+  zoomLevel = Math.min(3, Math.max(0.15, zoomLevel * delta));
   world.style.transform = `scale(${zoomLevel})`;
   world.style.left = (mx - wx * zoomLevel) + 'px';
   world.style.top  = (my - wy * zoomLevel) + 'px';
   document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
-  clampPan();
 }, { passive: false });
 
 document.getElementById('btn-zoom-in').addEventListener('click', () => applyZoom(zoomLevel * 1.2));
@@ -914,12 +866,11 @@ function applyZoom(newZoom) {
   const cx = canvas.offsetWidth / 2, cy = canvas.offsetHeight / 2;
   const wx = (cx - (parseFloat(world.style.left)||0)) / zoomLevel;
   const wy = (cy - (parseFloat(world.style.top)||0)) / zoomLevel;
-  zoomLevel = Math.min(3, Math.max(minZoomLevel, newZoom));
+  zoomLevel = Math.min(3, Math.max(0.15, newZoom));
   world.style.transform = `scale(${zoomLevel})`;
   world.style.left = (cx - wx * zoomLevel) + 'px';
   world.style.top  = (cy - wy * zoomLevel) + 'px';
   document.getElementById('zoom-level-indicator').textContent = Math.round(zoomLevel * 100) + '%';
-  clampPan();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -942,10 +893,7 @@ function fitToContent(padding = 60) {
 
   const scaleX = canvasW / contentW;
   const scaleY = canvasH / contentH;
-  zoomLevel = Math.min(scaleX, scaleY, 1.5);
-
-  // Sla minimale zoom op zodat gebruiker niet verder kan uitzoomen dan dit
-  minZoomLevel = zoomLevel * 0.9;
+  zoomLevel = Math.min(scaleX, scaleY, 1.5); // don't zoom in more than 150%
 
   const scaledW = contentW * zoomLevel;
   const scaledH = contentH * zoomLevel;
@@ -1011,7 +959,7 @@ document.getElementById('btn-export-img').addEventListener('click', async () => 
 
       const a = document.createElement('a');
       a.href = c2.toDataURL('image/png');
-      a.download = (document.getElementById('project-name')?.textContent || 'visual-board') + '.png';
+      a.download = (document.getElementById('project-name').textContent || 'visual-board') + '.png';
       a.click();
       showToast('Export klaar! ✓');
     }
@@ -1187,43 +1135,44 @@ function removeArrowEls(a) {
 }
 
 async function loadFromUrl() {
-  // Optie 1: Data direct in URL hash (gegenereerd via "Viewer Link" knop)
-const hash = location.hash.slice(1);
-  if (hash) {
+  const gistId = getParam('gist');
+  const src = getParam('src');
+
+  // ── Gist-modus (nieuw, primair) ──────────────────────────────────────────
+  if (gistId) {
     try {
-      const b64 = hash.replace(/-/g, '+').replace(/_/g, '/');
-      const padding = b64.length % 4 ? '='.repeat(4 - b64.length % 4) : '';
-      const json = decodeURIComponent(escape(atob(b64 + padding)));
-      const data = JSON.parse(json);
-      const nameEl = document.getElementById('project-name');
-      if (nameEl) nameEl.textContent = 'Gedeeld project';
-      document.title = 'Gedeeld project – Visual Board Viewer';
+      const resp = await fetch(`https://api.github.com/gists/${gistId}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
+      const gist = await resp.json();
+      const file = Object.values(gist.files)[0];
+      const label = gist.description || file.filename.replace('.json', '');
+      document.getElementById('project-name').textContent = label;
+      document.title = label + ' – Visual Board Viewer';
+      const data = JSON.parse(file.content);
       loadProjectData(data);
       document.getElementById('loading-overlay').style.display = 'none';
     } catch(err) {
       document.getElementById('loading-overlay').style.display = 'none';
       document.getElementById('error-overlay').classList.add('show');
       document.getElementById('err-msg').innerHTML =
-        `Kan de gedeelde link niet laden.<br><br>Foutmelding: <b>${escHtml(err.message)}</b>`;
+        `Kan Gist <code>${escHtml(gistId)}</code> niet laden.<br><br>` +
+        `Foutmelding: <b>${escHtml(err.message)}</b>`;
     }
     return;
   }
 
-  // Optie 2: JSON bestand via ?src= parameter (bestaande flow)
-  const src = getParam('src');
+  // ── Oude src-modus (fallback) ─────────────────────────────────────────────
   if (!src) {
     document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('error-overlay').classList.add('show');
     document.getElementById('err-msg').innerHTML =
-      'Geen <code>src</code> parameter gevonden in de URL.<br><br>Verwacht formaat:<br><code>viewer.html?src=projects/project1.json</code>';
+      'Geen <code>gist</code> of <code>src</code> parameter gevonden.<br><br>Verwacht formaat:<br><code>viewer.html?gist=GIST_ID</code>';
     return;
   }
 
-  // Derive project name from filename
   const filename = src.split('/').pop().replace('.json', '');
-const nameEl = document.getElementById('project-name');
-if (nameEl) nameEl.textContent = filename;
-document.title = filename + ' – Visual Board Viewer';
+  document.getElementById('project-name').textContent = filename;
+  document.title = filename + ' – Visual Board Viewer';
 
   try {
     const resp = await fetch(src);
@@ -1236,8 +1185,7 @@ document.title = filename + ' – Visual Board Viewer';
     document.getElementById('error-overlay').classList.add('show');
     document.getElementById('err-msg').innerHTML =
       `Kan <code>${escHtml(src)}</code> niet laden.<br><br>` +
-      `Foutmelding: <b>${escHtml(err.message)}</b><br><br>` +
-      `Zorg dat het JSON-bestand op dezelfde server staat (CORS) en de URL correct is.`;
+      `Foutmelding: <b>${escHtml(err.message)}</b>`;
   }
 }
 
