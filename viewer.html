@@ -1141,17 +1141,12 @@ async function loadFromUrl() {
   // ── Gist-modus (nieuw, primair) ──────────────────────────────────────────
   if (gistId) {
     try {
-      const GITHUB_TOKEN = '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'; // ← zelfde token
-      const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
-        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}` }
-      });
+      const WORKER_URL = 'https://visualboard.556srgvcxk.workers.dev';
+      const resp = await fetch(`${WORKER_URL}/gist?id=${gistId}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
-      const gist = await resp.json();
-      const file = Object.values(gist.files)[0];
-      const label = gist.description || file.filename.replace('.json', '');
-      document.getElementById('project-name').textContent = label;
-      document.title = label + ' – Visual Board Viewer';
-      const data = JSON.parse(file.content);
+      const data = await resp.json();
+      document.getElementById('project-name').textContent = 'Gedeeld project';
+      document.title = 'Gedeeld project – Visual Board Viewer';
       loadProjectData(data);
       document.getElementById('loading-overlay').style.display = 'none';
     } catch(err) {
