@@ -742,7 +742,15 @@ node.shape-text {
     <div id="f-keten-list" class="keten-list"></div>
   </div>
 </div>
-      <div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
+
+<div class="field" id="wrap-interface">
+  <label>Interface</label>
+  <div class="keten-inline-wrap">
+    <div id="f-interface-list" class="keten-list"></div>
+  </div>
+</div>
+
+<div class="field" id="wrap-behandelaar"><label>Behandelaarsgroep</label><input type="text" id="f-behandelaarsgroep"></div>
       <div class="field" id="wrap-bitteam"><label>BIT TEAM</label><input type="text" id="f-bitteam"></div>
       <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
       <div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
@@ -1165,7 +1173,7 @@ const node = {
     noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
     showImg: true, img: '', 
     showNote: true,                    // ← NIEUWE REGEL
-   keten: '', ketens: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
+   keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
 if (shape === 'text') { 
@@ -1224,6 +1232,8 @@ function duplicateNode(sourceNode) {
     showNote: sourceNode.showNote !== false,
     keten: sourceNode.keten || '',
     ketens: Array.isArray(sourceNode.ketens) ? [...sourceNode.ketens] : [],
+    interfaces: Array.isArray(sourceNode.interfaces) ? [...sourceNode.interfaces] : [],
+    interface: sourceNode.interface || '',
     behandelaarsgroep: sourceNode.behandelaarsgroep || '',
     leverancier: sourceNode.leverancier || '',
     servicelevel: sourceNode.servicelevel || '',
@@ -2088,6 +2098,8 @@ function applyLiveNodeChanges(n) {
   n.note = document.getElementById('f-note').value; 
   n.ketens = collectNodeKetensFromForm();
   n.keten = n.ketens.join(', ');
+  n.interfaces = collectNodeInterfacesFromForm();
+  n.interface = n.interfaces.join(', ');
   n.behandelaarsgroep = document.getElementById('f-behandelaarsgroep').value;
   n.bitteam = document.getElementById('f-bitteam').value;
   n.leverancier = document.getElementById('f-leverancier').value;
@@ -2168,6 +2180,7 @@ function openNodePanel(id, editMode = false) {
     document.getElementById('f-url').value = n.url || ''; 
     document.getElementById('f-note').value = n.note || ''; 
     renderNodeKetenFields(getNodeKetens(n), () => applyLiveNodeChanges(n));
+    renderNodeInterfaceFields(getNodeInterfaces(n), () => applyLiveNodeChanges(n));
     document.getElementById('f-behandelaarsgroep').value = n.behandelaarsgroep || '';
     document.getElementById('f-bitteam').value = n.bitteam || '';
     document.getElementById('f-leverancier').value = n.leverancier || '';
@@ -2250,6 +2263,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
       ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
       ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
       ${getNodeKetens(n).length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${getNodeKetens(n).join(', ')}</div></div>` : ''}
+      ${getNodeInterfaces(n).length ? `<div class="view-line"><div class="view-label">Interface</div><div class="view-value">${getNodeInterfaces(n).join(', ')}</div></div>` : ''}
       ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
       ${n.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${n.bitteam}</div></div>` : ''}
       ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
@@ -2300,6 +2314,106 @@ function getNodeKetens(node) {
   if (typeof node.keten === 'string' && node.keten.trim()) return normalizeKetens(node.keten.split(','));
   return [];
 }
+
+function getNodeInterfaces(node) {
+  if (Array.isArray(node.interfaces) && node.interfaces.length > 0)
+      return normalizeKetens(node.interfaces);
+
+  if (typeof node.interface === 'string' && node.interface.trim())
+      return normalizeKetens(node.interface.split(','));
+
+  return [];
+}
+
+function collectNodeInterfacesFromForm() {
+  const inputs =
+    Array.from(document.querySelectorAll('#f-interface-list .f-interface-item'));
+
+  return normalizeKetens(inputs.map(i => i.value));
+}
+
+function renderNodeInterfaceFields(values, onChange) {
+
+  const listEl = document.getElementById('f-interface-list');
+  if (!listEl) return;
+
+  let interfaces = normalizeKetens(values);
+  if (interfaces.length === 0) interfaces = [''];
+
+  const render = () => {
+
+    listEl.innerHTML = '';
+
+    interfaces.forEach((value, idx) => {
+
+      const row = document.createElement('div');
+      row.style.display='flex';
+      row.style.gap='6px';
+      row.style.marginBottom='6px';
+
+      const input = document.createElement('input');
+      input.type='text';
+      input.className='f-interface-item';
+      input.placeholder=`Interface ${idx+1}`;
+      input.value=value;
+      input.style.flex='1';
+
+      input.oninput=(e)=>{
+         interfaces[idx]=e.target.value;
+         onChange();
+      };
+
+      const controls=document.createElement('div');
+      controls.className='keten-row-controls';
+
+      const removeBtn=document.createElement('button');
+      removeBtn.type='button';
+      removeBtn.textContent='-';
+      removeBtn.className='btn-action keten-icon-btn';
+
+      removeBtn.onclick=()=>{
+         if(interfaces.length<=1) return;
+         interfaces.splice(idx,1);
+         render();
+         onChange();
+      };
+
+      const addBtn=document.createElement('button');
+      addBtn.type='button';
+      addBtn.textContent='+';
+      addBtn.className='btn-action keten-icon-btn';
+
+      addBtn.style.visibility=
+        idx===interfaces.length-1 ? 'visible':'hidden';
+
+      addBtn.onclick=()=>{
+         const last=interfaces[interfaces.length-1];
+
+         if(!last || !last.trim()){
+            showToast('Vul eerst laatste Interface in');
+            return;
+         }
+
+         interfaces.push('');
+         render();
+      };
+
+      controls.appendChild(removeBtn);
+      controls.appendChild(addBtn);
+
+      row.appendChild(input);
+      row.appendChild(controls);
+
+      listEl.appendChild(row);
+
+    });
+
+  };
+
+  render();
+
+}
+
 
 function getArrowKetens(arrow) {
   if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0) return normalizeKetens(arrow.ketens);
@@ -2640,6 +2754,7 @@ window.addEventListener('beforeunload', e => {
 // ── LABEL FILTER ───────────────────────────────────────────────────────────────
 const activeFilters = {
   keten: new Set(),
+  interface: new Set(),
   behandelaarsgroep: new Set(),
   bitteam: new Set(),
   leverancier: new Set(),
@@ -2772,6 +2887,7 @@ function renderLabelFilterDropdown() {
   
   const sections = [
     { key: 'keten',             icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.flatMap(n => getNodeKetens(n)), ...arrows.flatMap(a => getArrowKetens(a))].filter(Boolean))] },
+    { key: 'interface',         icon: '🔌', label: 'Interface',        values: [...new Set(nodes.flatMap(n => getNodeInterfaces(n)).filter(Boolean))] },
     { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n => n.behandelaarsgroep), ...arrows.map(a => a.behandelaarsgroep)].filter(Boolean))] },
     { key: 'bitteam',           icon: '🛠️', label: 'BIT TEAM',          values: [...new Set(nodes.map(n => n.bitteam).filter(Boolean))] },
     { key: 'leverancier',       icon: '🏢', label: 'Leverancier',       values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
