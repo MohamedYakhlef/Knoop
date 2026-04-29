@@ -977,7 +977,7 @@ applyTheme(localStorage.getItem('vb_viewer_theme') === 'dark');
 // Export via dropdown
 document.getElementById('settings-export').addEventListener('click', () => {
   document.getElementById('settings-dropdown').classList.remove('show');
-  document.getElementById('btn-export-img').click();
+  triggerExportImg();
 });
 
 // ── FULLSCREEN / PRESENTATIEMODUS ────────────────────────────────────────────
@@ -1001,7 +1001,7 @@ document.addEventListener('fullscreenchange', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // EXPORT IMAGE
 // ═══════════════════════════════════════════════════════════════════════════════
-document.getElementById('btn-export-img').addEventListener('click', async () => {
+async function triggerExportImg() {
   panel.classList.remove('open');
   document.body.classList.add('exporting');
   showToast('Afbeelding exporteren…', 3000);
@@ -1051,7 +1051,7 @@ document.getElementById('btn-export-img').addEventListener('click', async () => 
     showToast('Export mislukt: ' + err.message);
   }
   document.body.classList.remove('exporting');
-});
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LABEL FILTER
