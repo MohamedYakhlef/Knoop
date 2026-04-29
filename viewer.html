@@ -952,7 +952,10 @@ document.getElementById('btn-settings').addEventListener('click', e => {
   e.stopPropagation();
   document.getElementById('settings-dropdown').classList.toggle('show');
 });
-document.getElementById('settings-dropdown').addEventListener('click', e => e.stopPropagation());
+document.getElementById('settings-dropdown').addEventListener('click', e => {
+  if (e.target.closest('#settings-theme') || e.target.closest('#settings-export')) return;
+  e.stopPropagation();
+});
 window.addEventListener('click', () => document.getElementById('settings-dropdown').classList.remove('show'));
 
 // Donkere modus via toggle in dropdown
