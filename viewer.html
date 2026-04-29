@@ -256,6 +256,30 @@ input:checked + .slider:before { transform:translateX(24px); }
 
 /* Export opschoning */
 body.exporting .node-link { display:none !important; }
+
+  /* ── SETTINGS DROPDOWN ── */
+#settings-wrapper { position:relative; }
+#settings-dropdown {
+  position:absolute; top:40px; right:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; box-shadow:var(--shadow);
+  display:none; flex-direction:column;
+  padding:6px; z-index:2000; min-width:180px;
+}
+#settings-dropdown.show { display:flex; }
+.settings-item {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:8px 10px; border-radius:6px;
+  font-family:'DM Mono',monospace; font-size:12px;
+  color:var(--text); cursor:pointer; transition:background .1s;
+}
+.settings-item:hover { background:var(--surface2); }
+.settings-sep { height:1px; background:var(--border); margin:4px 0; }
+
+/* ── FULLSCREEN BUTTON ── */
+#btn-fullscreen { font-size:15px; padding:6px 10px; }
+body.is-fullscreen #btn-fullscreen { background:var(--accent); border-color:var(--accent); color:#fff; }
+
 </style>
 </head>
 <body>
@@ -281,9 +305,7 @@ body.exporting .node-link { display:none !important; }
   <div class="tb-sep"></div>
   <span id="project-name">—</span>
 
-  <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
-
-  <div id="label-filter-wrapper">
+<div id="label-filter-wrapper">
     <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
       🏷️ Filter <span id="lf-badge">0</span>
     </button>
@@ -300,8 +322,23 @@ body.exporting .node-link { display:none !important; }
     <button id="search-next" class="search-nav-btn" title="Volgende resultaat">↓</button>
   </div>
 
-  <button class="tb-btn" id="btn-fit" title="Alles tonen" style="margin-left:8px;">⊡ Fit</button>
-  <button class="tb-btn" id="btn-export-img" title="Exporteer als afbeelding">🖼️ Export</button>
+  <div id="settings-wrapper" style="margin-left:8px;">
+    <button class="tb-btn" id="btn-settings" title="Instellingen">⚙️ Instellingen</button>
+    <div id="settings-dropdown">
+      <div class="settings-item" id="settings-theme">
+        <span><span id="theme-icon">☀️</span> Donkere modus</span>
+        <label class="switch"><input type="checkbox" id="theme-toggle"><span class="slider"></span></label>
+      </div>
+      <div class="settings-sep"></div>
+      <div class="settings-item" id="settings-export">
+        🖼️ Exporteer afbeelding
+      </div>
+    </div>
+  </div>
+
+  <button class="tb-btn" id="btn-fit" title="Alles tonen">⊡ Fit</button>
+  <button class="tb-btn" id="btn-fullscreen" title="Presentatiemodus (fullscreen)">⛶</button>
+  
 </div>
 
 <!-- Canvas -->
@@ -910,16 +947,56 @@ document.getElementById('btn-fit').addEventListener('click', () => fitToContent(
 // ═══════════════════════════════════════════════════════════════════════════════
 // THEME
 // ═══════════════════════════════════════════════════════════════════════════════
-document.getElementById('btn-theme').addEventListener('click', () => {
-  const isDark = document.body.classList.toggle('dark');
-  document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
-  localStorage.setItem('vb_viewer_theme', isDark ? 'dark' : 'light');
+// ── INSTELLINGEN DROPDOWN ────────────────────────────────────────────────────
+document.getElementById('btn-settings').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('settings-dropdown').classList.toggle('show');
 });
-// Restore theme
-if (localStorage.getItem('vb_viewer_theme') === 'dark') {
-  document.body.classList.add('dark');
-  document.getElementById('theme-icon').textContent = '🌙';
+document.getElementById('settings-dropdown').addEventListener('click', e => e.stopPropagation());
+window.addEventListener('click', () => document.getElementById('settings-dropdown').classList.remove('show'));
+
+// Donkere modus via toggle in dropdown
+function applyTheme(dark) {
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('theme-icon').textContent = dark ? '🌙' : '☀️';
+  document.getElementById('theme-toggle').checked = dark;
+  localStorage.setItem('vb_viewer_theme', dark ? 'dark' : 'light');
 }
+document.getElementById('theme-toggle').addEventListener('change', e => applyTheme(e.target.checked));
+document.getElementById('settings-theme').addEventListener('click', e => {
+  if (e.target.tagName !== 'INPUT') {
+    const toggle = document.getElementById('theme-toggle');
+    toggle.checked = !toggle.checked;
+    applyTheme(toggle.checked);
+  }
+});
+
+// Restore theme
+applyTheme(localStorage.getItem('vb_viewer_theme') === 'dark');
+
+// Export via dropdown
+document.getElementById('settings-export').addEventListener('click', () => {
+  document.getElementById('settings-dropdown').classList.remove('show');
+  document.getElementById('btn-export-img').click();
+});
+
+// ── FULLSCREEN / PRESENTATIEMODUS ────────────────────────────────────────────
+document.getElementById('btn-fullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().then(() => {
+      document.body.classList.add('is-fullscreen');
+      setTimeout(() => fitToContent(), 200);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    document.body.classList.remove('is-fullscreen');
+    setTimeout(() => fitToContent(), 100);
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EXPORT IMAGE
