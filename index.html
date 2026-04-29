@@ -1370,18 +1370,32 @@ node.el.querySelector('.pin').addEventListener('click', e => {
 
 // ── ANCHOR MATH (Voor pijlen) ────────────────────────────────────────────────
 function getAnchorPos(node, port) {
-  // port: 0=Top, 1=TR, 2=Right, 3=BR, 4=Bottom, 5=BL, 6=Left, 7=TL
+  // port 0-7: originele 8 punten (backward compatible)
+  // port 8-15: nieuwe tussenpunten
   let px = 0.5, py = 0.5;
-  if(port===0) { px=0.5; py=0; } else if(port===1) { px=1; py=0; }
-  else if(port===2) { px=1; py=0.5; } else if(port===3) { px=1; py=1; }
-  else if(port===4) { px=0.5; py=1; } else if(port===5) { px=0; py=1; }
-  else if(port===6) { px=0; py=0.5; } else if(port===7) { px=0; py=0; }
+  if     (port===0)  { px=0.5;  py=0;    }
+  else if(port===1)  { px=1;    py=0;    }
+  else if(port===2)  { px=1;    py=0.5;  }
+  else if(port===3)  { px=1;    py=1;    }
+  else if(port===4)  { px=0.5;  py=1;    }
+  else if(port===5)  { px=0;    py=1;    }
+  else if(port===6)  { px=0;    py=0.5;  }
+  else if(port===7)  { px=0;    py=0;    }
+  else if(port===8)  { px=0.75; py=0;    } // top → TR
+  else if(port===9)  { px=1;    py=0.25; } // TR → right
+  else if(port===10) { px=1;    py=0.75; } // right → BR
+  else if(port===11) { px=0.75; py=1;    } // BR → bottom
+  else if(port===12) { px=0.25; py=1;    } // bottom → BL
+  else if(port===13) { px=0;    py=0.75; } // BL → left
+  else if(port===14) { px=0;    py=0.25; } // left → TL
+  else if(port===15) { px=0.25; py=0;    } // TL → top
 
   if (node.shape === 'oval') {
-    // Ellipse wiskunde benadering voor de 8 punten
     const a = node.width/2, b = node.height/2;
     const cx = node.x + a, cy = node.y + b;
-    const angle = (port * 45 - 90) * (Math.PI/180);
+    const angle = port < 8
+      ? (port * 45 - 90) * (Math.PI/180)
+      : ((port - 8) * 45 + 22.5 - 90) * (Math.PI/180);
     return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
   }
   return { x: node.x + node.width*px, y: node.y + node.height*py };
@@ -1391,7 +1405,7 @@ function renderAnchors() {
   anchorsGroup.innerHTML = '';
   nodes.forEach(n => {
     // Deze regel zorgt ervoor dat alle 9 punten per vakje worden getekend
-    for (let i = 0; i < 8; i++) { 
+    for (let i = 0; i < 16; i++) {
       const pos = getAnchorPos(n, i);
       const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       c.classList.add('anchor-point');
@@ -1787,7 +1801,7 @@ if (arrowSource && currentTool === 'arrow') {
       let bestDist = SNAP_THRESHOLD;
       nodes.forEach(n => {
         if (n.id === arrowSource) return; // sla bronknooppunt over
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 16; i++) {
           const pos = getAnchorPos(n, i);
           const dist = Math.sqrt((pos.x - mx) ** 2 + (pos.y - my) ** 2);
           if (dist < bestDist) {
@@ -2889,6 +2903,7 @@ document.getElementById('btn-np-create').addEventListener('click', () => {
   closeNewProjectModal();
 });
 newProjectModal.addEventListener('click', (e) => {
+  if (e.target === newProjectModal) closeNewProjectModal();
   if (e.target === newProjectModal) closeNewProjectModal();
 });
 
