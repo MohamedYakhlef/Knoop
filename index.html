@@ -576,6 +576,7 @@ node.shape-text {
 </div>
   </div>
   <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
+  <button class="tb-btn" id="btn-fullscreen" title="Presentatiemodus (fullscreen)" style="font-size:15px; padding:6px 10px;">⛶</button>
   
 <div id="label-filter-wrapper">
     <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
@@ -1087,6 +1088,21 @@ document.getElementById('add-area').addEventListener('click', (e) => {
 // 5. Sluit het menu als je naast het menu klikt
 window.addEventListener('click', () => {
   addDropdown.classList.remove('show');
+});
+
+// FULL SCREEN
+document.getElementById('btn-fullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().then(() => {
+      document.body.classList.add('is-fullscreen');
+      setTimeout(() => fitToContent && fitToContent(), 200);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) document.body.classList.remove('is-fullscreen');
 });
 
 function addNewNode(shape) {
