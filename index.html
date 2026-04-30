@@ -552,12 +552,15 @@ node.shape-text {
   .np-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
   .np-text { font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.6; color: var(--text-dim); margin-bottom: 14px; }
   .np-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-  .np-btn {
+.np-btn {
     border: 1px solid var(--border); background: var(--surface2); color: var(--text);
     border-radius: 8px; padding: 8px 12px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 12px;
   }
   .np-btn:hover { border-color: var(--accent); color: var(--accent); }
   .np-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .np-btn.whatsapp { background: #25D366; border-color: #25D366; color: #fff; }
+  .np-btn.whatsapp:hover { background: #1ebe5d; border-color: #1ebe5d; color: #fff; }
+  .np-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -838,7 +841,7 @@ node.shape-text {
              font-size:11px;margin-bottom:14px;outline:none;cursor:text;">
     <div class="np-actions">
       <button class="np-btn primary" id="btn-vl-copy">📋 Kopieer link</button>
-      <button class="np-btn" id="btn-vl-whatsapp">💬 Deel via WhatsApp</button>
+      <button class="np-btn whatsapp" id="btn-vl-whatsapp">💬 Deel via WhatsApp</button>
       <button class="np-btn" id="btn-vl-close">Sluiten</button>
     </div>
   </div>
@@ -1231,9 +1234,9 @@ function duplicateNode(sourceNode) {
     img: sourceNode.img || '',
     showNote: sourceNode.showNote !== false,
     keten: sourceNode.keten || '',
-    ketens: Array.isArray(sourceNode.ketens) ? [...sourceNode.ketens] : [],
-    interfaces: Array.isArray(sourceNode.interfaces) ? [...sourceNode.interfaces] : [],
-    interface: sourceNode.interface || '',
+    ketens: Array.isArray(sourceArrow.ketens) ? [...sourceArrow.ketens] : [],
+    interfaces: Array.isArray(sourceArrow.interfaces) ? [...sourceArrow.interfaces] : [],
+    interface: sourceArrow.interface || '',
     behandelaarsgroep: sourceNode.behandelaarsgroep || '',
     leverancier: sourceNode.leverancier || '',
     servicelevel: sourceNode.servicelevel || '',
@@ -2416,8 +2419,22 @@ function renderNodeInterfaceFields(values, onChange) {
 
 
 function getArrowKetens(arrow) {
-  if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0) return normalizeKetens(arrow.ketens);
-  if (typeof arrow.keten === 'string' && arrow.keten.trim()) return normalizeKetens(arrow.keten.split(','));
+  if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0)
+    return normalizeKetens(arrow.ketens);
+
+  if (typeof arrow.keten === 'string' && arrow.keten.trim())
+    return normalizeKetens(arrow.keten.split(','));
+
+  return [];
+}
+
+function getArrowInterfaces(arrow) {
+  if (Array.isArray(arrow.interfaces) && arrow.interfaces.length > 0)
+    return normalizeKetens(arrow.interfaces);
+
+  if (typeof arrow.interface === 'string' && arrow.interface.trim())
+    return normalizeKetens(arrow.interface.split(','));
+
   return [];
 }
 
@@ -2887,7 +2904,7 @@ function renderLabelFilterDropdown() {
   
   const sections = [
     { key: 'keten',             icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.flatMap(n => getNodeKetens(n)), ...arrows.flatMap(a => getArrowKetens(a))].filter(Boolean))] },
-    { key: 'interface',         icon: '🔌', label: 'Interface',        values: [...new Set(nodes.flatMap(n => getNodeInterfaces(n)).filter(Boolean))] },
+    { key: 'interface',         icon: '🔌', label: 'Interface',        values: [...new Set([...nodes.flatMap(n => getNodeInterfaces(n)), ...arrows.flatMap(a => getArrowInterfaces(a))].filter(Boolean))] },
     { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n => n.behandelaarsgroep), ...arrows.map(a => a.behandelaarsgroep)].filter(Boolean))] },
     { key: 'bitteam',           icon: '🛠️', label: 'BIT TEAM',          values: [...new Set(nodes.map(n => n.bitteam).filter(Boolean))] },
     { key: 'leverancier',       icon: '🏢', label: 'Leverancier',       values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
@@ -2948,7 +2965,12 @@ async function generateViewerLink() {
   });
 
   const inputEl = document.getElementById('viewer-link-input');
+  const copyBtn = document.getElementById('btn-vl-copy');
+  const waBtn   = document.getElementById('btn-vl-whatsapp');
+
   inputEl.value = "⏳ Canvas uploaden naar Gist...";
+  copyBtn.disabled = true;
+  waBtn.disabled   = true;
   document.getElementById('viewer-link-modal').classList.add('show');
 
 try {
@@ -2963,6 +2985,9 @@ const result = await response.json();
 inputEl.value = `https://mohamedyakhlef.github.io/Knoop/viewer.html?gist=${result.id}`;
   } catch (err) {
     inputEl.value = '❌ Fout: ' + err.message;
+  } finally {
+    copyBtn.disabled = false;
+    waBtn.disabled   = false;
   }
 }
 
