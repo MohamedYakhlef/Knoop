@@ -466,6 +466,7 @@ function createNode(x, y, shape = 'square', title = '', forceId = null) {
 function attachViewerNodeEvents(node) {
   // Click only — no drag, no resize
   node.el.addEventListener('click', e => {
+    if (hasDragged) return; // was een sleep, geen klik
     e.stopPropagation();
     selectNodeForAnim(node.id);
     openNodeInfoPanel(node.id);
@@ -856,25 +857,27 @@ searchBar.addEventListener('keydown', e => {
 // PAN & ZOOM
 // ═══════════════════════════════════════════════════════════════════════════════
 let panStart = null, panOrigin = { x: 0, y: 0 };
+let hasDragged = false;
 
 canvas.addEventListener('mousedown', e => {
-  if (e.button === 0 && (e.target === canvas || e.target === world || e.target.tagName === 'svg')) {
+  if (e.button === 0 || e.button === 1) {
     panStart = { x: e.clientX, y: e.clientY };
     panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
-    canvas.classList.add('panning');
-  }
-  // Middle button pan
-  if (e.button === 1) {
-    panStart = { x: e.clientX, y: e.clientY };
-    panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
-    canvas.classList.add('panning');
+    hasDragged = false;
   }
 });
 
 document.addEventListener('mousemove', e => {
   if (!panStart) return;
-  world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px';
-  world.style.top  = (panOrigin.y + e.clientY - panStart.y) + 'px';
+  const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
+  if (!hasDragged && Math.sqrt(dx*dx + dy*dy) > 4) {
+    hasDragged = true;
+    canvas.classList.add('panning');
+  }
+  if (hasDragged) {
+    world.style.left = (panOrigin.x + dx) + 'px';
+    world.style.top  = (panOrigin.y + dy) + 'px';
+  }
 });
 
 document.addEventListener('mouseup', () => {
