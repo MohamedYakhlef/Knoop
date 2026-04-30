@@ -32,10 +32,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); fon
 body.dark #toolbar { background:rgba(13,13,20,0.95); }
 
 #toolbar .logo { font-size:15px; font-weight:800; letter-spacing:-0.5px; margin-right:12px; flex-shrink:0; }
-@media (max-width: 700px) {
-  #btn-settings .btn-label { display: none; }
-  #project-name { display: none; }
-}
+@media (max-width: 900px) { #toolbar .logo { display:none; } }
 #toolbar .logo span { color:var(--accent); }
 .viewer-badge {
   font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
@@ -326,7 +323,7 @@ body.is-fullscreen #btn-fullscreen { background:var(--accent); border-color:var(
   </div>
 
   <div id="settings-wrapper" style="margin-left:8px;">
-    <button class="tb-btn" id="btn-settings" title="Instellingen">⚙️ <span class="btn-label">Instellingen</span></button>
+    <button class="tb-btn" id="btn-settings" title="Instellingen">⚙️ Instellingen</button>
     <div id="settings-dropdown">
       <div class="settings-item" id="settings-theme">
         <span><span id="theme-icon">☀️</span> Donkere modus</span>
@@ -469,7 +466,6 @@ function createNode(x, y, shape = 'square', title = '', forceId = null) {
 function attachViewerNodeEvents(node) {
   // Click only — no drag, no resize
   node.el.addEventListener('click', e => {
-    if (hasDragged) return; // was een sleep, geen klik
     e.stopPropagation();
     selectNodeForAnim(node.id);
     openNodeInfoPanel(node.id);
@@ -860,27 +856,25 @@ searchBar.addEventListener('keydown', e => {
 // PAN & ZOOM
 // ═══════════════════════════════════════════════════════════════════════════════
 let panStart = null, panOrigin = { x: 0, y: 0 };
-let hasDragged = false;
 
 canvas.addEventListener('mousedown', e => {
-  if (e.button === 0 || e.button === 1) {
+  if (e.button === 0 && (e.target === canvas || e.target === world || e.target.tagName === 'svg')) {
     panStart = { x: e.clientX, y: e.clientY };
     panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
-    hasDragged = false;
+    canvas.classList.add('panning');
+  }
+  // Middle button pan
+  if (e.button === 1) {
+    panStart = { x: e.clientX, y: e.clientY };
+    panOrigin = { x: parseFloat(world.style.left)||0, y: parseFloat(world.style.top)||0 };
+    canvas.classList.add('panning');
   }
 });
 
 document.addEventListener('mousemove', e => {
   if (!panStart) return;
-  const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
-  if (!hasDragged && Math.sqrt(dx*dx + dy*dy) > 4) {
-    hasDragged = true;
-    canvas.classList.add('panning');
-  }
-  if (hasDragged) {
-    world.style.left = (panOrigin.x + dx) + 'px';
-    world.style.top  = (panOrigin.y + dy) + 'px';
-  }
+  world.style.left = (panOrigin.x + e.clientX - panStart.x) + 'px';
+  world.style.top  = (panOrigin.y + e.clientY - panStart.y) + 'px';
 });
 
 document.addEventListener('mouseup', () => {
