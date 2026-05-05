@@ -6,6 +6,7 @@
 <title>Visual Board</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -65,6 +66,31 @@
     background: var(--surface2); color: var(--text); cursor: pointer; line-height: 1;
   }
   .search-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── ACTIES DROPDOWN ── */
+  #acties-wrapper { position: relative; }
+  #acties-menu {
+    display: none; position: absolute; top: 38px; left: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: var(--shadow); z-index: 2000;
+    min-width: 170px; padding: 4px; flex-direction: column;
+  }
+  #acties-menu.show { display: flex; }
+  .acties-item {
+    padding: 8px 12px; font-size: 12px; font-family: 'DM Mono', monospace;
+    cursor: pointer; border-radius: 4px; color: var(--text);
+    white-space: nowrap; transition: background 0.1s; position: relative;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .acties-item:hover { background: var(--surface2); color: var(--accent); }
+  #export-submenu {
+    display: none; position: absolute; left: 100%; top: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: var(--shadow); z-index: 2001;
+    min-width: 150px; padding: 4px; flex-direction: column;
+  }
+  #export-submenu.show { display: flex; }
+  .acties-item.has-sub::after { content: '›'; margin-left: 8px; opacity: 0.5; }
 
   /* LEFT TOOLBAR */
   #left-toolbar {
@@ -296,6 +322,26 @@ node.shape-text {
   display: none; 
   pointer-events: none;
   white-space: pre-wrap; /* Zorgt dat enters in de tekst werken */
+}
+
+/* ── KETEN TAGS OP NODE ── */
+.node-keten-tags {
+  display: none;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 2px 6px 4px;
+}
+body.keten-visible .node-keten-tags {
+  display: flex;
+}
+.keten-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(124,92,252,0.15);
+  border: 1px solid rgba(124,92,252,0.4);
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 /* Deze class wordt door JS toegevoegd als de switch aan staat */
@@ -560,28 +606,176 @@ node.shape-text {
   .np-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .np-btn.whatsapp { background: #25D366; border-color: #25D366; color: #fff; }
   .np-btn.whatsapp:hover { background: #1ebe5d; border-color: #1ebe5d; color: #fff; }
-  .np-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.np-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+  /* ── COMPACT NODE (tandwiel) ── */
+  .node.is-compact .node-footer { display: none !important; }
+  .node-gear-wrap {
+    display: none; position: absolute;
+    bottom: 6px; left: 8px;
+    z-index: 20;
+  }
+  .node.is-compact .node-gear-wrap { display: block; }
+
+  .node-gear-btn {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: rgba(124,92,252,0.15); border: 1px solid rgba(124,92,252,0.3);
+    color: var(--accent); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .node-gear-btn:hover { background: rgba(124,92,252,0.3); }
+
+.node-gear-menu {
+    position: fixed;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: var(--shadow);
+    padding: 4px; display: none; flex-direction: column; gap: 2px;
+    min-width: 130px; z-index: 9999;
+  }
+  .node-gear-menu.open { display: flex; }
+  .node-gear-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 5px; font-size: 12px;
+    color: var(--text); cursor: pointer; white-space: nowrap;
+    transition: background 0.1s;
+  }
+  .node-gear-item:hover { background: var(--surface2); }
+  .node-gear-item .gi-icon { font-size: 14px; width: 18px; text-align: center; }
+
+  /* ── CIRKEL ── */
+  .node.shape-circle {
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .node.shape-circle .node-body { text-align: center; padding: 0 14px; }
+  .node.shape-circle .node-thumb { display: none !important; }
+  .node.shape-circle .node-footer { justify-content: center; padding-bottom: 14px; }
+  .node.shape-circle .resize-handle { right: 12px !important; bottom: 12px !important; }
+
+  /* ── GEBRUIKER ── */
+  .node.shape-user {
+    border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .node.shape-user .node-thumb { display: none !important; }
+  .node.shape-user .node-body { text-align: center; padding: 6px 12px 8px; }
+  .node.shape-user .node-footer { justify-content: center; }
+  .user-icon-wrap {
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px 0 4px; color: var(--accent); flex-shrink: 0;
+  }
+  .user-icon-wrap svg { width: 48px; height: 48px; }
+
+  /* ── KETENMONITORING MODAL ── */
+  #ketenmon-modal {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,20,0.55); z-index: 2500;
+  }
+  #ketenmon-modal.show { display: flex; }
+  .km-card {
+    width: min(700px, calc(100vw - 32px)); max-height: 82vh;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); display: flex; flex-direction: column;
+  }
+  .km-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .km-title { font-size: 15px; font-weight: 800; }
+  .km-body { overflow-y: auto; padding: 16px 20px; }
+  .km-empty { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-dim); padding: 20px 0; text-align: center; }
+  .km-keten-block { margin-bottom: 18px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .km-keten-header {
+    background: var(--surface2); padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .km-keten-name { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .km-keten-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .km-keten-rows { padding: 8px 14px 10px; display: flex; flex-direction: column; gap: 5px; }
+  .km-row {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text);
+    padding: 4px 0; border-bottom: 1px solid var(--surface2);
+  }
+  .km-row:last-child { border-bottom: none; }
+  .km-type-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; flex-shrink: 0;
+  }
+  .km-type-node { background: rgba(124,92,252,0.12); color: var(--accent); }
+  .km-type-arrow { background: rgba(92,248,200,0.12); color: #2aaa88; }
+  .km-row-name { flex: 1; }
+  .km-row-meta { color: var(--text-dim); font-size: 11px; }
+
+  /* ── VERSIE BADGE + CHANGELOG ── */
+  #version-badge {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    color: var(--accent); background: rgba(124,92,252,0.10);
+    border: 1px solid rgba(124,92,252,0.25); border-radius: 20px;
+    padding: 3px 9px; cursor: pointer; user-select: none;
+    transition: background 0.15s, border-color 0.15s; white-space: nowrap;
+  }
+  #version-badge:hover { background: rgba(124,92,252,0.2); border-color: var(--accent); }
+
+  #changelog-modal {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,20,0.55); z-index: 3000;
+  }
+  #changelog-modal.show { display: flex; }
+  .cl-card {
+    width: min(480px, calc(100vw - 32px)); max-height: 80vh; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 22px 22px 18px;
+  }
+  .cl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .cl-title { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+  .cl-close { width: 28px; height: 28px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .cl-close:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .cl-version-block { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .cl-version-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; cursor: pointer; user-select: none;
+    background: var(--surface2); transition: background 0.15s;
+  }
+  .cl-version-header:hover { background: var(--border); }
+  .cl-version-tag { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .cl-version-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .cl-chevron { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+  .cl-version-block.open .cl-chevron { transform: rotate(180deg); }
+  .cl-version-body { display: none; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .cl-version-block.open .cl-version-body { display: block; }
+  .cl-section { margin-bottom: 10px; }
+  .cl-section-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+  .cl-item { font-size: 13px; line-height: 1.6; color: var(--text); padding-left: 4px; }
 </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <div class="logo">Visual<span>Board</span></div>
+<div class="logo">Visual<span>Board</span></div>
+<span id="version-badge" title="Versie geschiedenis">v1.0</span>
   <div class="tb-sep"></div>
-  <button class="tb-btn" id="btn-new-project" title="Start nieuw project">🆕 Nieuw project</button>
-<button class="tb-btn" id="btn-import-json" title="Importeer Project">📁 Import</button>
-  <div id="export-dropdown-wrapper" style="position:relative;">
-    <button class="tb-btn" id="btn-export-dropdown" title="Exporteer">💾 Export ▾</button>
-<div id="export-dropdown" style="display:none; position:absolute; top:38px; left:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); z-index:2000; min-width:160px; padding:4px; flex-direction:column;">
-  <div class="lt-dropdown-item" id="btn-export-json">💾 Export JSON</div>
-  <div class="lt-dropdown-item" id="btn-export-img">🖼️ Export Image</div>
-  <div class="lt-dropdown-item" id="btn-share-viewer">🔗 Viewer Link</div>
-</div>
+
+  <!-- Acties dropdown -->
+  <div id="acties-wrapper">
+    <button class="tb-btn" id="btn-acties">⚡ Acties ▾</button>
+    <div id="acties-menu">
+      <div class="acties-item" id="btn-new-project" title="Start nieuw project">🆕 Nieuw project</div>
+<div class="acties-item" id="btn-import-json" title="Importeer Project">📁 Openen</div>
+      <div class="acties-item has-sub" id="acties-export-trigger">
+        💾 Opslaan
+        <div id="export-submenu">
+          <div class="acties-item" id="btn-export-json">💾 Download bestand</div>
+          <div class="acties-item" id="btn-export-img">🖼️ Opslaan als afbeelding</div>
+          <div class="acties-item" id="btn-share-viewer">🔗 Alleen-lezen link delen</div>
+        </div>
+      </div>
+    </div>
   </div>
-  <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
-  <button class="tb-btn" id="btn-fullscreen" title="Presentatiemodus (fullscreen)" style="font-size:15px; padding:6px 10px;">⛶</button>
-  
-<div id="label-filter-wrapper">
+
+  <div class="tb-sep"></div>
+
+  <div id="label-filter-wrapper">
     <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
       🏷️ Filter <span id="lf-badge">0</span>
     </button>
@@ -592,17 +786,20 @@ node.shape-text {
     </div>
   </div>
 
-<div style="display:flex; align-items:center; gap:0px; margin-left:auto;">
-    <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
+  <button class="tb-btn" id="btn-ketenmon" title="Ketens tonen/verbergen">👁 Ketenmonitoring</button>
 
+  <div style="display:flex; align-items:center; gap:6px; margin-left:auto;">
+    <input type="text" id="search-bar" placeholder="Zoek titel/groep...">
     <div id="search-tools">
       <span id="search-count">0/0</span>
       <button id="search-prev" class="search-nav-btn">↑</button>
       <button id="search-next" class="search-nav-btn">↓</button>
     </div>
-
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
+    <button class="tb-btn" id="btn-fullscreen" title="Presentatiemodus (fullscreen)" style="font-size:15px; padding:6px 10px;">⛶</button>
     <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
-</div>
+  </div>
 
 </div>
 
@@ -613,6 +810,8 @@ node.shape-text {
 <div class="lt-dropdown">
   <div class="lt-dropdown-item" id="add-square">🟥 Vierkant</div>
   <div class="lt-dropdown-item" id="add-oval">⭕ Ovaal</div>
+  <div class="lt-dropdown-item" id="add-circle">⚪ Cirkel</div>
+  <div class="lt-dropdown-item" id="add-user">👤 Gebruiker</div>
   <div class="lt-dropdown-item" id="add-area">⬜ Gebied</div>
 </div>
   </div>
@@ -659,7 +858,7 @@ node.shape-text {
 
   <div id="panel-edit" style="display:none;">
     <div id="panel-node-fields">
-      <div class="field"><label>Titel / Tekst</label><input type="text" id="f-title" placeholder="Naam..."></div>
+      <div class="field"><label>Titel</label><input type="text" id="f-title" placeholder="Naam..."></div>
 
 <div id="title-style-options" style="margin-bottom:16px;">
   <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Titel opmaak</label>
@@ -763,7 +962,7 @@ node.shape-text {
 
 <div id="panel-arrow-fields" style="display:none">
       <button class="btn-action btn-edit-mode" id="btn-reanchor" style="margin-bottom: 20px; background: var(--accent3); color: #000;">🎯 Punt verplaatsen</button>
-      <div class="field"><label>Label</label><input type="text" id="f-arrow-label" placeholder="Verbinding…"></div>
+      <div class="field"><label>Titel</label><input type="text" id="f-arrow-label" placeholder="Verbinding…"></div>
       <div class="field"><label>URL</label><input type="url" id="f-arrow-url" placeholder="https://…"></div>
       <div class="field"><label>Vorm</label><select id="f-arrow-shape"><option value="straight">Recht</option><option value="curve">Gebogen</option></select></div>
 
@@ -800,6 +999,12 @@ node.shape-text {
         <label>Keten</label>
         <div class="keten-inline-wrap">
           <div id="f-arrow-keten-list" class="keten-list"></div>
+        </div>
+      </div>
+  <div class="field" id="wrap-arrow-interface">
+        <label>Interfaces</label>
+        <div class="keten-inline-wrap">
+          <div id="f-arrow-interface-list" class="keten-list"></div>
         </div>
       </div>
       <div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
@@ -846,6 +1051,26 @@ node.shape-text {
     </div>
   </div>
 </div>
+<div id="changelog-modal">
+  <div class="cl-card">
+    <div class="cl-header">
+      <div class="cl-title">📋 Versie geschiedenis</div>
+      <button class="cl-close" id="cl-close-btn">✕</button>
+    </div>
+    <div id="cl-versions"></div>
+  </div>
+</div>
+
+<div id="ketenmon-modal">
+  <div class="km-card">
+    <div class="km-header">
+      <div class="km-title">🔗 Ketenmonitoring</div>
+      <button class="cl-close" id="ketenmon-close">✕</button>
+    </div>
+    <div class="km-body" id="ketenmon-body"></div>
+  </div>
+</div>
+
 <input type="file" id="json-import" accept=".json" style="display:none">
 
 <script>
@@ -1096,6 +1321,18 @@ document.getElementById('add-area').addEventListener('click', (e) => {
   addDropdown.classList.remove('show');
   addNewNode('area');
 });
+
+document.getElementById('add-circle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  addDropdown.classList.remove('show');
+  addNewNode('circle');
+});
+
+document.getElementById('add-user').addEventListener('click', (e) => {
+  e.stopPropagation();
+  addDropdown.classList.remove('show');
+  addNewNode('user');
+});
 // 5. Sluit het menu als je naast het menu klikt
 window.addEventListener('click', () => {
   addDropdown.classList.remove('show');
@@ -1127,12 +1364,14 @@ function addNewNode(shape) {
   let offX = 110; // Helft van breedte
   let offY = 95;  // Helft van hoogte
 
-  if (shape === 'area') {
+if (shape === 'area') {
     defaultTitle = 'Gebied';
-    offX = 220; // Helft van 440
-    offY = 190; // Helft van 380
+    offX = 220;
+    offY = 190;
   }
   if (shape === 'oval') defaultTitle = 'Ovaal';
+  if (shape === 'circle') { defaultTitle = 'Cirkel'; offX = 70; offY = 70; }
+  if (shape === 'user') { defaultTitle = 'Gebruiker'; offX = 70; offY = 85; }
 
   const n = createNode(cx - offX + offset, cy - offY + offset, shape, defaultTitle);
   saveState();
@@ -1151,26 +1390,38 @@ function createNode(x, y, shape = 'square', title = '', forceId = null) {
   const bgColor = shape === 'text' ? 'transparent' : (isDark ? '#1c1c27' : '#f1f5f9');
   const initTitle = title || (shape === 'text' ? 'Typ hier...' : 'Nieuw vakje');
 
-  el.innerHTML = `
+el.innerHTML = `
     <a class="node-link" target="_blank">🔗</a>
     <div class="node-thumb" id="thumb-${id}"></div>
     <div class="node-body">
       <div class="node-title" id="ntitle-${id}">${initTitle}</div>
       <div class="node-note" id="nnote-${id}"></div>
+      <div class="node-keten-tags" id="nketens-${id}"></div>
     </div>
+
     <div class="node-footer">
       <button class="node-btn edit" title="Bewerken" data-id="${id}">✎</button>
       <button class="node-btn duplicate" title="Kopie maken" data-id="${id}">+</button>
       <button class="node-btn rotate" title="Kantel 90°" data-id="${id}">⤾</button>
       <button class="node-btn pin" title="Vastpinnen" data-id="${id}">📌</button>
     </div>
+
+    <div class="node-gear-wrap">
+      <button class="node-gear-btn" title="Opties">⚙</button>
+      <div class="node-gear-menu">
+        <div class="node-gear-item gi-edit"><span class="gi-icon">✎</span> Bewerken</div>
+        <div class="node-gear-item gi-duplicate"><span class="gi-icon">+</span> Kopie maken</div>
+        <div class="node-gear-item gi-rotate"><span class="gi-icon">⤾</span> Kantel 90°</div>
+        <div class="node-gear-item gi-pin"><span class="gi-icon">📌</span> Vastpinnen</div>
+      </div>
+    </div>
     <div class="resize-handle"></div>`;
   world.appendChild(el);
 
 const node = {
     id, x, y, 
-    width: shape === 'text' ? 150 : (shape === 'area' ? 440 : 220), 
-    height: shape === 'text' ? 50 : (shape === 'area' ? 380 : 190),
+    width: shape === 'text' ? 150 : (shape === 'area' ? 440 : (shape === 'circle' ? 140 : (shape === 'user' ? 140 : 220))),
+    height: shape === 'text' ? 50 : (shape === 'area' ? 380 : (shape === 'circle' ? 140 : (shape === 'user' ? 170 : 190))),
     shape, title: initTitle, url: '', note: '', bgColor, color: '#1a1a2e',
     fontWeight: 'normal', fontStyle: 'normal', fontSize: 14,
     noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
@@ -1179,12 +1430,24 @@ const node = {
    keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
-if (shape === 'text') { 
-    el.style.width = '150px'; el.style.minHeight = '50px'; el.style.height = 'auto'; 
+if (shape === 'text') {
+    el.style.width = '150px'; el.style.minHeight = '50px'; el.style.height = 'auto';
   } else if (shape === 'area') {
-    el.style.width = '440px'; el.style.height = '380px'; 
-  } else { 
-    el.style.width = '220px'; el.style.height = '190px'; 
+    el.style.width = '440px'; el.style.height = '380px';
+  } else if (shape === 'circle') {
+    el.style.width = '140px'; el.style.height = '140px';
+  } else if (shape === 'user') {
+    el.style.width = '140px'; el.style.height = '170px';
+    // Voeg persoon-icoon in boven de titel
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'user-icon-wrap';
+    iconWrap.innerHTML = `<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="16" r="10" fill="currentColor" opacity="0.75"/>
+      <path d="M4 44 Q4 30 24 30 Q44 30 44 44" fill="currentColor" opacity="0.5"/>
+    </svg>`;
+    el.insertBefore(iconWrap, el.querySelector('.node-body'));
+  } else {
+    el.style.width = '220px'; el.style.height = '190px';
   }
 
   nodes.push(node);
@@ -1234,9 +1497,9 @@ function duplicateNode(sourceNode) {
     img: sourceNode.img || '',
     showNote: sourceNode.showNote !== false,
     keten: sourceNode.keten || '',
-    ketens: Array.isArray(sourceArrow.ketens) ? [...sourceArrow.ketens] : [],
-    interfaces: Array.isArray(sourceArrow.interfaces) ? [...sourceArrow.interfaces] : [],
-    interface: sourceArrow.interface || '',
+    ketens: Array.isArray(sourceNode.ketens) ? [...sourceNode.ketens] : [],
+    interfaces: Array.isArray(sourceNode.interfaces) ? [...sourceNode.interfaces] : [],
+    interface: sourceNode.interface || '',
     behandelaarsgroep: sourceNode.behandelaarsgroep || '',
     leverancier: sourceNode.leverancier || '',
     servicelevel: sourceNode.servicelevel || '',
@@ -1344,18 +1607,92 @@ node.el.addEventListener('mousedown', e => {
     document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
   });
   
-  node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
-node.el.querySelector('.duplicate').addEventListener('click', e => {
-  e.stopPropagation();
-  duplicateNode(node);
-});
-node.el.querySelector('.rotate').addEventListener('click', e => {
-  e.stopPropagation();
-  node.rotation = node.rotation === 90 ? 0 : 90;
-  node.el.style.transform = `rotate(${node.rotation}deg)`;
-  updateArrows();
-  saveState();
-});
+node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagation(); openNodePanel(node.id, true); });
+  node.el.querySelector('.duplicate').addEventListener('click', e => {
+    e.stopPropagation();
+    duplicateNode(node);
+  });
+  node.el.querySelector('.rotate').addEventListener('click', e => {
+    e.stopPropagation();
+    node.rotation = node.rotation === 90 ? 0 : 90;
+    node.el.style.transform = `rotate(${node.rotation}deg)`;
+    updateArrows();
+    saveState();
+  });
+
+  // ── TANDWIEL MENU ────────────────────────────────────────────────────────
+  const gearBtn     = node.el.querySelector('.node-gear-btn');
+  const gearMenu    = node.el.querySelector('.node-gear-menu');
+  const giEdit      = gearMenu.querySelector('.gi-edit');
+  const giDuplicate = gearMenu.querySelector('.gi-duplicate');
+  const giRotate    = gearMenu.querySelector('.gi-rotate');
+  const giPin       = gearMenu.querySelector('.gi-pin');
+
+  // Verplaats menu naar body NADAT alle referenties zijn opgeslagen,
+  // zodat position:fixed correct werkt buiten de #world transform
+  document.body.appendChild(gearMenu);
+
+  gearBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = gearMenu.classList.contains('open');
+    document.querySelectorAll('.node-gear-menu.open').forEach(m => m.classList.remove('open'));
+    if (!isOpen) {
+      const rect = gearBtn.getBoundingClientRect();
+      gearMenu.style.left = rect.left + 'px';
+      gearMenu.style.top  = (rect.bottom + 4) + 'px';
+      gearMenu.classList.add('open');
+      const mr = gearMenu.getBoundingClientRect();
+      if (mr.right > window.innerWidth - 8)
+        gearMenu.style.left = (window.innerWidth - mr.width - 8) + 'px';
+      if (mr.bottom > window.innerHeight - 8)
+        gearMenu.style.top  = (rect.top - mr.height - 4) + 'px';
+    }
+  });
+
+  const closeGear = () => gearMenu.classList.remove('open');
+
+  giEdit.addEventListener('click', e => {
+    e.stopPropagation(); closeGear(); openNodePanel(node.id, true);
+  });
+  giDuplicate.addEventListener('click', e => {
+    e.stopPropagation(); closeGear(); duplicateNode(node);
+  });
+  giRotate.addEventListener('click', e => {
+    e.stopPropagation(); closeGear();
+    node.rotation = node.rotation === 90 ? 0 : 90;
+    node.el.style.transform = `rotate(${node.rotation}deg)`;
+    updateArrows(); saveState();
+  });
+  giPin.addEventListener('click', e => {
+    e.stopPropagation(); closeGear();
+    node.pinned = !node.pinned;
+    if (node.pinned) {
+      const parentArea = findAreaForNode(node);
+      if (parentArea) { node.pinnedTo = 'area'; node.pinnedAreaId = parentArea.id; }
+      else { node.pinnedTo = 'canvas'; node.pinnedAreaId = null; }
+    } else { node.pinnedTo = 'canvas'; node.pinnedAreaId = null; }
+    node.el.classList.toggle('pinned', node.pinned);
+    node.el.querySelector('.pin').classList.toggle('pinned', node.pinned);
+    node.el.querySelector('.pin').title = node.pinned
+      ? (node.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)')
+      : 'Vastpinnen';
+    giPin.querySelector('.gi-icon').textContent = node.pinned ? '📍' : '📌';
+    saveState();
+  });
+
+  // Sluit menu bij klik buiten
+  document.addEventListener('click', closeGear);
+
+  // ── COMPACT MODUS via ResizeObserver ─────────────────────────────────────
+  const COMPACT_W = 130, COMPACT_H = 90;
+  const compactObs = new ResizeObserver(() => {
+    const w = node.el.offsetWidth, h = node.el.offsetHeight;
+    node.el.classList.toggle('is-compact', w < COMPACT_W || h < COMPACT_H);
+  });
+  compactObs.observe(node.el);
+  // ─────────────────────────────────────────────────────────────────────────
+
+
 node.el.querySelector('.pin').addEventListener('click', e => {
   e.stopPropagation();
   node.pinned = !node.pinned;
@@ -1403,7 +1740,7 @@ function getAnchorPos(node, port) {
   else if(port===14) { px=0;    py=0.25; } // left → TL
   else if(port===15) { px=0.25; py=0;    } // TL → top
 
-  if (node.shape === 'oval') {
+if (node.shape === 'oval' || node.shape === 'circle') {
     const a = node.width/2, b = node.height/2;
     const cx = node.x + a, cy = node.y + b;
     const angle = port < 8
@@ -1502,8 +1839,7 @@ markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('mar
 const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 markerStartPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', '#7c5cfc');
 markerStartEl.appendChild(markerStartPathEl); document.querySelector('defs').appendChild(markerStartEl);
-const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };
-      arrows.push(arrow);
+const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], interface: '', interfaces: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };      arrows.push(arrow);
 
   hitEl.addEventListener('click', e => {
     if (currentTool === 'eraser') { if(confirm('Pijl wissen?')){ deleteArrow(id); saveState(); } }
@@ -1517,6 +1853,20 @@ function updateArrow(arrow) {
   const f = nodes.find(n => n.id === arrow.from), t = nodes.find(n => n.id === arrow.to);
   if (!f || !t) return;
   let p1 = getAnchorPos(f, arrow.fromPort), p2 = getAnchorPos(t, arrow.toPort);
+
+  // Trek eindpunten terug zodat pijlpunten niet verdwijnen onder ronde vormen
+  // (SVG z-index 5 ligt achter node z-index 10)
+  const ROUND_SHAPES = ['oval', 'circle'];
+  const rdx = p2.x - p1.x, rdy = p2.y - p1.y;
+  const rlen = Math.sqrt(rdx*rdx + rdy*rdy) || 1;
+  const ux = rdx / rlen, uy = rdy / rlen;
+  if (ROUND_SHAPES.includes(f.shape)) {
+    p1 = { x: p1.x + ux * 4, y: p1.y + uy * 4 };
+  }
+  if (ROUND_SHAPES.includes(t.shape)) {
+    p2 = { x: p2.x - ux * 4, y: p2.y - uy * 4 };
+  }
+
 if (arrow.bidirectional) {
   const dx = p2.x - p1.x, dy = p2.y - p1.y;
   const len = Math.sqrt(dx*dx + dy*dy) || 1;
@@ -2295,11 +2645,13 @@ document.getElementById('panel-view').style.display = 'block';
   document.getElementById('btn-view-delete').style.display = 'none';
   document.getElementById('panel-title').childNodes[0].textContent = 'Pijl info';
   const ketenText = getArrowKetens(a).join(', ');
+  const interfaceText = getArrowInterfaces(a).join(', ');
   document.getElementById('view-content').innerHTML = `
     ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.label}</div></div>` : ''}
     ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${a.url}" target="_blank">${a.url}</a></div></div>` : ''}
     ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
     ${ketenText ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${ketenText}</div></div>` : ''}
+    ${interfaceText ? `<div class="view-line"><div class="view-label">Interfaces</div><div class="view-value">${interfaceText}</div></div>` : ''}
     ${a.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${a.behandelaarsgroep}</div></div>` : ''}
     ${a.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${a.bitteam}</div></div>` : ''}
     ${a.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${a.leverancier}</div></div>` : ''}
@@ -2417,6 +2769,58 @@ function renderNodeInterfaceFields(values, onChange) {
 
 }
 
+
+function collectArrowInterfacesFromForm() {
+  const inputs = Array.from(document.querySelectorAll('#f-arrow-interface-list .f-arrow-interface-item'));
+  return normalizeKetens(inputs.map(i => i.value));
+}
+
+function renderArrowInterfaceFields(values, onChange) {
+  const listEl = document.getElementById('f-arrow-interface-list');
+  if (!listEl) return;
+
+  let interfaces = normalizeKetens(values);
+  if (interfaces.length === 0) interfaces = [''];
+
+  const render = () => {
+    listEl.innerHTML = '';
+    interfaces.forEach((value, idx) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex'; row.style.gap = '6px'; row.style.marginBottom = '6px';
+
+      const input = document.createElement('input');
+      input.type = 'text'; input.className = 'f-arrow-interface-item';
+      input.placeholder = `Interface ${idx + 1}`; input.value = value;
+      input.style.flex = '1'; input.style.width = '100%';
+      input.oninput = (e) => { interfaces[idx] = e.target.value; onChange(); };
+      input.onchange = (e) => { interfaces[idx] = e.target.value; onChange(); };
+
+      const controls = document.createElement('div');
+      controls.className = 'keten-row-controls';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button'; removeBtn.textContent = '-';
+      removeBtn.className = 'btn-action keten-icon-btn';
+      removeBtn.disabled = interfaces.length <= 1;
+      removeBtn.onclick = () => { if (interfaces.length <= 1) return; interfaces.splice(idx, 1); render(); onChange(); };
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button'; addBtn.textContent = '+';
+      addBtn.className = 'btn-action keten-icon-btn';
+      addBtn.style.visibility = idx === interfaces.length - 1 ? 'visible' : 'hidden';
+      addBtn.onclick = () => {
+        const last = interfaces[interfaces.length - 1];
+        if (!last || !last.trim()) { showToast('Vul eerst de laatste Interface in'); return; }
+        interfaces.push(''); render();
+      };
+
+      controls.appendChild(removeBtn); controls.appendChild(addBtn);
+      row.appendChild(input); row.appendChild(controls);
+      listEl.appendChild(row);
+    });
+  };
+  render();
+}
 
 function getArrowKetens(arrow) {
   if (Array.isArray(arrow.ketens) && arrow.ketens.length > 0)
@@ -2594,6 +2998,7 @@ function openArrowPanelEdit(id) {
   document.getElementById('f-arrow-anim').value = a.anim; 
   document.getElementById('f-arrow-style').value = a.style; 
   renderArrowKetenFields(getArrowKetens(a), syncArrow);
+  renderArrowInterfaceFields(getArrowInterfaces(a), syncArrow);
   document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
   document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
   document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
@@ -2661,6 +3066,8 @@ function openArrowPanelEdit(id) {
     targetArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
     targetArrow.ketens = collectArrowKetensFromForm();
     targetArrow.keten = targetArrow.ketens.join(', ');
+    targetArrow.interfaces = collectArrowInterfacesFromForm();
+    targetArrow.interface = targetArrow.interfaces.join(', ');
     targetArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
     targetArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
     targetArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
@@ -2702,6 +3109,8 @@ document.getElementById('panel-save').onclick = () => {
       activeArrow.bidirectional = document.getElementById('f-arrow-bidirectional').checked;
       activeArrow.ketens = collectArrowKetensFromForm();
       activeArrow.keten = activeArrow.ketens.join(', ');
+      activeArrow.interfaces = collectArrowInterfacesFromForm();
+      activeArrow.interface = activeArrow.interfaces.join(', ');
       activeArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
       activeArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
       activeArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
@@ -2958,6 +3367,358 @@ window.addEventListener('click', () => {
   document.getElementById('label-filter-dropdown').classList.remove('show');
 });
 
+const CHANGELOG = [
+  
+{
+    version: 'v0.1.0',
+    date: '17-04-2026',
+nieuw: [
+  'Eerste release van VisualBoard met basisfunctionaliteiten.',
+  'Vakjes, ovalen en gebieden toevoegen op het canvas.',
+  'Objecten voorzien van een titel voor duidelijke herkenning.',
+  'Pijlen en lijnen tekenen om relaties tussen objecten weer te geven.',
+],
+    verbeterd: [],
+    bugfixes: [],
+  },
+  
+{
+    version: 'v0.2.0',
+    date: '20-04-2026',
+nieuw: [
+  'Objecten en lijnen kunnen nu van kleur worden voorzien.',
+  'Animatie voor lijnen toegevoegd voor een dynamischer weergave.',
+  'Losse tekst toevoegen aan canvas.',
+  'Gum toegevoegd om objecten eenvoudig te verwijderen.',
+],
+    verbeterd: [
+'Gekoppelde objecten (via lijnen) worden nu gehighlight om duidelijk te zien welke met elkaar verbonden zijn.', 
+],
+    bugfixes: [],
+  },
+
+{
+    version: 'v0.3.0',
+    date: '21-04-2026',
+    nieuw: [
+  'Zoomfunctie toegevoegd',
+  'Lijnen kunnen nu als tweerichtingsverkeer worden gemarkeerd, waarbij aan beide zijden een pijlpunt wordt weergegeven en de animatie beide richtingen visualiseert',
+  'Export JSON: Sla je project lokaal op als JSON-bestand.',
+  'Import JSON: Importeer een lokaal JSON-bestand om verder te werken aan je project.',
+  'Filterknop: Label objecten en bepaal welke op het scherm worden weergegeven.',
+    ],
+    verbeterd: [],
+    bugfixes: [],
+  },
+
+{
+    version: 'v0.4.0',
+    date: '23-04-2026',
+nieuw: [
+  'Fullscreenknop toegevoegd voor een optimale en afleidingsvrije werkruimte.',
+  'Donkere modus toegevoegd voor comfortabel gebruik bij weinig licht.',
+  'Lijnen kunnen nu ook vrije vormen aannemen, waardoor gebruikers flexibel en handmatig lijnen kunnen tekenen',
+  'Undo- en redo-functionaliteit toegevoegd om acties eenvoudig ongedaan te maken en opnieuw uit te voeren.',
+],
+    verbeterd: [],
+    bugfixes: [],
+},
+
+{
+    version: 'v0.5.0',
+    date: '24-04-2026',
+    nieuw: [
+      'Punaise toegevoegd om je objecten vast te pinnen aan de canvas.',
+      'Jouw project wordt bij elke bewerking automatisch opgeslagen (herkenbaar aan de statusindicator rechtsboven in het scherm).',
+      'Wanneer je browser wordt ververst of afgesloten, verschijnt een waarschuwing dat niet-opgeslagen wijzigingen mogelijk niet zijn opgeslagen.',
+      'Bij het openen van VisualBoard krijg je de optie om je laatst automatisch opgeslagen project te herstellen',
+    ],
+    verbeterd: [],
+    bugfixes: [],
+},
+  
+  
+{
+    version: 'v0.6.0',
+    date: '27-04-2026',
+    nieuw: [
+      'Afbeelding uploaden naar een object is nu mogelijk', 
+      'Export Image toegevoegd, sla je project op als een PNG afbeelding bestand.',
+      'Zoekfunctie toegevoegd.',
+],
+    verbeterd: [
+      'De punaise zet een object vast aan het bovenliggende gebied; bij het verplaatsen van dit gebied beweegt het gekoppelde object automatisch mee.',
+],
+    bugfixes: [],
+  },
+
+{
+    version: 'v0.7.0',
+    date: '28-04-2026',
+    nieuw: [
+  'Export Image toegevoegd: sla je project op als PNG-afbeelding.',
+  'Kopie maken van een object toegevoegd (plus-icoon).',
+  'Kantelen van een object toegevoegd (kromme pijl-icoon).',
+  
+    ],
+    verbeterd: [
+      'Zoekfunctie toont nu ook het aantal gevonden resultaten.', 
+      'Afbeelding in een object kan nu zichtbaar of verborgen worden gemaakt binnen het canvas-object', 
+],
+    bugfixes: [],
+  },
+
+{
+    version: 'v0.8.0',
+    date: '29-04-2026',
+    nieuw: [
+      'Nieuw project-knop toegevoegd waarmee gebruikers direct met een leeg canvas kunnen starten.',
+      'Meerdere objecten selecteren is nu mogelijk (markeer-icoon toegevoegd in de toolbar).',
+      'Viewer Link toegevoegd, deel je project nu met andere via een gegenereerde link.',
+    ],
+
+verbeterd: [
+      'Aansluitingspunten werken nu magnetisch.',
+      'Van 8 naar 16 aansluitingspunten.',
+],
+    bugfixes: [],
+  },
+
+
+{
+    version: 'v0.9.0',
+    date: '30-04-2026',
+    nieuw: [
+      'Viewerversie aangemaakt om je project te delen zonder dat gebruikers deze kunnen bewerken (handig voor Confluence).',
+      'Veld Interfaces toegevoegd met de mogelijkheid om meerdere velden toe te voegen.',
+    ],
+    verbeterd: [
+'Nieuw project-knop toont nu een pop-up met de opties: Sla werk op, Maak nieuw canvas of annuleren.',
+'Viewerlink toont nu een pop-up met de opties: link kopiëren, delen via WhatsApp of sluiten.',
+],
+    bugfixes: [
+'Viewer Link genereren gaf een 404-foutmelding, dit is hersteld.',
+],
+  },
+
+
+{
+    version: 'v1.0.0',
+    date: '05-05-2026',
+nieuw: [
+  'Gebruikers kunnen nu ook versie-informatie en releasenotes inzien.',  
+  'Objecten Gebruiker en Cirkel toegevoegd.',
+  'Knop Ketenmonitoring toegevoegd.',
+  
+  
+],
+verbeterd: [
+  'Aansluitingspunten werken nu correct rondom de vormen Cirkel en Ovaal.',
+  'Wanneer een vorm erg klein wordt gemaakt, worden de opties Bewerken, Kopiëren, Kantelen en Punaise onder één (tandwiel) knop weergegeven.',
+  'Nieuw project, opslaan en exporteren zijn nu samengebracht onder één knop.',
+  'Enkele knopnamen zijn aangepast: Import heet nu Openen, Export heet nu Opslaan, en meerdere andere knoppen zijn hernoemd voor duidelijkheid.',
+  
+],
+bugfixes: [
+  'Pijlpunten raken nu correct de randen van vormen en verdwijnen niet meer eronder.',
+  'Er werd geen exacte kopie van een object gemaakt; een kopie bevat nu alle inhoudelijke informatie, opmaak en de juiste vormgrootte.',
+  'Een kopie verschijnt nu boven het originele object in plaats van eronder.',
+  'Veld Interfaces ook toegevoegd aan de lijnen.',
+],
+  },
+
+
+
+
+];
+
+
+
+function renderChangelog() {
+  const container = document.getElementById('cl-versions');
+  container.innerHTML = '';
+
+  const maandNamen = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+
+  // Groepeer per maand+jaar
+  const groepen = {};
+  CHANGELOG.slice().reverse().forEach(entry => {
+    const [dag, maand, jaar] = entry.date.split('-');
+    const sleutel = `${jaar}-${maand}`;
+    if (!groepen[sleutel]) groepen[sleutel] = { label: `${maandNamen[parseInt(maand)-1]} ${jaar}`, entries: [] };
+    groepen[sleutel].entries.push(entry);
+  });
+
+  Object.entries(groepen).forEach(([sleutel, groep], groepIdx) => {
+    // Maand-header blok
+    const maandBlok = document.createElement('div');
+    maandBlok.className = 'cl-version-block' + (groepIdx === 0 ? ' open' : '');
+    maandBlok.style.marginBottom = '16px';
+
+    const maandHeader = document.createElement('div');
+    maandHeader.className = 'cl-version-header';
+   maandHeader.style.background = 'var(--border)';
+    maandHeader.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;">📆 ${groep.label}</span>
+        <span class="cl-version-meta">${groep.entries.length} release${groep.entries.length > 1 ? 's' : ''}</span>
+      </div>
+      <span class="cl-chevron">▼</span>`;
+
+  const maandBody = document.createElement('div');
+    maandBody.className = 'cl-version-body';
+    maandBody.style.padding = '8px 0 0 0';
+    maandBody.style.display = groepIdx === 0 ? 'block' : 'none';
+    if (groepIdx === 0) maandBlok.classList.add('open');
+    maandHeader.addEventListener('click', () => {
+      const isOpen = maandBlok.classList.toggle('open');
+      maandBody.style.display = isOpen ? 'block' : 'none';
+    });
+
+    // Versies binnen de maand
+groep.entries.forEach((entry, idx) => {
+      const block = document.createElement('div');
+      block.className = 'cl-version-block';
+      block.style.marginBottom = '8px';
+      const isLatest = groepIdx === 0 && idx === 0;
+
+      const header = document.createElement('div');
+      header.className = 'cl-version-header';
+      header.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="cl-version-tag">${entry.version}</span>
+          <span class="cl-version-meta">📅 ${entry.date}</span>
+        </div>
+        <span class="cl-chevron">▼</span>`;
+
+
+const body = document.createElement('div');
+      body.className = 'cl-version-body';
+      body.style.display = isLatest ? 'block' : 'none';
+      if (isLatest) block.classList.add('open');
+      header.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = block.classList.toggle('open');
+        body.style.display = isOpen ? 'block' : 'none';
+      });
+
+      const sections = [
+        { key: 'nieuw', icon: '✨', label: 'Nieuw' },
+        { key: 'verbeterd', icon: '🔧', label: 'Verbeterd' },
+        { key: 'bugfixes', icon: '🐛', label: 'Bugfixes' },
+      ];
+      sections.forEach(({ key, icon, label }) => {
+        if (!entry[key] || entry[key].length === 0) return;
+        const sec = document.createElement('div');
+        sec.className = 'cl-section';
+        sec.innerHTML = `<div class="cl-section-title">${icon} ${label}</div>` +
+          entry[key].map(item => `<div class="cl-item">• ${item}</div>`).join('');
+        body.appendChild(sec);
+      });
+
+      block.appendChild(header);
+      block.appendChild(body);
+      maandBody.appendChild(block);
+    });
+
+    maandBlok.appendChild(maandHeader);
+    maandBlok.appendChild(maandBody);
+    container.appendChild(maandBlok);
+  });
+}
+
+document.getElementById('version-badge').addEventListener('click', (e) => {
+  e.stopPropagation();
+  renderChangelog();
+  document.getElementById('changelog-modal').classList.add('show');
+});
+document.getElementById('cl-close-btn').addEventListener('click', () => {
+  document.getElementById('changelog-modal').classList.remove('show');
+});
+document.getElementById('changelog-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('changelog-modal'))
+    document.getElementById('changelog-modal').classList.remove('show');
+});
+
+// ── KETENMONITORING ───────────────────────────────────────────────────────────
+function renderKetenMonitoring() {
+  const body = document.getElementById('ketenmon-body');
+  body.innerHTML = '';
+
+  // Verzamel alle unieke ketens
+  const allKetens = new Set([
+    ...nodes.flatMap(n => getNodeKetens(n)),
+    ...arrows.flatMap(a => getArrowKetens(a))
+  ].filter(Boolean));
+
+  if (allKetens.size === 0) {
+    body.innerHTML = '<div class="km-empty">Geen ketens gevonden. Voeg ketens toe via het bewerkpaneel van vakjes of pijlen.</div>';
+    return;
+  }
+
+  [...allKetens].sort().forEach(keten => {
+    const ketenNodes  = nodes.filter(n  => getNodeKetens(n).includes(keten));
+    const ketenArrows = arrows.filter(a => getArrowKetens(a).includes(keten));
+    const total = ketenNodes.length + ketenArrows.length;
+
+    const block = document.createElement('div');
+    block.className = 'km-keten-block';
+
+    block.innerHTML = `
+      <div class="km-keten-header">
+        <span class="km-keten-name">🔗 ${keten}</span>
+        <span class="km-keten-count">${total} item${total !== 1 ? 's' : ''} — ${ketenNodes.length} vakje${ketenNodes.length !== 1 ? 's' : ''}, ${ketenArrows.length} pijl${ketenArrows.length !== 1 ? 'en' : ''}</span>
+      </div>
+      <div class="km-keten-rows">
+        ${ketenNodes.map(n => `
+          <div class="km-row">
+            <span class="km-type-badge km-type-node">Vakje</span>
+            <span class="km-row-name">${n.title || '—'}</span>
+            <span class="km-row-meta">${n.behandelaarsgroep || ''}</span>
+          </div>`).join('')}
+        ${ketenArrows.map(a => {
+          const fromNode = nodes.find(n => n.id === a.from);
+          const toNode   = nodes.find(n => n.id === a.to);
+          const label = a.label || `${fromNode?.title || '?'} → ${toNode?.title || '?'}`;
+          return `
+          <div class="km-row">
+            <span class="km-type-badge km-type-arrow">Pijl</span>
+            <span class="km-row-name">${label}</span>
+            <span class="km-row-meta">${a.behandelaarsgroep || ''}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    body.appendChild(block);
+  });
+}
+
+document.getElementById('btn-ketenmon').addEventListener('click', () => {
+  const isVisible = document.body.classList.toggle('keten-visible');
+  document.getElementById('btn-ketenmon').textContent = isVisible ? '✘ Ketenmonitoring' : '👁 Ketenmonitoring';
+  // Vul keten-tags in op alle nodes
+  nodes.forEach(n => {
+    const el = document.getElementById('nketens-' + n.id);
+    if (!el) return;
+    el.innerHTML = '';
+    const tags = Array.isArray(n.ketens) ? n.ketens : (n.keten ? [n.keten] : []);
+    tags.filter(Boolean).forEach(k => {
+      const tag = document.createElement('span');
+      tag.className = 'keten-tag';
+      tag.textContent = k;
+      el.appendChild(tag);
+    });
+  });
+});
+
+document.getElementById('ketenmon-close').addEventListener('click', () => {
+  document.getElementById('ketenmon-modal').classList.remove('show');
+});
+document.getElementById('ketenmon-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('ketenmon-modal'))
+    document.getElementById('ketenmon-modal').classList.remove('show');
+});
+
 async function generateViewerLink() {
   const data = JSON.stringify({
     nodes: nodes.map(n => ({...n, el: null})),
@@ -3029,11 +3790,10 @@ function createNewCanvas() {
   showToast('Nieuw canvas gestart');
 }
 
+// ── Acties dropdown ──
 const newProjectModal = document.getElementById('new-project-modal');
 const closeNewProjectModal = () => newProjectModal.classList.remove('show');
-document.getElementById('btn-new-project').addEventListener('click', () => {
-  newProjectModal.classList.add('show');
-});
+
 document.getElementById('btn-np-cancel').addEventListener('click', closeNewProjectModal);
 document.getElementById('btn-np-export').addEventListener('click', () => {
   exportProjectJson();
@@ -3045,34 +3805,67 @@ document.getElementById('btn-np-create').addEventListener('click', () => {
 });
 newProjectModal.addEventListener('click', (e) => {
   if (e.target === newProjectModal) closeNewProjectModal();
-  if (e.target === newProjectModal) closeNewProjectModal();
 });
 
-const exportDropdownWrapper = document.getElementById('export-dropdown-wrapper');
-const exportDropdown = document.getElementById('export-dropdown');
+const actiesBtn = document.getElementById('btn-acties');
+const actiesMenu = document.getElementById('acties-menu');
+const exportTrigger = document.getElementById('acties-export-trigger');
+const exportSubmenu = document.getElementById('export-submenu');
 
-document.getElementById('btn-export-dropdown').addEventListener('click', e => {
+document.getElementById('btn-new-project').addEventListener('click', (e) => {
   e.stopPropagation();
-  exportDropdown.style.display = exportDropdown.style.display === 'flex' ? 'none' : 'flex';
+  actiesMenu.classList.remove('show');
+  newProjectModal.classList.add('show');
 });
+actiesBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = actiesMenu.classList.toggle('show');
+  if (!open) exportSubmenu.classList.remove('show');
+});
+
+exportTrigger.addEventListener('mouseenter', () => {
+  exportSubmenu.classList.add('show');
+});
+exportTrigger.addEventListener('mouseleave', (e) => {
+  if (!exportSubmenu.contains(e.relatedTarget)) {
+    exportSubmenu.classList.remove('show');
+  }
+});
+exportSubmenu.addEventListener('mouseleave', (e) => {
+  if (!exportTrigger.contains(e.relatedTarget)) {
+    exportSubmenu.classList.remove('show');
+  }
+});
+exportTrigger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  exportSubmenu.classList.toggle('show');
+});
+
 document.getElementById('btn-export-json').addEventListener('click', () => {
   exportProjectJson();
-  exportDropdown.style.display = 'none';
+  actiesMenu.classList.remove('show');
+  exportSubmenu.classList.remove('show');
 });
-  
+
 document.getElementById('btn-export-img').addEventListener('click', () => {
-  exportDropdown.style.display = 'none';
+  actiesMenu.classList.remove('show');
+  exportSubmenu.classList.remove('show');
   document.getElementById('btn-export') && document.getElementById('btn-export').click();
 });
-  
-  // Actie voor de Viewer Link knop
-  document.getElementById('btn-share-viewer').addEventListener('click', () => {
-    generateViewerLink();
-    // Sluit het dropdown menu na het klikken
-    document.getElementById('export-dropdown').style.display = 'none';
-  });
-  
-window.addEventListener('click', () => { exportDropdown.style.display = 'none'; });
+
+document.getElementById('btn-share-viewer').addEventListener('click', () => {
+  generateViewerLink();
+  actiesMenu.classList.remove('show');
+  exportSubmenu.classList.remove('show');
+});
+
+window.addEventListener('click', () => {
+  actiesMenu.classList.remove('show');
+  exportSubmenu.classList.remove('show');
+});
+
+
+actiesMenu.addEventListener('click', (e) => e.stopPropagation());
 document.getElementById('btn-vl-copy').addEventListener('click', () => {
   const input = document.getElementById('viewer-link-input');
   navigator.clipboard.writeText(input.value).then(
