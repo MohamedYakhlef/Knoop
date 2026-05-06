@@ -289,6 +289,73 @@ node.shape-text {
   .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .node.search-active { border-color: var(--accent2) !important; box-shadow: 0 0 0 2px rgba(252,92,125,0.35) !important; }
   .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
+/* ── STOPLICHT STATUS ── */
+.node.km-status-green {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.4), 0 0 18px 4px rgba(34,197,94,0.3), 0 8px 28px rgba(34,197,94,0.15) !important;
+  transition: box-shadow .3s ease, border-color .3s ease;
+}
+.node.km-status-orange {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.4), 0 0 18px 4px rgba(249,115,22,0.3), 0 8px 28px rgba(249,115,22,0.15) !important;
+  transition: box-shadow .3s ease, border-color .3s ease;
+}
+.node.km-status-red {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239,68,68,0.4), 0 0 18px 4px rgba(239,68,68,0.3), 0 8px 28px rgba(239,68,68,0.15) !important;
+  transition: box-shadow .3s ease, border-color .3s ease;
+}
+
+/* Stoplicht picker widget */
+.km-traffic-wrap {
+  display: flex; align-items: center; gap: 6px; position: relative;
+}
+.km-traffic-btn {
+  font-size: 18px; cursor: pointer; line-height: 1; background: none; border: none;
+  padding: 2px 4px; border-radius: 4px; transition: transform .15s;
+  position: relative;
+}
+.km-traffic-btn:hover { transform: scale(1.2); }
+.km-status-indicator {
+  width: 10px; height: 10px; border-radius: 50%; display: none;
+  flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15);
+}
+.km-status-indicator.visible { display: block; }
+.km-traffic-picker {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+  padding: 8px 10px; display: none; flex-direction: column; gap: 6px;
+  z-index: 3000; min-width: 110px;
+}
+.km-traffic-picker.open { display: flex; }
+.km-picker-label {
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px;
+}
+.km-picker-dots {
+  display: flex; gap: 10px; align-items: center; justify-content: center;
+}
+.km-dot {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform .15s, border-color .15s, box-shadow .15s;
+  flex-shrink: 0;
+}
+.km-dot:hover { transform: scale(1.25); }
+.km-dot.active { border-color: #fff; box-shadow: 0 0 0 2px currentColor; }
+.km-dot-green  { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+.km-dot-orange { background: #f97316; box-shadow: 0 0 6px rgba(249,115,22,0.5); }
+.km-dot-red    { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+.km-dot-green:hover  { box-shadow: 0 0 12px rgba(34,197,94,0.8); }
+.km-dot-orange:hover { box-shadow: 0 0 12px rgba(249,115,22,0.8); }
+.km-dot-red:hover    { box-shadow: 0 0 12px rgba(239,68,68,0.8); }
+.km-dot-clear {
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-dim);
+  cursor: pointer; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--surface2); text-align: center; transition: all .15s;
+}
+.km-dot-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+
 .node.dimmed { opacity: 0.25; transition: opacity 0.3s ease; }
 .node.connected-highlight {
   border-color: var(--accent3) !important;
@@ -767,7 +834,7 @@ body.keten-visible .node-keten-tags {
         <div id="export-submenu">
           <div class="acties-item" id="btn-export-json">💾 Download bestand</div>
           <div class="acties-item" id="btn-export-img">🖼️ Opslaan als afbeelding</div>
-          <div class="acties-item" id="btn-share-viewer">🔗 View-only link delen</div>
+          <div class="acties-item" id="btn-share-viewer">🔗 Alleen-lezen link delen</div>
         </div>
       </div>
     </div>
@@ -956,7 +1023,23 @@ body.keten-visible .node-keten-tags {
       <div class="field" id="wrap-bitteam"><label>BIT TEAM</label><input type="text" id="f-bitteam"></div>
       <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
       <div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
-      <div class="field" id="wrap-ketenmonitoring"><label>Ketenmonitoring</label><input type="text" id="f-ketenmonitoring" placeholder="Alert / Monitoring..."></div>
+      <div class="field" id="wrap-ketenmonitoring">
+        <label>Ketenmonitoring</label>
+        <div class="km-traffic-wrap">
+          <input type="text" id="f-ketenmonitoring" placeholder="bijv. Keten A, Monitoring..." style="flex:1;">
+          <button class="km-traffic-btn" id="km-traffic-node-btn" title="Stel stoplicht status in">🚦</button>
+          <div class="km-status-indicator" id="km-status-node-indicator"></div>
+          <div class="km-traffic-picker" id="km-traffic-node-picker">
+            <div class="km-picker-label">Status</div>
+            <div class="km-picker-dots">
+              <div class="km-dot km-dot-green"  data-status="green"  title="Groen"></div>
+              <div class="km-dot km-dot-orange" data-status="orange" title="Oranje"></div>
+              <div class="km-dot km-dot-red"    data-status="red"    title="Rood"></div>
+            </div>
+            <div class="km-dot-clear" id="km-clear-node">✕ Wissen</div>
+          </div>
+        </div>
+      </div>
       <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
       <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
@@ -1011,7 +1094,23 @@ body.keten-visible .node-keten-tags {
       <div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
       <div class="field"><label>Leverancier</label><input type="text" id="f-arrow-leverancier"></div>
       <div class="field"><label>Servicelevel</label><input type="text" id="f-arrow-servicelevel"></div>
-      <div class="field"><label>Ketenmonitoring</label><input type="text" id="f-arrow-ketenmonitoring" placeholder="bijv. Keten A, Monitoring..."></div>
+      <div class="field">
+        <label>Ketenmonitoring</label>
+        <div class="km-traffic-wrap">
+          <input type="text" id="f-arrow-ketenmonitoring" placeholder="bijv. Keten A, Monitoring..." style="flex:1;">
+          <button class="km-traffic-btn" id="km-traffic-arrow-btn" title="Stel stoplicht status in">🚦</button>
+          <div class="km-status-indicator" id="km-status-arrow-indicator"></div>
+          <div class="km-traffic-picker" id="km-traffic-arrow-picker">
+            <div class="km-picker-label">Status</div>
+            <div class="km-picker-dots">
+              <div class="km-dot km-dot-green"  data-status="green"  title="Groen"></div>
+              <div class="km-dot km-dot-orange" data-status="orange" title="Oranje"></div>
+              <div class="km-dot km-dot-red"    data-status="red"    title="Rood"></div>
+            </div>
+            <div class="km-dot-clear" id="km-clear-arrow">✕ Wissen</div>
+          </div>
+        </div>
+      </div>
       <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
       <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
@@ -1229,6 +1328,7 @@ if (n.pinned) {
   n.el.querySelector('.pin').title = pinMode;
 }
 renderNode(n);
+    applyNodeKmStatus(n);
 });
 data.arrows.forEach(ad => {
     const a = createArrow(ad.from, ad.to, ad.fromPort, ad.toPort, ad.id);
@@ -1243,6 +1343,7 @@ data.arrows.forEach(ad => {
     Object.assign(a, ad);     // laad opgeslagen data (overschrijft SVG-refs met null)
     Object.assign(a, savedEls); // herstel alle SVG-referenties
     updateArrow(a);
+    applyArrowKmStatus(a);
 });
   updateAllDots(); isRestoring = false;
 }
@@ -1429,7 +1530,7 @@ const node = {
     noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
     showImg: true, img: '', 
     showNote: true,                    // ← NIEUWE REGEL
-   keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', ketenmonitoring: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
+   keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', ketenmonitoring: '', ketenmonitoringStatus: null, filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
 if (shape === 'text') {
@@ -1506,6 +1607,7 @@ function duplicateNode(sourceNode) {
     leverancier: sourceNode.leverancier || '',
     servicelevel: sourceNode.servicelevel || '',
     ketenmonitoring: sourceNode.ketenmonitoring || '',
+    ketenmonitoringStatus: sourceNode.ketenmonitoringStatus || null,
     filterLabel: sourceNode.filterLabel || '',
     rotation: sourceNode.rotation || 0,
     pinned: false,
@@ -1842,7 +1944,7 @@ markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('mar
 const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 markerStartPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', '#7c5cfc');
 markerStartEl.appendChild(markerStartPathEl); document.querySelector('defs').appendChild(markerStartEl);
-const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], interface: '', interfaces: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', ketenmonitoring: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };      arrows.push(arrow);
+const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], interface: '', interfaces: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', ketenmonitoring: '', ketenmonitoringStatus: null, bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };      arrows.push(arrow);
 
   hitEl.addEventListener('click', e => {
     if (currentTool === 'eraser') { if(confirm('Pijl wissen?')){ deleteArrow(id); saveState(); } }
@@ -1890,11 +1992,16 @@ let d = '';
   }
 
 arrow.bgPathEl.setAttribute('d', d); arrow.pathEl.setAttribute('d', d); arrow.hitEl.setAttribute('d', d);
-  arrow.pathEl.style.stroke = arrow.color;
+  // Gebruik km-status kleur als die is ingesteld, anders de normale kleur
+  const kmColors = { green: '#22c55e', orange: '#f97316', red: '#ef4444' };
+  const effectiveColor = (arrow.ketenmonitoringStatus && kmColors[arrow.ketenmonitoringStatus])
+    ? kmColors[arrow.ketenmonitoringStatus]
+    : arrow.color;
+  arrow.pathEl.style.stroke = effectiveColor;
   
   // --- NIEUW: Kleur van de punt gelijktrekken met de pijl ---
-  if (arrow.markerPathEl) arrow.markerPathEl.setAttribute('fill', arrow.color);
-if (arrow.markerStartPathEl) arrow.markerStartPathEl.setAttribute('fill', arrow.color);
+  if (arrow.markerPathEl) arrow.markerPathEl.setAttribute('fill', effectiveColor);
+if (arrow.markerStartPathEl) arrow.markerStartPathEl.setAttribute('fill', effectiveColor);
 arrow.pathEl.setAttribute('marker-start', arrow.bidirectional ? `url(#${arrow.markerStartEl.id})` : '');
 
   const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
@@ -2461,6 +2568,7 @@ function applyLiveNodeChanges(n) {
   n.leverancier = document.getElementById('f-leverancier').value;
   n.servicelevel = document.getElementById('f-servicelevel').value;
   n.ketenmonitoring = document.getElementById('f-ketenmonitoring').value;
+  applyNodeKmStatus(n);
   n.showImg = document.getElementById('f-show-image').checked;
   n.showNote = document.getElementById('f-show-note').checked;
   n.filterLabel = document.getElementById('f-node-label').value;
@@ -2521,6 +2629,129 @@ document.getElementById('btn-text-italic').addEventListener('click', () => { con
 document.getElementById('btn-note-bold').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.noteFontWeight = n.noteFontWeight==='bold'?'normal':'bold'; applyLiveNodeChanges(n); });
 document.getElementById('btn-note-italic').addEventListener('click', () => { const n = nodes.find(x=>x.id===panelTarget.id); n.noteFontStyle = n.noteFontStyle==='italic'?'normal':'italic'; applyLiveNodeChanges(n); });
 
+// ── KETENMONITORING STATUS (STOPLICHT) ────────────────────────────────────────
+const KM_STATUS_COLORS = { green: '#22c55e', orange: '#f97316', red: '#ef4444' };
+
+function applyNodeKmStatus(n) {
+  n.el.classList.remove('km-status-green','km-status-orange','km-status-red');
+  if (n.ketenmonitoringStatus && KM_STATUS_COLORS[n.ketenmonitoringStatus]) {
+    n.el.classList.add('km-status-' + n.ketenmonitoringStatus);
+  }
+}
+
+function applyArrowKmStatus(a) {
+  // Verwijder bestaande kleur-filter
+  if (a._kmFilter) { try { a._kmFilter.remove(); } catch(e){} a._kmFilter = null; }
+  a.pathEl.style.filter = '';
+
+  if (!a.ketenmonitoringStatus) { updateArrow(a); return; }
+  const c = KM_STATUS_COLORS[a.ketenmonitoringStatus];
+  if (!c) { updateArrow(a); return; }
+
+  // Voeg SVG filter toe voor gloed
+  const filterId = 'km-glow-' + a.id;
+  const svgDefs = svgLayer.querySelector('defs') || (() => {
+    const d = document.createElementNS('http://www.w3.org/2000/svg','defs');
+    svgLayer.insertBefore(d, svgLayer.firstChild); return d;
+  })();
+
+  let filt = document.getElementById(filterId);
+  if (!filt) {
+    filt = document.createElementNS('http://www.w3.org/2000/svg','filter');
+    filt.setAttribute('id', filterId);
+    filt.setAttribute('x','-60%'); filt.setAttribute('y','-60%');
+    filt.setAttribute('width','220%'); filt.setAttribute('height','220%');
+    const fe = document.createElementNS('http://www.w3.org/2000/svg','feDropShadow');
+    fe.setAttribute('dx','0'); fe.setAttribute('dy','0'); fe.setAttribute('stdDeviation','5');
+    filt.appendChild(fe);
+    svgDefs.appendChild(filt);
+    a._kmFilter = filt;
+  }
+  filt.querySelector('feDropShadow').setAttribute('flood-color', c);
+  filt.querySelector('feDropShadow').setAttribute('flood-opacity', '0.9');
+  a.pathEl.style.filter = `url(#${filterId})`;
+  updateArrow(a);
+}
+
+// Initialiseer stoplicht picker voor een paneel-type ('node' of 'arrow')
+function initKmPicker(type, getTarget, afterSet) {
+  const btnId   = 'km-traffic-' + type + '-btn';
+  const pickId  = 'km-traffic-' + type + '-picker';
+  const indId   = 'km-status-'  + type + '-indicator';
+  const clearId = 'km-clear-' + type;
+
+  const btn  = document.getElementById(btnId);
+  const pick = document.getElementById(pickId);
+  const ind  = document.getElementById(indId);
+
+  if (!btn || !pick) return;
+
+  // Sluit picker bij klik buiten
+  const outsideClose = (e) => {
+    if (!pick.contains(e.target) && e.target !== btn) {
+      pick.classList.remove('open');
+      document.removeEventListener('click', outsideClose, true);
+    }
+  };
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = pick.classList.toggle('open');
+    if (isOpen) setTimeout(() => document.addEventListener('click', outsideClose, true), 10);
+  };
+
+  // Update indicator kleur
+  const updateIndicator = (status) => {
+    if (status && KM_STATUS_COLORS[status]) {
+      ind.style.background = KM_STATUS_COLORS[status];
+      ind.style.boxShadow  = `0 0 5px ${KM_STATUS_COLORS[status]}`;
+      ind.classList.add('visible');
+    } else {
+      ind.classList.remove('visible');
+      ind.style.background = '';
+      ind.style.boxShadow  = '';
+    }
+  };
+
+  // Kleur-dots
+  pick.querySelectorAll('.km-dot[data-status]').forEach(dot => {
+    dot.onclick = (e) => {
+      e.stopPropagation();
+      const status = dot.dataset.status;
+      const target = getTarget();
+      if (!target) return;
+      target.ketenmonitoringStatus = status;
+      pick.querySelectorAll('.km-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      updateIndicator(status);
+      pick.classList.remove('open');
+      afterSet(target);
+    };
+  });
+
+  // Wissen
+  document.getElementById(clearId).onclick = (e) => {
+    e.stopPropagation();
+    const target = getTarget();
+    if (!target) return;
+    target.ketenmonitoringStatus = null;
+    pick.querySelectorAll('.km-dot').forEach(d => d.classList.remove('active'));
+    updateIndicator(null);
+    pick.classList.remove('open');
+    afterSet(target);
+  };
+
+  // Stel huidige status in
+  return (status) => {
+    pick.querySelectorAll('.km-dot').forEach(d => d.classList.remove('active'));
+    if (status) {
+      const active = pick.querySelector(`.km-dot[data-status="${status}"]`);
+      if (active) active.classList.add('active');
+    }
+    updateIndicator(status);
+  };
+}
+
 function openNodePanel(id, editMode = false) {
   const n = nodes.find(x => x.id === id); if(!n) return; panelTarget = { type: 'node', id }; panel.classList.add('open');
   
@@ -2543,6 +2774,12 @@ function openNodePanel(id, editMode = false) {
     document.getElementById('f-leverancier').value = n.leverancier || '';
     document.getElementById('f-servicelevel').value = n.servicelevel || '';
     document.getElementById('f-ketenmonitoring').value = n.ketenmonitoring || '';
+    // Stoplicht picker voor nodes
+    const setNodeKmStatus = initKmPicker('node',
+      () => nodes.find(x => x.id === id),
+      (target) => { applyNodeKmStatus(target); saveState(); }
+    );
+    if (setNodeKmStatus) setNodeKmStatus(n.ketenmonitoringStatus);
     document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
     document.getElementById('f-node-label').value = n.filterLabel || '';
     document.getElementById('f-font-size').value = n.fontSize || 14;
@@ -3010,6 +3247,12 @@ function openArrowPanelEdit(id) {
   document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
   document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
   document.getElementById('f-arrow-ketenmonitoring').value = a.ketenmonitoring || '';
+  // Stoplicht picker voor pijlen
+  const setArrowKmStatus = initKmPicker('arrow',
+    () => arrows.find(x => x.id === id),
+    (target) => { applyArrowKmStatus(target); saveState(); }
+  );
+  if (setArrowKmStatus) setArrowKmStatus(a.ketenmonitoringStatus);
   
   // Zorg dat de kleur in het palet wordt geladen
   document.getElementById('f-arrow-color').value = a.color; 
@@ -3085,6 +3328,7 @@ function openArrowPanelEdit(id) {
 
 function syncArrow() {
     applyArrowFormToModel(a);
+    applyArrowKmStatus(a);
     updateArrow(a); updateAllDots();
   }
 
