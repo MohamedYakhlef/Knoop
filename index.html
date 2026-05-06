@@ -767,7 +767,7 @@ body.keten-visible .node-keten-tags {
         <div id="export-submenu">
           <div class="acties-item" id="btn-export-json">💾 Download bestand</div>
           <div class="acties-item" id="btn-export-img">🖼️ Opslaan als afbeelding</div>
-          <div class="acties-item" id="btn-share-viewer">🔗 Alleen-lezen link delen</div>
+          <div class="acties-item" id="btn-share-viewer">🔗 View-only link delen</div>
         </div>
       </div>
     </div>
@@ -956,6 +956,7 @@ body.keten-visible .node-keten-tags {
       <div class="field" id="wrap-bitteam"><label>BIT TEAM</label><input type="text" id="f-bitteam"></div>
       <div class="field" id="wrap-leverancier"><label>Leverancier</label><input type="text" id="f-leverancier"></div>
       <div class="field" id="wrap-servicelevel"><label>Servicelevel</label><input type="text" id="f-servicelevel"></div>
+      <div class="field" id="wrap-ketenmonitoring"><label>Ketenmonitoring</label><input type="text" id="f-ketenmonitoring" placeholder="Alert / Monitoring..."></div>
       <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
       <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-node-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
@@ -1010,6 +1011,7 @@ body.keten-visible .node-keten-tags {
       <div class="field"><label>Behandelaarsgroep</label><input type="text" id="f-arrow-behandelaarsgroep"></div>
       <div class="field"><label>Leverancier</label><input type="text" id="f-arrow-leverancier"></div>
       <div class="field"><label>Servicelevel</label><input type="text" id="f-arrow-servicelevel"></div>
+      <div class="field"><label>Ketenmonitoring</label><input type="text" id="f-arrow-ketenmonitoring" placeholder="bijv. Keten A, Monitoring..."></div>
       <div style="border-top:1px solid var(--border);margin:12px 0 16px;"></div>
       <div class="field"><label style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Filter</label><input type="text" id="f-arrow-filter-label" placeholder="bijv. Fase 1, Team A…"></div>
     </div>
@@ -1427,7 +1429,7 @@ const node = {
     noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
     showImg: true, img: '', 
     showNote: true,                    // ← NIEUWE REGEL
-   keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
+   keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', ketenmonitoring: '', filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
 if (shape === 'text') {
@@ -1503,6 +1505,7 @@ function duplicateNode(sourceNode) {
     behandelaarsgroep: sourceNode.behandelaarsgroep || '',
     leverancier: sourceNode.leverancier || '',
     servicelevel: sourceNode.servicelevel || '',
+    ketenmonitoring: sourceNode.ketenmonitoring || '',
     filterLabel: sourceNode.filterLabel || '',
     rotation: sourceNode.rotation || 0,
     pinned: false,
@@ -1839,7 +1842,7 @@ markerStartEl.setAttribute('id', markerStartId); markerStartEl.setAttribute('mar
 const markerStartPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 markerStartPathEl.setAttribute('d', 'M0,0 L0,6 L8,3 z'); markerStartPathEl.setAttribute('fill', '#7c5cfc');
 markerStartEl.appendChild(markerStartPathEl); document.querySelector('defs').appendChild(markerStartEl);
-const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], interface: '', interfaces: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };      arrows.push(arrow);
+const arrow = { id, from: fromId, to: toId, fromPort, toPort, label: '', shape: 'straight', color: '#7c5cfc', anim: 'normal', style: 'dot', note: '', showNote: false, url: '', filterLabel: '', keten: '', ketens: [], interface: '', interfaces: [], behandelaarsgroep: '', bitteam: '', leverancier: '', servicelevel: '', ketenmonitoring: '', bidirectional: false, pathEl, bgPathEl, hitEl, dotEl, dotEl2, labelEl, noteEl, urlLinkEl, urlIconEl, _animFrame: null, dashOffset: 0, markerEl, markerPathEl, markerStartEl, markerStartPathEl };      arrows.push(arrow);
 
   hitEl.addEventListener('click', e => {
     if (currentTool === 'eraser') { if(confirm('Pijl wissen?')){ deleteArrow(id); saveState(); } }
@@ -2457,6 +2460,7 @@ function applyLiveNodeChanges(n) {
   n.bitteam = document.getElementById('f-bitteam').value;
   n.leverancier = document.getElementById('f-leverancier').value;
   n.servicelevel = document.getElementById('f-servicelevel').value;
+  n.ketenmonitoring = document.getElementById('f-ketenmonitoring').value;
   n.showImg = document.getElementById('f-show-image').checked;
   n.showNote = document.getElementById('f-show-note').checked;
   n.filterLabel = document.getElementById('f-node-label').value;
@@ -2538,6 +2542,7 @@ function openNodePanel(id, editMode = false) {
     document.getElementById('f-bitteam').value = n.bitteam || '';
     document.getElementById('f-leverancier').value = n.leverancier || '';
     document.getElementById('f-servicelevel').value = n.servicelevel || '';
+    document.getElementById('f-ketenmonitoring').value = n.ketenmonitoring || '';
     document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
     document.getElementById('f-node-label').value = n.filterLabel || '';
     document.getElementById('f-font-size').value = n.fontSize || 14;
@@ -2574,7 +2579,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
 
 
 
-['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
+['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-ketenmonitoring','f-show-image','f-show-note','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
   document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
   document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
 });
@@ -2621,6 +2626,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
       ${n.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${n.bitteam}</div></div>` : ''}
       ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
       ${n.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${n.servicelevel}</div></div>` : ''}
+      ${n.ketenmonitoring ? `<div class="view-line"><div class="view-label">Ketenmonitoring</div><div class="view-value">${n.ketenmonitoring}</div></div>` : ''}
       ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
     `;
     const btnViewDelete = document.getElementById('btn-view-delete');
@@ -2656,6 +2662,7 @@ document.getElementById('panel-view').style.display = 'block';
     ${a.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${a.bitteam}</div></div>` : ''}
     ${a.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${a.leverancier}</div></div>` : ''}
     ${a.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${a.servicelevel}</div></div>` : ''}
+    ${a.ketenmonitoring ? `<div class="view-line"><div class="view-label">Ketenmonitoring</div><div class="view-value">${a.ketenmonitoring}</div></div>` : ''}
     <div class="view-line"><div class="view-label">Stijl</div><div class="view-value">${a.shape === 'curve' ? 'Gebogen' : 'Recht'} · ${a.style === 'dot' ? 'Balletje' : 'Streepjes'}</div></div>
   `;
 }
@@ -3002,6 +3009,7 @@ function openArrowPanelEdit(id) {
   document.getElementById('f-arrow-behandelaarsgroep').value = a.behandelaarsgroep || '';
   document.getElementById('f-arrow-leverancier').value = a.leverancier || '';
   document.getElementById('f-arrow-servicelevel').value = a.servicelevel || '';
+  document.getElementById('f-arrow-ketenmonitoring').value = a.ketenmonitoring || '';
   
   // Zorg dat de kleur in het palet wordt geladen
   document.getElementById('f-arrow-color').value = a.color; 
@@ -3071,6 +3079,7 @@ function openArrowPanelEdit(id) {
     targetArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
     targetArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
     targetArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
+    targetArrow.ketenmonitoring = document.getElementById('f-arrow-ketenmonitoring').value;
     targetArrow.showNote = document.getElementById('f-arrow-show-note').checked;
   }
 
@@ -3079,7 +3088,7 @@ function syncArrow() {
     updateArrow(a); updateAllDots();
   }
 
-['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label','f-arrow-bidirectional','f-arrow-behandelaarsgroep','f-arrow-leverancier','f-arrow-servicelevel'].forEach(fid => {
+['f-arrow-label','f-arrow-shape','f-arrow-anim','f-arrow-style','f-arrow-color','f-arrow-note','f-arrow-url','f-arrow-show-note','f-arrow-filter-label','f-arrow-bidirectional','f-arrow-behandelaarsgroep','f-arrow-leverancier','f-arrow-servicelevel','f-arrow-ketenmonitoring'].forEach(fid => {
     document.getElementById(fid).oninput = syncArrow;
     document.getElementById(fid).onchange = syncArrow;
   });
@@ -3114,6 +3123,7 @@ document.getElementById('panel-save').onclick = () => {
       activeArrow.behandelaarsgroep = document.getElementById('f-arrow-behandelaarsgroep').value;
       activeArrow.leverancier = document.getElementById('f-arrow-leverancier').value;
       activeArrow.servicelevel = document.getElementById('f-arrow-servicelevel').value;
+      activeArrow.ketenmonitoring = document.getElementById('f-arrow-ketenmonitoring').value;
       activeArrow.showNote = document.getElementById('f-arrow-show-note').checked;
       updateArrow(activeArrow);
       updateAllDots();
@@ -3694,21 +3704,39 @@ function renderKetenMonitoring() {
 }
 
 document.getElementById('btn-ketenmon').addEventListener('click', () => {
-  const isVisible = document.body.classList.toggle('keten-visible');
-  document.getElementById('btn-ketenmon').textContent = isVisible ? '✘ Ketenmonitoring' : '👁 Ketenmonitoring';
-  // Vul keten-tags in op alle nodes
+  const btn = document.getElementById('btn-ketenmon');
+  const isHiding = !btn.classList.contains('active');
+  btn.classList.toggle('active', isHiding);
+  btn.textContent = isHiding ? '✘ Ketenmonitoring' : '👁 Ketenmonitoring';
+
+  // Verberg nodes met ingevuld ketenmonitoring-veld
   nodes.forEach(n => {
-    const el = document.getElementById('nketens-' + n.id);
-    if (!el) return;
-    el.innerHTML = '';
-    const tags = Array.isArray(n.ketens) ? n.ketens : (n.keten ? [n.keten] : []);
-    tags.filter(Boolean).forEach(k => {
-      const tag = document.createElement('span');
-      tag.className = 'keten-tag';
-      tag.textContent = k;
-      el.appendChild(tag);
-    });
+    if (n.ketenmonitoring && n.ketenmonitoring.trim()) {
+      n.el.style.visibility = isHiding ? 'hidden' : '';
+      n.el.style.pointerEvents = isHiding ? 'none' : '';
+    }
   });
+
+  // Verberg pijlen met ingevuld ketenmonitoring-veld
+  arrows.forEach(a => {
+    if (a.ketenmonitoring && a.ketenmonitoring.trim()) {
+      const opacity = isHiding ? '0' : '';
+      const pe = isHiding ? 'none' : '';
+      if (a.pathEl)    { a.pathEl.style.opacity = opacity; a.pathEl.style.pointerEvents = pe; }
+      if (a.bgPathEl)  { a.bgPathEl.style.opacity = opacity; }
+      if (a.hitEl)     { a.hitEl.style.pointerEvents = pe; }
+      if (a.dotEl)     { a.dotEl.style.opacity = opacity; }
+      if (a.dotEl2)    { a.dotEl2.style.opacity = opacity; }
+      if (a.labelEl)   { a.labelEl.style.opacity = opacity; }
+      if (a.noteEl)    { a.noteEl.style.opacity = opacity; }
+      if (a.urlIconEl) { a.urlIconEl.style.opacity = opacity; }
+    }
+  });
+
+  const count = nodes.filter(n => n.ketenmonitoring && n.ketenmonitoring.trim()).length
+              + arrows.filter(a => a.ketenmonitoring && a.ketenmonitoring.trim()).length;
+  if (isHiding) showToast(`${count} object${count !== 1 ? 'en' : ''} verborgen via Ketenmonitoring`);
+  else showToast('Ketenmonitoring objecten weer zichtbaar');
 });
 
 document.getElementById('ketenmon-close').addEventListener('click', () => {
