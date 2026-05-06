@@ -2640,36 +2640,21 @@ function applyNodeKmStatus(n) {
 }
 
 function applyArrowKmStatus(a) {
-  // Verwijder bestaande kleur-filter
+  // Reset
   if (a._kmFilter) { try { a._kmFilter.remove(); } catch(e){} a._kmFilter = null; }
   a.pathEl.style.filter = '';
+  a.bgPathEl.style.stroke = '';
+  a.bgPathEl.style.strokeWidth = '';
+  a.bgPathEl.style.opacity = '';
 
   if (!a.ketenmonitoringStatus) { updateArrow(a); return; }
   const c = KM_STATUS_COLORS[a.ketenmonitoringStatus];
   if (!c) { updateArrow(a); return; }
 
-  // Voeg SVG filter toe voor gloed
-  const filterId = 'km-glow-' + a.id;
-  const svgDefs = svgLayer.querySelector('defs') || (() => {
-    const d = document.createElementNS('http://www.w3.org/2000/svg','defs');
-    svgLayer.insertBefore(d, svgLayer.firstChild); return d;
-  })();
-
-  let filt = document.getElementById(filterId);
-  if (!filt) {
-    filt = document.createElementNS('http://www.w3.org/2000/svg','filter');
-    filt.setAttribute('id', filterId);
-    filt.setAttribute('x','-60%'); filt.setAttribute('y','-60%');
-    filt.setAttribute('width','220%'); filt.setAttribute('height','220%');
-    const fe = document.createElementNS('http://www.w3.org/2000/svg','feDropShadow');
-    fe.setAttribute('dx','0'); fe.setAttribute('dy','0'); fe.setAttribute('stdDeviation','5');
-    filt.appendChild(fe);
-    svgDefs.appendChild(filt);
-    a._kmFilter = filt;
-  }
-  filt.querySelector('feDropShadow').setAttribute('flood-color', c);
-  filt.querySelector('feDropShadow').setAttribute('flood-opacity', '0.9');
-  a.pathEl.style.filter = `url(#${filterId})`;
+  // Glow via bgPathEl — geen filter op pathEl zodat pijlpunten intact blijven
+  a.bgPathEl.style.stroke = c;
+  a.bgPathEl.style.strokeWidth = '8';
+  a.bgPathEl.style.opacity = '0.45';
   updateArrow(a);
 }
 
@@ -3953,17 +3938,17 @@ document.getElementById('btn-ketenmon').addEventListener('click', () => {
   btn.classList.toggle('active', isHiding);
   btn.textContent = isHiding ? '✘ Ketenmonitoring' : '👁 Ketenmonitoring';
 
-  // Verberg nodes met ingevuld ketenmonitoring-veld
+// Verberg nodes met een stoplicht status
   nodes.forEach(n => {
-    if (n.ketenmonitoring && n.ketenmonitoring.trim()) {
+    if (n.ketenmonitoringStatus) {
       n.el.style.visibility = isHiding ? 'hidden' : '';
       n.el.style.pointerEvents = isHiding ? 'none' : '';
     }
   });
 
-  // Verberg pijlen met ingevuld ketenmonitoring-veld
+  // Verberg pijlen met een stoplicht status
   arrows.forEach(a => {
-    if (a.ketenmonitoring && a.ketenmonitoring.trim()) {
+    if (a.ketenmonitoringStatus) {
       const opacity = isHiding ? '0' : '';
       const pe = isHiding ? 'none' : '';
       if (a.pathEl)    { a.pathEl.style.opacity = opacity; a.pathEl.style.pointerEvents = pe; }
@@ -3977,8 +3962,8 @@ document.getElementById('btn-ketenmon').addEventListener('click', () => {
     }
   });
 
-  const count = nodes.filter(n => n.ketenmonitoring && n.ketenmonitoring.trim()).length
-              + arrows.filter(a => a.ketenmonitoring && a.ketenmonitoring.trim()).length;
+  const count = nodes.filter(n => n.ketenmonitoringStatus).length
+              + arrows.filter(a => a.ketenmonitoringStatus).length;
   if (isHiding) showToast(`${count} object${count !== 1 ? 'en' : ''} verborgen via Ketenmonitoring`);
   else showToast('Ketenmonitoring objecten weer zichtbaar');
 });
