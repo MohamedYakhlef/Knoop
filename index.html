@@ -208,27 +208,31 @@
   .route-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   /* ── NODE CARDS ── */
-  .node {
-    position: absolute; width: 220px; min-height: 50px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; cursor: grab; transition: border-color .15s, box-shadow .15s, filter .3s ease;
-    box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden;
-  }
+.node {
+  position: absolute; width: 220px; min-height: 50px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; cursor: grab; transition: border-color .15s, box-shadow .15s, filter .3s ease;
+  box-shadow: var(--shadow); display: flex; flex-direction: column;
+  overflow: visible;
+}
+.node-thumb, .node-body { overflow: hidden; }
+.node-footer { overflow: visible; }
 /* Basis stijlen voor vormen */
 /* --- VORM DEFINITIES --- */
 
   /* 1. Ovaal */
 .node.shape-oval { 
-    border-radius: 100px; 
-    padding: 10px 20px; 
-    align-items: center; 
-    justify-content: center; 
-  }
+  border-radius: 100px; 
+  padding: 10px 20px; 
+  align-items: center; 
+  justify-content: center;
+  overflow: visible;
+}
+.node.shape-oval .node-thumb {
+  border-radius: 100px 100px 0 0;
+  overflow: hidden;
+}
   
-  /* Zet het icoontje binnen het gekleurde vlak van de ovaal */
-  .node.shape-oval .resize-handle {
-    right: 20px !important;
-    bottom: 5px !important;
-  }
+
 
   .node.shape-area { border: 2px dashed var(--border) !important; z-index: 1 !important; }
   
@@ -260,12 +264,14 @@ node.shape-text {
 
 /* Positie en zichtbaarheid basis voor ovaal en gebied */
 .node.shape-oval .resize-handle,
-.node.shape-area .resize-handle {
-    display: block !important;      /* altijd aanwezig in DOM */
+.node.shape-area .resize-handle,
+.node.shape-circle .resize-handle {
+    display: block !important;
     visibility: visible !important;
-    right: 32px !important;         /* verder naar binnen (binnen de ronding) */
-    bottom: 18px !important;
+    right: -16px !important;
+    bottom: -16px !important;
     z-index: 20 !important;
+    position: absolute !important;
 }
 
 /* Hover: alleen dan zichtbaar (zoals bij normale vierkanten) */
@@ -292,18 +298,21 @@ node.shape-text {
 /* ── STOPLICHT STATUS ── */
 .node.km-status-green {
   border-color: #22c55e !important;
+  background-color: #22c55e !important;
   box-shadow: 0 0 0 2px rgba(34,197,94,0.4), 0 0 18px 4px rgba(34,197,94,0.3), 0 8px 28px rgba(34,197,94,0.15) !important;
-  transition: box-shadow .3s ease, border-color .3s ease;
+  transition: box-shadow .3s ease, border-color .3s ease, background-color .3s ease;
 }
 .node.km-status-orange {
   border-color: #f97316 !important;
+  background-color: #f97316 !important;
   box-shadow: 0 0 0 2px rgba(249,115,22,0.4), 0 0 18px 4px rgba(249,115,22,0.3), 0 8px 28px rgba(249,115,22,0.15) !important;
-  transition: box-shadow .3s ease, border-color .3s ease;
+  transition: box-shadow .3s ease, border-color .3s ease, background-color .3s ease;
 }
 .node.km-status-red {
   border-color: #ef4444 !important;
+  background-color: #ef4444 !important;
   box-shadow: 0 0 0 2px rgba(239,68,68,0.4), 0 0 18px 4px rgba(239,68,68,0.3), 0 8px 28px rgba(239,68,68,0.15) !important;
-  transition: box-shadow .3s ease, border-color .3s ease;
+  transition: box-shadow .3s ease, border-color .3s ease, background-color .3s ease;
 }
 
 /* Stoplicht picker widget */
@@ -427,6 +436,7 @@ body.keten-visible .node-keten-tags {
 .node-footer {
     display: flex; justify-content: flex-start; gap: 4px; padding: 6px 10px 8px;
     border-top: none; margin-top: auto; flex: 0 0 auto;
+    overflow: visible;
   }
  .node.shape-text .node-footer { display: flex; justify-content: flex-start; padding: 6px 8px 6px; }
 
@@ -447,9 +457,9 @@ body.keten-visible .node-keten-tags {
 }
   
 .node-btn {
-    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2);
+    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface);
     color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all .15s;
-    opacity: 0;
+    opacity: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   }
   .node:hover .node-btn { opacity: 1; }
   .node-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -460,9 +470,13 @@ body.keten-visible .node-keten-tags {
 .node-btn.pin.pinned { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 .node.pinned { cursor: default !important; }
 .node.pinned .resize-handle { display: none; }
+.node.is-compact .node-footer { display: none; }
+.node.is-mini .node-body { visibility: hidden; }
+.node.is-mini .node-thumb { display: none !important; }
 
-  .node .resize-handle {
-    position: absolute; bottom: 8px; right: 8px; width: 18px; height: 18px; cursor: nwse-resize; opacity: 0; transition: opacity .2s; z-index: 10;
+.node .resize-handle {
+    position: absolute; bottom: -16px; right: -16px; width: 18px; height: 18px; cursor: nwse-resize; opacity: 0; transition: opacity .2s; z-index: 10;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   }
   .node.shape-text .resize-handle { bottom: -5px; right: -5px; }/* Zorg dat het icoontje bij tekst iets groter en beter zichtbaar is */
   .node.shape-text .resize-handle { 
@@ -675,14 +689,16 @@ body.keten-visible .node-keten-tags {
   .np-btn.whatsapp:hover { background: #1ebe5d; border-color: #1ebe5d; color: #fff; }
 .np-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
-  /* ── COMPACT NODE (tandwiel) ── */
-  .node.is-compact .node-footer { display: none !important; }
-  .node-gear-wrap {
+/* ── COMPACT NODE (tandwiel) ── */
+.node-gear-wrap {
     display: none; position: absolute;
-    bottom: 6px; left: 8px;
+    top: 50%; left: -36px;
+    transform: translateY(-50%);
     z-index: 20;
   }
-  .node.is-compact .node-gear-wrap { display: block; }
+.node.is-compact .node-gear-wrap { display: block; opacity: 0; transition: opacity 0.2s; }
+  .node.is-compact { overflow: visible; }
+  .node.is-compact .node-footer { display: none !important; }
 
   .node-gear-btn {
     width: 24px; height: 24px; border-radius: 6px;
@@ -716,9 +732,21 @@ body.keten-visible .node-keten-tags {
     display: flex; align-items: center; justify-content: center;
   }
   .node.shape-circle .node-body { text-align: center; padding: 0 14px; }
-  .node.shape-circle .node-thumb { display: none !important; }
+.node.shape-circle .node-thumb {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 0;
+  height: unset !important;
+  flex: none;
+}
+.node.shape-circle .node-thumb.has-img { display: block; }
+.node.shape-circle .node-body,
+.node.shape-circle .node-footer { position: relative; z-index: 1; }
   .node.shape-circle .node-footer { justify-content: center; padding-bottom: 14px; }
-  .node.shape-circle .resize-handle { right: 12px !important; bottom: 12px !important; }
+ .node.shape-circle .resize-handle { right: -16px !important; bottom: -16px !important; }
+  .node.shape-circle { min-height: unset !important; }
 
   /* ── GEBRUIKER ── */
   .node.shape-user {
@@ -728,11 +756,11 @@ body.keten-visible .node-keten-tags {
   .node.shape-user .node-thumb { display: none !important; }
   .node.shape-user .node-body { text-align: center; padding: 6px 12px 8px; }
   .node.shape-user .node-footer { justify-content: center; }
-  .user-icon-wrap {
+.user-icon-wrap {
     display: flex; align-items: center; justify-content: center;
-    padding: 14px 0 4px; color: var(--accent); flex-shrink: 0;
+    padding: 14px 0 4px; color: var(--accent); flex-shrink: 1; min-height: 0; overflow: hidden;
   }
-  .user-icon-wrap svg { width: 48px; height: 48px; }
+  .user-icon-wrap svg { width: clamp(12px, 48px, 48px); height: clamp(12px, 48px, 48px); max-width: 70%; max-height: 70%; }
 
   /* ── KETENMONITORING MODAL ── */
   #ketenmon-modal {
@@ -820,7 +848,7 @@ body.keten-visible .node-keten-tags {
 
 <div id="toolbar">
 <div class="logo">Visual<span>Board</span></div>
-<span id="version-badge" title="Versie geschiedenis">v1.0</span>
+<span id="version-badge" title="Versie geschiedenis">v1.1</span>
   <div class="tb-sep"></div>
 
   <!-- Acties dropdown -->
@@ -1511,11 +1539,12 @@ el.innerHTML = `
 
     <div class="node-gear-wrap">
       <button class="node-gear-btn" title="Opties">⚙</button>
-      <div class="node-gear-menu">
+<div class="node-gear-menu">
         <div class="node-gear-item gi-edit"><span class="gi-icon">✎</span> Bewerken</div>
         <div class="node-gear-item gi-duplicate"><span class="gi-icon">+</span> Kopie maken</div>
         <div class="node-gear-item gi-rotate"><span class="gi-icon">⤾</span> Kantel 90°</div>
         <div class="node-gear-item gi-pin"><span class="gi-icon">📌</span> Vastpinnen</div>
+        <div class="node-gear-item gi-mini"><span class="gi-icon">⊟</span> Maak mini</div>
       </div>
     </div>
     <div class="resize-handle"></div>`;
@@ -1702,12 +1731,21 @@ node.el.addEventListener('mousedown', e => {
   node.el.querySelector('.resize-handle').addEventListener('mousedown', e => {
     if (node.pinned) return;
     e.stopPropagation(); const startX = e.clientX, startY = e.clientY, startW = node.width, startH = node.height;
-    function onMove(ev) {
-      node.width = Math.max(50, startW + (ev.clientX - startX)/zoomLevel);
-      node.height = Math.max(30, startH + (ev.clientY - startY)/zoomLevel);
-      node.el.style.width = node.width+'px'; node.el.style.height = node.height+'px';
-      updateArrows(); if(currentTool==='arrow') renderAnchors();
-    }
+
+function onMove(ev) {
+  const newW = Math.max(40, startW + (ev.clientX - startX)/zoomLevel);
+  const newH = Math.max(40, startH + (ev.clientY - startY)/zoomLevel);
+  if (node.shape === 'circle') {
+    const size = Math.max(newW, newH);
+    node.width = size; node.height = size;
+  } else {
+    node.width = Math.max(50, newW);
+    node.height = Math.max(30, newH);
+  }
+  node.el.classList.remove('is-mini');
+  node.el.style.width = node.width+'px'; node.el.style.height = node.height+'px';
+  updateArrows(); if(currentTool==='arrow') renderAnchors();
+}
     function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); saveState(); }
     document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
   });
@@ -1785,17 +1823,69 @@ node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagatio
     saveState();
   });
 
+
+
+
+
   // Sluit menu bij klik buiten
   document.addEventListener('click', closeGear);
 
+
+
   // ── COMPACT MODUS via ResizeObserver ─────────────────────────────────────
   const COMPACT_W = 130, COMPACT_H = 90;
+  const giMini = gearMenu.querySelector('.gi-mini');
+  const gearWrap = node.el.querySelector('.node-gear-wrap');
+  // ──────────────────────────────────────────────────────────────────────
+
+// Hover-fix: verberg gear na 3 seconden als muis weg is
+let gearHideTimer;
+node.el.addEventListener('mouseenter', () => {
+  clearTimeout(gearHideTimer);
+  if (node.el.classList.contains('is-compact') || node.el.classList.contains('is-mini')) {
+    gearWrap.style.opacity = '1';
+    gearWrap.style.pointerEvents = 'all';
+  }
+});
+node.el.addEventListener('mouseleave', e => {
+  if (gearWrap.contains(e.relatedTarget)) return;
+  gearHideTimer = setTimeout(() => {
+    if (!node.el.matches(':hover') && !gearWrap.matches(':hover')) {
+      gearWrap.style.opacity = '0';
+      gearWrap.style.pointerEvents = '';
+    }
+  }, 3000);
+});
+gearWrap.addEventListener('mouseenter', () => clearTimeout(gearHideTimer));
+gearWrap.addEventListener('mouseleave', e => {
+  if (node.el.contains(e.relatedTarget)) return;
+  gearHideTimer = setTimeout(() => {
+    gearWrap.style.opacity = '0';
+    gearWrap.style.pointerEvents = '';
+  }, 3000);
+});
+  // ──────────────────────────────────────────────────────────────────────
+
   const compactObs = new ResizeObserver(() => {
     const w = node.el.offsetWidth, h = node.el.offsetHeight;
-    node.el.classList.toggle('is-compact', w < COMPACT_W || h < COMPACT_H);
+    const compact = w < COMPACT_W || h < COMPACT_H;
+    node.el.classList.toggle('is-compact', compact);
+    giMini.style.display = compact ? '' : 'none';
   });
+// ──────────────────────────────────────────────────────────────────────
   compactObs.observe(node.el);
+  giMini.addEventListener('click', e => {
+    e.stopPropagation(); closeGear();
+    const w = node.el.offsetWidth, h = node.el.offsetHeight;
+    node.el.style.width  = (w / 2) + 'px';
+    node.el.style.height = (h / 2) + 'px';
+    node.width  = w / 2; node.height = h / 2;
+    node.el.classList.add('is-mini');
+    updateArrows(); saveState();
+  });
   // ─────────────────────────────────────────────────────────────────────────
+
+
 
 
 node.el.querySelector('.pin').addEventListener('click', e => {
@@ -3766,6 +3856,25 @@ bugfixes: [
 ],
   },
 
+
+{
+    version: 'v1.1.0',
+    date: '11-05-2026',
+nieuw: [
+  'Mini-functie toegevoegd. Deze optie verschijnt in het tandwielmenu wanneer een object klein wordt gemaakt (aan de linkerkant).',
+],
+
+verbeterd: [
+  'Resize-icoon verplaatst buiten het object (rechtsonderin), zodat deze altijd zichtbaar en toegankelijk blijft wanneer een vorm klein wordt gemaakt.',
+  'Tandwielmenu (extra opties) verplaatst naar de linkerkant van het object, zodat het menu zichtbaar blijft bij kleine objectformaten.',
+  'Stoplicht-kleuren vullen nu ook de volledige inhoud van het object voor betere zichtbaarheid en duidelijkere statusindicatie.',
+],
+
+bugfixes: [
+  'Cirkel-object behoudt nu altijd zijn ronde vorm en kan niet meer worden geresized naar een ovaal of andere vorm.',
+  'Probleem opgelost waarbij bedieningselementen deels verdwenen bij zeer kleine objectgroottes.',
+],
+  },
 
 
 
