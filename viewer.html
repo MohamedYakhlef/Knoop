@@ -421,6 +421,25 @@ body.is-fullscreen #btn-fullscreen { background:var(--accent); border-color:var(
     </div>
   </div>
 
+<div id="ketenmon-modal">
+  <div class="km-card">
+    <div class="km-header">
+      <div class="km-title">🔗 Ketenmonitoring</div>
+      <div class="km-search-wrap">
+        <span class="km-search-icon">🔍</span>
+        <input class="km-search-input" id="km-search-input" type="text" placeholder="Zoek alerts…">
+      </div>
+      <div class="km-header-actions">
+        <button class="km-icon-btn" id="km-eye-toggle" title="Ketenmonitoring objecten tonen / verbergen">👁</button>
+        <button class="km-icon-btn" id="ketenmon-close" title="Sluiten" style="font-size:13px;">✕</button>
+      </div>
+    </div>
+    <div class="km-stats-bar" id="km-stats-bar"></div>
+    <div class="km-body" id="ketenmon-body"></div>
+  </div>
+</div>
+
+
   <input type="text" id="search-bar" placeholder="Zoek titel/groep…">
   <div id="search-tools">
     <span id="search-count">0/0</span>
@@ -479,23 +498,7 @@ body.is-fullscreen #btn-fullscreen { background:var(--accent); border-color:var(
   <button class="zoom-btn" id="btn-zoom-out" title="Uitzoomen">−</button>
 </div>
 
-<div id="ketenmon-modal">
-  <div class="km-card">
-    <div class="km-header">
-      <div class="km-title">🔗 Ketenmonitoring</div>
-      <div class="km-search-wrap">
-        <span class="km-search-icon">🔍</span>
-        <input class="km-search-input" id="km-search-input" type="text" placeholder="Zoek alerts…">
-      </div>
-      <div class="km-header-actions">
-        <button class="km-icon-btn" id="km-eye-toggle" title="Ketenmonitoring objecten tonen / verbergen">👁</button>
-        <button class="km-icon-btn" id="ketenmon-close" title="Sluiten" style="font-size:13px;">✕</button>
-      </div>
-    </div>
-    <div class="km-stats-bar" id="km-stats-bar"></div>
-    <div class="km-body" id="ketenmon-body"></div>
-  </div>
-</div>
+
 
 <div id="toast"></div>
 
