@@ -649,6 +649,21 @@ body.keten-visible .node-keten-tags {
 .lf-item:hover { background: var(--surface2); }
 .lf-item input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; }
 #lf-empty { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); padding: 6px 8px; }
+#lf-opacity-wrap {
+  margin-top: 8px; padding: 8px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+#lf-opacity-label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+}
+#lf-opacity-value {
+  color: var(--accent); font-weight: 600;
+}
+#lf-opacity-slider {
+  width: 100%; accent-color: var(--accent); cursor: pointer; height: 4px;
+}
 #lf-clear {
   margin-top: 6px; padding: 6px 8px; border-radius: 4px;
   border: 1px solid var(--border); background: var(--surface2);
@@ -963,9 +978,16 @@ body.keten-visible .node-keten-tags {
     <button class="tb-btn" id="btn-label-filter" title="Filter op labels">
       🏷️ Filter <span id="lf-badge">0</span>
     </button>
-    <div id="label-filter-dropdown">
+<div id="label-filter-dropdown">
       <div class="lf-header">Filter op label</div>
       <div id="lf-list"><div id="lf-empty">Geen labels aangemaakt</div></div>
+      <div id="lf-opacity-wrap">
+        <div id="lf-opacity-label">
+          <span>Doorzichtigheid buiten filter</span>
+          <span id="lf-opacity-value">15%</span>
+        </div>
+        <input type="range" id="lf-opacity-slider" min="0" max="80" value="15" step="5">
+      </div>
       <button id="lf-clear">✕ Filter wissen</button>
     </div>
   </div>
@@ -1102,7 +1124,16 @@ body.keten-visible .node-keten-tags {
         <button type="button" id="btn-img-remove" class="tb-btn" style="width:100%;justify-content:center;display:none;color:#ef4444;border-color:#ef4444;">🗑 Afbeelding verwijderen</button>
       </div>
 
-      <div class="field"><label>URL</label><input type="url" id="f-url" placeholder="https://…"></div>
+      <div class="field">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="margin:0;">URL</label>
+          <label class="switch" title="URL-icoontje verbergen op canvas">
+            <input type="checkbox" id="f-show-url" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <input type="url" id="f-url" placeholder="https://…">
+      </div>
       <div class="field">
   
 
@@ -1670,6 +1701,7 @@ const node = {
 showImg: true, img: '', 
 showNote: true,
 showTitle: true,
+showUrl: true,
    keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', ketenmonitoring: '', ketenmonitoringStatus: null, filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
@@ -1693,7 +1725,11 @@ if (shape === 'text') {
     el.style.width = '220px'; el.style.height = '190px';
   }
 
-  nodes.push(node);
+nodes.push(node);
+  // Zorg dat nieuw object altijd bovenop alle bestaande objecten verschijnt
+  if (shape !== 'area') {
+    el.style.zIndex = ++topZ;
+  }
   attachNodeEvents(node);
   return node;
 }
@@ -1708,8 +1744,29 @@ function isNodeInsideArea(node, areaNode) {
 }
 
 function findAreaForNode(node) {
+  const nRect = node.el.getBoundingClientRect();
+  const cx = nRect.left + nRect.width / 2;
+  const cy = nRect.top + nRect.height / 2;
+
+  // 1. Zoek eerst naar een gewone node (geen gebied) waarop dit object ligt
+  const parentNode = nodes
+    .filter(n => n.id !== node.id && n.shape !== 'area')
+    .filter(n => {
+      const r = n.el.getBoundingClientRect();
+      return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    })
+    .sort((a, b) => {
+      // Kies de bovenste (hoogste z-index / kleinste oppervlak)
+      const za = parseInt(a.el.style.zIndex) || 0;
+      const zb = parseInt(b.el.style.zIndex) || 0;
+      if (zb !== za) return zb - za;
+      return (a.width * a.height) - (b.width * b.height);
+    });
+
+  if (parentNode.length > 0) return parentNode[0];
+
+  // 2. Terugvallen op gebied (shape-area) zoals voorheen
   const areas = nodes.filter(n => n.shape === 'area' && n.id !== node.id);
-  // Kies het kleinste gebied dat de node bevat (meest specifieke "ouder")
   const containing = areas.filter(area => isNodeInsideArea(node, area));
   if (containing.length === 0) return null;
   containing.sort((a, b) => {
@@ -1727,6 +1784,7 @@ function duplicateNode(sourceNode) {
     height: sourceNode.height,
     title: sourceNode.title,
     url: sourceNode.url || '',
+    showUrl: sourceNode.showUrl !== undefined ? sourceNode.showUrl : true,
     note: sourceNode.note || '',
     bgColor: sourceNode.bgColor,
     color: sourceNode.color,
@@ -1781,8 +1839,12 @@ node.el.addEventListener('mousedown', e => {
 
     // DE OUDE REGEL 'if (node.pinned) return;' IS HIER WEGGEHAALD!
 
-    isDragging = false;
+   isDragging = false;
     node.el.style.zIndex = ++topZ;
+    // Zorg dat gepinde nodes bovenop blijven na klik
+    nodes
+      .filter(n => n.pinned && n.pinnedTo === 'area' && n.pinnedAreaId === node.id)
+      .forEach(n => { n.el.style.zIndex = ++topZ; });
     const startX = e.clientX, startY = e.clientY;
 
     if (!multiSelectedNodes.has(node.id) && !e.shiftKey) {
@@ -1798,11 +1860,23 @@ node.el.addEventListener('mousedown', e => {
         n.el.classList.add('dragging');
         return { node: n, ox: n.x, oy: n.y };
       });
-      const draggedAreaIds = new Set(dragOffsets.filter(d => d.node.shape === 'area').map(d => d.node.id));
-      areaPinnedOffsets = nodes
-        .filter(n => n.pinned && n.pinnedTo === 'area' && draggedAreaIds.has(n.pinnedAreaId) && !multiSelectedNodes.has(n.id))
-        .map(n => ({ node: n, ox: n.x, oy: n.y }));
-      areaPinnedOffsets.forEach(d => d.node.el.classList.add('dragging'));
+const draggedIds = new Set(dragOffsets.map(d => d.node.id));
+      const visited = new Set(draggedIds);
+      const pinnedQueue = nodes.filter(n => n.pinned && n.pinnedTo === 'area' && draggedIds.has(n.pinnedAreaId) && !multiSelectedNodes.has(n.id));
+      const allPinned = [];
+      while (pinnedQueue.length > 0) {
+        const p = pinnedQueue.shift();
+        if (visited.has(p.id)) continue;
+        visited.add(p.id);
+        allPinned.push(p);
+        nodes.filter(n => n.pinned && n.pinnedTo === 'area' && n.pinnedAreaId === p.id && !multiSelectedNodes.has(n.id))
+             .forEach(n => pinnedQueue.push(n));
+      }
+      areaPinnedOffsets = allPinned.map(n => ({ node: n, ox: n.x, oy: n.y }));
+      areaPinnedOffsets.forEach(d => {
+        d.node.el.classList.add('dragging');
+        d.node.el.style.zIndex = ++topZ;
+      });
     } else {
       dragOffsets = []; // Leeg lijstje, dus we gaan niks slepen
       areaPinnedOffsets = [];
@@ -2774,6 +2848,7 @@ function applyLiveNodeChanges(n) {
   applyNodeKmStatus(n);
   n.showImg = document.getElementById('f-show-image').checked;
   n.showNote = document.getElementById('f-show-note').checked;
+  n.showUrl = document.getElementById('f-show-url').checked;
   n.showTitle = document.getElementById('f-show-title').checked;
   n.filterLabel = document.getElementById('f-node-label').value;
 
@@ -2799,7 +2874,7 @@ if (n.shape === 'area') {
   n.el.style.color = n.color;
   
   const linkEl = n.el.querySelector('.node-link');
-  if(n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; } else { linkEl.style.display = 'none'; }
+  if(n.url && n.showUrl !== false) { linkEl.href = n.url; linkEl.style.display = 'flex'; } else { linkEl.style.display = 'none'; }
   
 const noteEl = document.getElementById('nnote-'+n.id); 
 if (noteEl) {
@@ -2955,7 +3030,8 @@ function openNodePanel(id, editMode = false) {
     document.getElementById('f-title').value = n.title; 
     document.getElementById('f-node-color').value = n.bgColor || '#f1f5f9'; 
     document.getElementById('f-text-color').value = n.color || '#1a1a2e'; 
-    document.getElementById('f-url').value = n.url || ''; 
+    document.getElementById('f-url').value = n.url || '';
+    document.getElementById('f-show-url').checked = (n.showUrl !== undefined) ? n.showUrl : true;
     document.getElementById('f-note').value = n.note || ''; 
     renderNodeKetenFields(getNodeKetens(n), () => applyLiveNodeChanges(n));
     renderNodeInterfaceFields(getNodeInterfaces(n), () => applyLiveNodeChanges(n));
@@ -3007,7 +3083,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
 
 
 
-['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-show-title','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
+['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-show-title','f-show-url','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
   document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
   document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
 });
@@ -3044,9 +3120,8 @@ else { document.getElementById('text-node-options').style.display = 'none';
     document.getElementById('panel-edit').style.display = 'none';
     document.getElementById('panel-title').childNodes[0].textContent = 'Informatie';
     document.getElementById('view-content').innerHTML = `
-      ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
-      <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.title}</div></div>
-      ${n.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${n.url}" target="_blank">${n.url}</a></div></div>` : ''}
+    ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
+      <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.url ? `<a href="${n.url}" target="_blank" style="color:var(--accent);text-decoration:none;">${n.title}</a>` : n.title}</div></div>
       ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
       ${getNodeKetens(n).length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${getNodeKetens(n).join(', ')}</div></div>` : ''}
       ${getNodeInterfaces(n).length ? `<div class="view-line"><div class="view-label">Interface</div><div class="view-value">${getNodeInterfaces(n).join(', ')}</div></div>` : ''}
@@ -3081,8 +3156,7 @@ document.getElementById('panel-view').style.display = 'block';
   const ketenText = getArrowKetens(a).join(', ');
   const interfaceText = getArrowInterfaces(a).join(', ');
   document.getElementById('view-content').innerHTML = `
-    ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.label}</div></div>` : ''}
-    ${a.url ? `<div class="view-line"><div class="view-label">URL</div><div class="view-value"><a href="${a.url}" target="_blank">${a.url}</a></div></div>` : ''}
+   ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.url ? `<a href="${a.url}" target="_blank" style="color:var(--accent);text-decoration:none;">${a.label}</a>` : a.label}</div></div>` : ''}
     ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
     ${ketenText ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${ketenText}</div></div>` : ''}
     ${interfaceText ? `<div class="view-line"><div class="view-label">Interfaces</div><div class="view-value">${interfaceText}</div></div>` : ''}
@@ -3846,6 +3920,9 @@ function arrowMatches(a) {
   return false;
 }
 function applyLabelFilter() {
+  const sliderEl = document.getElementById('lf-opacity-slider');
+  const dimOpacity = sliderEl ? (parseInt(sliderEl.value) / 100).toFixed(2) : '0.15';
+
   if (activeFiltersEmpty()) {
     nodes.forEach(n => { n.el.style.opacity = ''; n.el.style.filter = ''; });
     arrows.forEach(a => {
@@ -3856,7 +3933,7 @@ function applyLabelFilter() {
   } else {
     nodes.forEach(n => {
       const match = nodeMatches(n);
-      n.el.style.opacity = match ? '' : '0.50';
+      n.el.style.opacity = match ? '' : dimOpacity;
       n.el.style.filter  = match ? '' : 'grayscale(1)';
     });
     arrows.forEach(a => {
@@ -3866,10 +3943,15 @@ function applyLabelFilter() {
         if (a.dotEl) a.dotEl.style.display = 'none';
       } else { updateArrow(a); }
       [a.pathEl, a.bgPathEl, a.hitEl, a.labelEl, a.noteEl, a.urlLinkEl]
-        .forEach(el => { if (el) el.style.opacity = match ? '' : '0.50'; });
+        .forEach(el => { if (el) el.style.opacity = match ? '' : dimOpacity; });
     });
   }
 }
+
+document.getElementById('lf-opacity-slider').addEventListener('input', function() {
+  document.getElementById('lf-opacity-value').textContent = this.value + '%';
+  applyLabelFilter();
+});
 
 function updateFilterBadge() {
   const badge = document.getElementById('lf-badge');
@@ -4143,15 +4225,31 @@ bugfixes: [
 ],
   },
 
+  
+  
+  
+  
   {
     version: 'v1.3.0',
     date: '03-06-2026',
 nieuw: [
-  'Mogelijkheid toegevoegd om de titel op het canvas te verbergen.',
+  'Je kunt nu de titeltekst op het canvas verbergen via het bewerkscherm.',
+  'Je kunt nu het URL-icoon op het canvas verbergen via het bewerkscherm.',
   'Bestanden worden nu opgeslagen met de naam VisualBoard_datum_tijd, zodat ze eenvoudiger terug te vinden en later opnieuw te openen zijn.',
-  'Wanneer je via de ketenmonitoring naar een object navigeert, zal het object knipperen zodat het gemakkelijker te herkennen is',
+  'Wanneer je via de ketenmonitoring naar een object navigeert, zal het object knipperen zodat het gemakkelijker te herkennen is.',
+  'Het filter heeft nu een geleider met instelbare doorzichtigheid, zodat je zelf kunt bepalen hoe zichtbaar objecten en lijnen buiten de filter worden weergegeven.',
 ],
-},
+
+verbeterd: [
+  'Wanneer het URL-veld is ingevuld, wordt de titel in het informatiescherm automatisch klikbaar en geopend als hyperlink',
+  'Wanneer je via de ketenmonitoring naar een object navigeert, wordt direct het informatiescherm geopend.',
+  
+],
+
+bugfixes: [
+'De pinfunctie houdt nu rekening met onderliggende objecten: een object wordt vastgepind aan het object eronder in plaats van aan het onderliggende gebied.',
+],
+  },
 
 
   
@@ -4334,6 +4432,8 @@ function stopKmBlink() {
   _kmBlinkTarget = null;
 }
 
+let _kmBlinkTimer = null;
+
 function navigateToKmObject(item) {
   stopKmBlink();
   document.getElementById('ketenmon-modal').classList.remove('show');
@@ -4346,6 +4446,7 @@ function navigateToKmObject(item) {
     animatePanTo(tL, tT);
     n.el.classList.add('km-blinking');
     _kmBlinkTarget = n;
+    openNodePanel(n.id);
   } else {
     const fromNode = nodes.find(n => n.id === item.obj.from);
     const toNode   = nodes.find(n => n.id === item.obj.to);
@@ -4358,7 +4459,14 @@ function navigateToKmObject(item) {
       item.obj.pathEl.classList.add('km-blinking');
       _kmBlinkTarget = item.obj;
     }
+    openArrowPanelEdit(item.obj.id);
   }
+
+  if (_kmBlinkTimer) clearTimeout(_kmBlinkTimer);
+  _kmBlinkTimer = setTimeout(() => {
+    stopKmBlink();
+    _kmBlinkTimer = null;
+  }, 15000);
 }
 
 function renderKetenMonitoring() {
