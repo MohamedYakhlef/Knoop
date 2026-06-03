@@ -295,6 +295,13 @@ node.shape-text {
   .node.multi-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .node.search-active { border-color: var(--accent2) !important; box-shadow: 0 0 0 2px rgba(252,92,125,0.35) !important; }
   .node.highlight { filter: brightness(1.18); box-shadow: 0 0 0 4px rgba(124,92,252,0.35), 0 12px 32px rgba(124,92,252,0.25) !important; }
+
+@keyframes km-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.15; }
+}
+.node.km-blinking { animation: km-blink 0.6s ease-in-out infinite; }
+#svg-layer .arrow-path.km-blinking { animation: km-blink 0.6s ease-in-out infinite; }
 /* ── STOPLICHT STATUS ── */
 .node.km-status-green {
   border-color: #22c55e !important;
@@ -930,7 +937,7 @@ body.keten-visible .node-keten-tags {
 
 <div id="toolbar">
 <div class="logo">Visual<span>Board</span></div>
-<span id="version-badge" title="Versie geschiedenis">v1.2</span>
+<span id="version-badge" title="Versie geschiedenis">v1.3</span>
   <div class="tb-sep"></div>
 
   <!-- Acties dropdown -->
@@ -1035,7 +1042,16 @@ body.keten-visible .node-keten-tags {
 
   <div id="panel-edit" style="display:none;">
     <div id="panel-node-fields">
-      <div class="field"><label>Titel</label><input type="text" id="f-title" placeholder="Naam..."></div>
+      <div class="field">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <label style="margin:0;">Titel</label>
+    <label class="switch" title="Titel tonen op canvas">
+      <input type="checkbox" id="f-show-title" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <input type="text" id="f-title" placeholder="Naam...">
+</div>
 
 <div id="title-style-options" style="margin-bottom:16px;">
   <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Titel opmaak</label>
@@ -1651,8 +1667,9 @@ const node = {
     shape, title: initTitle, url: '', note: '', bgColor, color: '#1a1a2e',
     fontWeight: 'normal', fontStyle: 'normal', fontSize: 14,
     noteFontWeight: 'normal', noteFontStyle: 'normal', noteFontSize: 10,
-    showImg: true, img: '', 
-    showNote: true,                    // ← NIEUWE REGEL
+showImg: true, img: '', 
+showNote: true,
+showTitle: true,
    keten: '', ketens: [], interface: '',interfaces: [], behandelaarsgroep: '', leverancier: '', servicelevel: '', ketenmonitoring: '', ketenmonitoringStatus: null, filterLabel: '', pinned: false, pinnedTo: 'canvas', pinnedAreaId: null, rotation: 0, el
   };
   
@@ -2698,8 +2715,9 @@ function renderNode(n) {
   if (!titleEl) return;
   titleEl.textContent = n.title || '';
  titleEl.style.fontWeight = n.fontWeight || 'normal';
-  titleEl.style.fontStyle  = n.fontStyle  || 'normal';
-  titleEl.style.fontSize   = (n.fontSize  || 14) + 'px';
+titleEl.style.fontStyle  = n.fontStyle  || 'normal';
+titleEl.style.fontSize   = (n.fontSize  || 14) + 'px';
+titleEl.style.display    = (n.showTitle === false) ? 'none' : '';
   
 
   if (n.shape === 'area') {
@@ -2756,6 +2774,7 @@ function applyLiveNodeChanges(n) {
   applyNodeKmStatus(n);
   n.showImg = document.getElementById('f-show-image').checked;
   n.showNote = document.getElementById('f-show-note').checked;
+  n.showTitle = document.getElementById('f-show-title').checked;
   n.filterLabel = document.getElementById('f-node-label').value;
 
   
@@ -2765,6 +2784,7 @@ const titleEl = document.getElementById('ntitle-'+n.id);
   titleEl.style.fontWeight = n.fontWeight;
   titleEl.style.fontStyle = n.fontStyle;
   titleEl.style.fontSize = n.fontSize + 'px';
+  titleEl.style.display = (n.showTitle === false) ? 'none' : '';
   n.el.style.backgroundColor = n.bgColor;
   n.el.style.color = n.color;
 
@@ -2951,6 +2971,7 @@ function openNodePanel(id, editMode = false) {
     );
     if (setNodeKmStatus) setNodeKmStatus(n.ketenmonitoringStatus);
     document.getElementById('f-show-note').checked = (n.showNote !== undefined) ? n.showNote : true;
+    document.getElementById('f-show-title').checked = (n.showTitle !== undefined) ? n.showTitle : true;
     document.getElementById('f-node-label').value = n.filterLabel || '';
     document.getElementById('f-font-size').value = n.fontSize || 14;
     document.getElementById('f-note-font-size').value = n.noteFontSize || 10;
@@ -2986,7 +3007,7 @@ else { document.getElementById('text-node-options').style.display = 'none';
 
 
 
-['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
+['f-title','f-node-color','f-text-color','f-url','f-note','f-behandelaarsgroep','f-bitteam','f-leverancier','f-servicelevel','f-show-image','f-show-note','f-show-title','f-node-label','f-font-size','f-note-font-size'].forEach(fid => {
   document.getElementById(fid).oninput = () => applyLiveNodeChanges(n); 
   document.getElementById(fid).onchange = () => applyLiveNodeChanges(n); 
 });
@@ -4122,6 +4143,18 @@ bugfixes: [
 ],
   },
 
+  {
+    version: 'v1.3.0',
+    date: '03-06-2026',
+nieuw: [
+  'Mogelijkheid toegevoegd om de titel op het canvas te verbergen.',
+  'Bestanden worden nu opgeslagen met de naam VisualBoard_datum_tijd, zodat ze eenvoudiger terug te vinden en later opnieuw te openen zijn.',
+  'Wanneer je via de ketenmonitoring naar een object navigeert, zal het object knipperen zodat het gemakkelijker te herkennen is',
+],
+},
+
+
+  
 ];
 
 
@@ -4292,7 +4325,17 @@ function animatePanTo(targetLeft, targetTop) {
   requestAnimationFrame(step);
 }
 
+let _kmBlinkTarget = null;
+
+function stopKmBlink() {
+  if (!_kmBlinkTarget) return;
+  if (_kmBlinkTarget.el) _kmBlinkTarget.el.classList.remove('km-blinking');
+  if (_kmBlinkTarget.pathEl) _kmBlinkTarget.pathEl.classList.remove('km-blinking');
+  _kmBlinkTarget = null;
+}
+
 function navigateToKmObject(item) {
+  stopKmBlink();
   document.getElementById('ketenmon-modal').classList.remove('show');
   if (kmHidden) applyKmVisibility(false);
 
@@ -4301,8 +4344,8 @@ function navigateToKmObject(item) {
     const tL = -n.x * zoomLevel + canvas.offsetWidth  / 2 - (n.width  * zoomLevel) / 2;
     const tT = -n.y * zoomLevel + canvas.offsetHeight / 2 - (n.height * zoomLevel) / 2;
     animatePanTo(tL, tT);
-    n.el.classList.add('highlight');
-    setTimeout(() => n.el.classList.remove('highlight'), 2200);
+    n.el.classList.add('km-blinking');
+    _kmBlinkTarget = n;
   } else {
     const fromNode = nodes.find(n => n.id === item.obj.from);
     const toNode   = nodes.find(n => n.id === item.obj.to);
@@ -4312,8 +4355,8 @@ function navigateToKmObject(item) {
       animatePanTo(-mx * zoomLevel + canvas.offsetWidth / 2, -my * zoomLevel + canvas.offsetHeight / 2);
     }
     if (item.obj.pathEl) {
-      item.obj.pathEl.classList.add('selected');
-      setTimeout(() => item.obj.pathEl.classList.remove('selected'), 2200);
+      item.obj.pathEl.classList.add('km-blinking');
+      _kmBlinkTarget = item.obj;
     }
   }
 }
@@ -4556,7 +4599,11 @@ function exportProjectJson() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'visual-board-project.json';
+ const now = new Date();
+const pad = n => String(n).padStart(2,'0');
+const datum = `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()}`;
+const tijd = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
+a.download = `VisualBoard_${datum}_${tijd}.json`;
   a.click();
   showToast("Project geëxporteerd!");
 }
