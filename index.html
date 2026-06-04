@@ -381,6 +381,7 @@ node.shape-text {
 #svg-layer .arrow-path.arrow-dimmed { opacity: 0.12; }
 .node.dragging { cursor: grabbing; box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px var(--accent); z-index: 500 !important; }
 .node.dragging:not(.shape-area) { z-index: 502 !important; }
+.node.dragging-pinned { z-index: 503 !important; }
 
   .node-thumb { width: 100%; height: 90px; background: var(--surface2); overflow: hidden; position: relative; display: none; flex: 1 1 auto; }
   .node-thumb.has-img { display: block; }
@@ -1493,7 +1494,10 @@ n.el.style.height = n.height + 'px';
 if (n.pinned) {
   n.el.classList.add('pinned');
   n.el.querySelector('.pin').classList.add('pinned');
-  const pinMode = n.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)';
+  const pinnedArea = n.pinnedTo === 'area' ? nodes.find(a => a.id === n.pinnedAreaId) : null;
+  const pinMode = n.pinnedTo === 'area'
+    ? `Losmaken (vast op ${pinnedArea ? pinnedArea.title : 'gebied'})`
+    : 'Losmaken (vast op canvas)';
   n.el.querySelector('.pin').title = pinMode;
 }
 renderNode(n);
@@ -1872,10 +1876,10 @@ const draggedIds = new Set(dragOffsets.map(d => d.node.id));
         nodes.filter(n => n.pinned && n.pinnedTo === 'area' && n.pinnedAreaId === p.id && !multiSelectedNodes.has(n.id))
              .forEach(n => pinnedQueue.push(n));
       }
-      areaPinnedOffsets = allPinned.map(n => ({ node: n, ox: n.x, oy: n.y }));
+areaPinnedOffsets = allPinned.map(n => ({ node: n, ox: n.x, oy: n.y }));
       areaPinnedOffsets.forEach(d => {
         d.node.el.classList.add('dragging');
-        d.node.el.style.zIndex = ++topZ;
+        d.node.el.classList.add('dragging-pinned');
       });
     } else {
       dragOffsets = []; // Leeg lijstje, dus we gaan niks slepen
@@ -1900,8 +1904,11 @@ const draggedIds = new Set(dragOffsets.map(d => d.node.id));
     }
     
     function onUp() {
-      dragOffsets.forEach(d => d.node.el.classList.remove('dragging'));
-      areaPinnedOffsets.forEach(d => d.node.el.classList.remove('dragging'));
+dragOffsets.forEach(d => d.node.el.classList.remove('dragging'));
+      areaPinnedOffsets.forEach(d => {
+        d.node.el.classList.remove('dragging');
+        d.node.el.classList.remove('dragging-pinned');
+      });
       document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
       
       if (isDragging) saveState();
@@ -1960,11 +1967,18 @@ node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagatio
   // zodat position:fixed correct werkt buiten de #world transform
   document.body.appendChild(gearMenu);
 
-  gearBtn.addEventListener('click', e => {
+gearBtn.addEventListener('click', e => {
     e.stopPropagation();
     const isOpen = gearMenu.classList.contains('open');
     document.querySelectorAll('.node-gear-menu.open').forEach(m => m.classList.remove('open'));
     if (!isOpen) {
+      // Synchroniseer pin-tekst met huidige staat
+  const pinnedAreaB = node.pinned && node.pinnedTo === 'area' ? nodes.find(a => a.id === node.pinnedAreaId) : null;
+      const pinLabelB = node.pinned
+        ? (node.pinnedTo === 'area' ? `Losmaken (vast op ${pinnedAreaB ? pinnedAreaB.title : 'gebied'})` : 'Losmaken (vast op canvas)')
+        : 'Vastpinnen';
+      giPin.querySelector('.gi-icon').textContent = node.pinned ? '📍' : '📌';
+      giPin.childNodes[giPin.childNodes.length - 1].textContent = ' ' + pinLabelB;
       const rect = gearBtn.getBoundingClientRect();
       gearMenu.style.left = rect.left + 'px';
       gearMenu.style.top  = (rect.bottom + 4) + 'px';
@@ -2001,10 +2015,14 @@ node.el.querySelector('.edit').addEventListener('click', e => { e.stopPropagatio
     } else { node.pinnedTo = 'canvas'; node.pinnedAreaId = null; }
     node.el.classList.toggle('pinned', node.pinned);
     node.el.querySelector('.pin').classList.toggle('pinned', node.pinned);
-    node.el.querySelector('.pin').title = node.pinned
-      ? (node.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)')
+const pinnedAreaA = node.pinned && node.pinnedTo === 'area' ? nodes.find(a => a.id === node.pinnedAreaId) : null;
+    const pinLabel = node.pinned
+      ? (node.pinnedTo === 'area' ? `Losmaken (vast op ${pinnedAreaA ? pinnedAreaA.title : 'gebied'})` : 'Losmaken (vast op canvas)')
       : 'Vastpinnen';
+    node.el.querySelector('.pin').title = pinLabel;
     giPin.querySelector('.gi-icon').textContent = node.pinned ? '📍' : '📌';
+    giPin.childNodes[giPin.childNodes.length - 1].textContent = ' ' + pinLabel;
+    if (node.pinned) node.el.style.zIndex = ++topZ;
     saveState();
   });
 
@@ -2091,8 +2109,9 @@ node.el.querySelector('.pin').addEventListener('click', e => {
   }
   node.el.classList.toggle('pinned', node.pinned);
   node.el.querySelector('.pin').classList.toggle('pinned', node.pinned);
+const pinnedAreaC = node.pinned && node.pinnedTo === 'area' ? nodes.find(a => a.id === node.pinnedAreaId) : null;
   node.el.querySelector('.pin').title = node.pinned
-    ? (node.pinnedTo === 'area' ? 'Losmaken (vast op gebied)' : 'Losmaken (vast op canvas)')
+    ? (node.pinnedTo === 'area' ? `Losmaken (vast op ${pinnedAreaC ? pinnedAreaC.title : 'gebied'})` : 'Losmaken (vast op canvas)')
     : 'Vastpinnen';
   saveState();
 });
@@ -4243,6 +4262,7 @@ nieuw: [
 verbeterd: [
   'Wanneer het URL-veld is ingevuld, wordt de titel in het informatiescherm automatisch klikbaar en geopend als hyperlink',
   'Wanneer je via de ketenmonitoring naar een object navigeert, wordt direct het informatiescherm geopend.',
+  'Wanneer je iets vastpint via een klein object, zie je nu de optie ‘Losmaken’ (vast op [titel]).',
   
 ],
 
