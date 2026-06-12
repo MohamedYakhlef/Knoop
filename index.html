@@ -977,6 +977,18 @@ body.keten-visible .node-keten-tags {
   .sw-modal-close:hover { background:var(--accent2); border-color:var(--accent2); color:#fff; }
   .sw-modal-body { display:flex; gap:0; flex:1; overflow:hidden; }
 
+/* Tabblad-knoppen */
+.sw-tab-bar { display:flex; gap:10px; padding:12px 20px 0; }
+.sw-tab-btn {
+  flex:1; padding:10px 16px; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface2); color:var(--text); font-family:'Syne',sans-serif;
+  font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; text-align:center;
+}
+.sw-tab-btn:hover { border-color:var(--accent); color:var(--accent); }
+.sw-tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.sw-col { display:none; }
+.sw-col.sw-tab-active { display:block; }
+
   /* Login strip bovenaan */
   .sw-login-bar {
     padding:16px 24px; border-bottom:1px solid var(--border);
@@ -1254,67 +1266,74 @@ body.keten-visible .node-keten-tags {
       </button>
     </div>
 
-    <!-- Ingelogd: twee kolommen -->
-    <div id="sw-user-section" class="sw-modal-body">
-
-      <!-- Linker kolom: Mijn project delen -->
-      <div class="sw-col">
-        <div class="sw-user-card">
-          <div id="sw-avatar-wrap"></div>
-          <div class="sw-user-info">
-            <div class="sw-user-name" id="sw-user-name"></div>
-            <div class="sw-user-email" id="sw-user-email"></div>
-          </div>
-          <button class="sw-logout-btn" id="btn-google-logout">Uitloggen</button>
-        </div>
-
-        <div class="sw-col-title">① Mijn project delen</div>
-        <div class="sw-col-sub">Geef je deelcode of link aan een collega zodat ze kunnen meedoen.</div>
-
-        <span class="sw-label">Deelcode</span>
-        <div class="sw-code-box">
-          <span class="sw-code-text" id="sw-share-code">–</span>
-          <button class="sw-code-copy" id="btn-sw-copy-code">📋 Kopieer code</button>
-        </div>
-
-        <span class="sw-label">Deel-link</span>
-        <div class="sw-link-row">
-          <input type="text" id="sw-link-input" readonly onclick="this.select()" placeholder="Laden…">
-          <button class="tb-btn" id="btn-sw-copy">📋 Kopieer</button>
-          <button class="tb-btn" id="btn-sw-whatsapp">💬 WA</button>
-        </div>
-
-        <span class="sw-label">Actieve deelnemers</span>
-        <div id="sw-members-list" class="sw-members-list">
-          <div class="sw-empty-members">Nog geen deelnemers.</div>
-        </div>
+ <!-- Ingelogd: tabbladen -->
+    <div id="sw-user-section">
+      <div class="sw-tab-bar">
+        <button class="sw-tab-btn active" id="sw-tab-delen" onclick="swSwitchTab('delen')">📤 Mijn project delen</button>
+        <button class="sw-tab-btn" id="sw-tab-deelnemen" onclick="swSwitchTab('deelnemen')">🔗 Deelnemen aan project</button>
       </div>
 
-      <!-- Rechter kolom: Deelnemen -->
-      <div class="sw-col">
-        <div class="sw-col-title">② Deelnemen aan project</div>
-        <div class="sw-col-sub">Voer de deelcode in die je van een collega hebt ontvangen om aan hun project deel te nemen.</div>
+      <div class="sw-modal-body">
 
-        <span class="sw-label">Deelcode invoeren</span>
-        <div class="sw-join-input-wrap">
-          <span class="sw-join-prefix">VB-</span>
-          <input class="sw-join-input" id="sw-join-input" type="text" maxlength="9" placeholder="____-____" autocomplete="off" spellcheck="false">
-        </div>
-        <button class="sw-join-btn" id="btn-sw-join">Deelnemen →</button>
+        <!-- Tab 1: Mijn project delen -->
+        <div class="sw-col sw-tab-active" id="sw-col-delen">
+          <div class="sw-user-card">
+            <div id="sw-avatar-wrap"></div>
+            <div class="sw-user-info">
+              <div class="sw-user-name" id="sw-user-name"></div>
+              <div class="sw-user-email" id="sw-user-email"></div>
+            </div>
+            <button class="sw-logout-btn" id="btn-google-logout">Uitloggen</button>
+          </div>
 
-        <div id="sw-join-feedback" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:10px;min-height:20px;"></div>
+          <div class="sw-col-title">Mijn project delen</div>
+          <div class="sw-col-sub">Geef je deelcode of link aan een collega zodat ze kunnen meedoen.</div>
 
-        <div style="margin-top:28px; padding-top:20px; border-top:1px solid var(--border);">
-          <div class="sw-col-title" style="font-size:12px; color:var(--text-dim); font-weight:400; margin-bottom:12px;">💡 Hoe werkt het?</div>
-          <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); line-height:1.9;">
-            <div>1. De <strong>eigenaar</strong> deelt zijn deelcode of link.</div>
-            <div>2. De <strong>deelnemer</strong> voert de code in en klikt op Deelnemen.</div>
-            <div>3. Wijzigingen worden <strong>live gesynchroniseerd</strong>.</div>
-            <div style="margin-top:10px;">🟢 Groen = nu actief &nbsp;&nbsp; ⚫ Grijs = eerder deelgenomen</div>
+          <span class="sw-label">Deelcode</span>
+          <div class="sw-code-box">
+            <span class="sw-code-text" id="sw-share-code">–</span>
+            <button class="sw-code-copy" id="btn-sw-copy-code">📋 Kopieer code</button>
+          </div>
+
+          <span class="sw-label">Deel-link</span>
+          <div class="sw-link-row">
+            <input type="text" id="sw-link-input" readonly onclick="this.select()" placeholder="Laden…">
+            <button class="tb-btn" id="btn-sw-copy">📋 Kopieer</button>
+            <button class="tb-btn" id="btn-sw-whatsapp">💬 WA</button>
+          </div>
+
+          <span class="sw-label">Actieve deelnemers</span>
+          <div id="sw-members-list" class="sw-members-list">
+            <div class="sw-empty-members">Nog geen deelnemers.</div>
           </div>
         </div>
-      </div>
 
+        <!-- Tab 2: Deelnemen aan project -->
+        <div class="sw-col" id="sw-col-deelnemen">
+          <div class="sw-col-title">Deelnemen aan project</div>
+          <div class="sw-col-sub">Voer de deelcode in die je van een collega hebt ontvangen om aan hun project deel te nemen.</div>
+
+          <span class="sw-label">Deelcode invoeren</span>
+          <div class="sw-join-input-wrap">
+            <span class="sw-join-prefix">VB-</span>
+            <input class="sw-join-input" id="sw-join-input" type="text" maxlength="9" placeholder="____-____" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="sw-join-btn" id="btn-sw-join">Deelnemen →</button>
+
+          <div id="sw-join-feedback" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:10px;min-height:20px;"></div>
+
+          <div style="margin-top:28px; padding-top:20px; border-top:1px solid var(--border);">
+            <div class="sw-col-title" style="font-size:12px; color:var(--text-dim); font-weight:400; margin-bottom:12px;">💡 Hoe werkt het?</div>
+            <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); line-height:1.9;">
+              <div>1. De <strong>eigenaar</strong> deelt zijn deelcode of link.</div>
+              <div>2. De <strong>deelnemer</strong> voert de code in en klikt op Deelnemen.</div>
+              <div>3. Wijzigingen worden <strong>live gesynchroniseerd</strong>.</div>
+              <div style="margin-top:10px;">🟢 Groen = nu actief &nbsp;&nbsp; ⚫ Grijs = eerder deelgenomen</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 </div>
@@ -5916,9 +5935,16 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   });
   geschCloseBtn && geschCloseBtn.addEventListener('click', () => geschPanel.classList.remove('open'));
 
-  // ── Init ──
+// ── Init ──
   connect(projectId);
 })();
+
+function swSwitchTab(tab) {
+  document.getElementById('sw-col-delen').classList.toggle('sw-tab-active', tab === 'delen');
+  document.getElementById('sw-col-deelnemen').classList.toggle('sw-tab-active', tab === 'deelnemen');
+  document.getElementById('sw-tab-delen').classList.toggle('active', tab === 'delen');
+  document.getElementById('sw-tab-deelnemen').classList.toggle('active', tab === 'deelnemen');
+}
 </script>
 </body>
 </html>
