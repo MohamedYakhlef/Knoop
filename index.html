@@ -995,6 +995,46 @@ body.keten-visible .node-keten-tags {
   .cl-section { margin-bottom: 10px; }
   .cl-section-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
   .cl-item { font-size: 13px; line-height: 1.6; color: var(--text); padding-left: 4px; }
+
+ /* ── GESCHIEDENIS ZIJPANEEL ── */
+  #geschiedenis-panel {
+    position: fixed; top: 52px; right: -380px; width: 340px; bottom: 0;
+    background: var(--surface); border-left: 1px solid var(--border); z-index: 910;
+    padding: 24px; transition: right .3s cubic-bezier(.4,0,.2,1); overflow-y: auto;
+  }
+  #geschiedenis-panel.open { right: 0; }
+  #geschiedenis-panel h2 {
+    font-size: 16px; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+  }
+  #gesch-close-btn {
+    width: 28px; height: 28px; border-radius: 6px; background: var(--surface2);
+    border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all .15s;
+  }
+  #gesch-close-btn:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .gesch-empty {
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-dim);
+    padding: 32px 0; text-align: center; line-height: 1.8;
+  }
+  .gesch-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; margin-bottom: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .gesch-avatar {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+    border: 1.5px solid var(--accent); flex-shrink: 0;
+  }
+  .gesch-initials {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+    color: #fff; font-size: 11px; font-weight: 700; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .gesch-info { flex: 1; min-width: 0; }
+  .gesch-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gesch-time { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .gesch-row.gesch-me .gesch-name::after { content: ' (jij)'; color: var(--accent); font-size: 11px; font-weight: 400; }
 </style>
 </head>
 <body>
@@ -1059,7 +1099,8 @@ body.keten-visible .node-keten-tags {
     <div class="tb-sep"></div>
     <button class="tb-btn" id="btn-samenwerken" title="Samenwerken met collega's">🤝 Samenwerken</button>
     <div id="presence-bar"></div>
-    <span id="sync-indicator" class="saving">☁️ ...</span>
+    <button class="tb-btn" id="btn-geschiedenis" title="Wie heeft er het laatst bijgewerkt?">📋 Geschiedenis</button>
+    <span id="sync-indicator" class="saving" style="display:none;">☁️ ...</span>
   </div>
 
 </div>
@@ -1104,6 +1145,13 @@ body.keten-visible .node-keten-tags {
         <button class="tb-btn" id="btn-sw-whatsapp">&#x1F4AC; WhatsApp</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="geschiedenis-panel">
+  <h2>📋 Geschiedenis <button id="gesch-close-btn">✕</button></h2>
+  <div id="gesch-body">
+    <div class="gesch-empty">Nog geen bewerkingen opgeslagen.</div>
   </div>
 </div>
 
@@ -5526,6 +5574,91 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   btnWA && btnWA.addEventListener('click', () => {
     window.open('https://wa.me/?text=' + encodeURIComponent(getCurrentUrl()), '_blank');
   });
+
+  // ── Geschiedenis ──
+  const MAX_HISTORY = 20;
+
+  function saveEditToHistory(user) {
+    if (!user || !projectId) return;
+    const histRef = db.collection('projects').doc(projectId)
+                      .collection('history').doc();
+    histRef.set({
+      uid:   user.uid,
+      name:  user.displayName || user.email || 'Onbekend',
+      photo: user.photoURL || '',
+      ts:    firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+  }
+
+  function formatTs(ts) {
+    if (!ts) return '–';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}  ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function getInitialsGesch(name) {
+    if (!name) return '?';
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+function openGeschiedenis() {
+    if (!projectId) return;
+    const body = document.getElementById('gesch-body');
+    body.innerHTML = '<div class="gesch-empty">Laden…</div>';
+
+    db.collection('projects').doc(projectId).collection('history')
+      .orderBy('ts', 'desc').limit(MAX_HISTORY).get()
+      .then(snap => {
+        if (snap.empty) {
+          body.innerHTML = '<div class="gesch-empty">Nog geen bewerkingen opgeslagen.</div>';
+          return;
+        }
+        body.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const isMe = currentUser && d.uid === currentUser.uid;
+          const row = document.createElement('div');
+          row.className = 'gesch-row' + (isMe ? ' gesch-me' : '');
+          const avatar = d.photo
+            ? `<img class="gesch-avatar" src="${d.photo}" alt="${d.name}">`
+            : `<div class="gesch-initials">${getInitialsGesch(d.name)}</div>`;
+          row.innerHTML = `
+            ${avatar}
+            <div class="gesch-info">
+              <div class="gesch-name">${d.name}</div>
+              <div class="gesch-time">${formatTs(d.ts)}</div>
+            </div>`;
+          body.appendChild(row);
+        });
+      })
+      .catch(() => {
+        body.innerHTML = '<div class="gesch-empty">Kon geschiedenis niet laden.</div>';
+      });
+  }
+
+const btnGesch = document.getElementById('btn-geschiedenis');
+  const geschPanel = document.getElementById('geschiedenis-panel');
+  const geschCloseBtn = document.getElementById('gesch-close-btn');
+
+  btnGesch && btnGesch.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Sluit het bewerkpaneel als dat open is
+    panel.classList.remove('open');
+    panelTarget = null;
+    geschPanel.classList.toggle('open');
+    if (geschPanel.classList.contains('open')) openGeschiedenis();
+  });
+  geschCloseBtn && geschCloseBtn.addEventListener('click', () => {
+    geschPanel.classList.remove('open');
+  });
+
+  // ── Patch syncStateToFirebase om geschiedenis bij te houden ──
+  const _origSync = window.syncStateToFirebase;
+  window.syncStateToFirebase = function(state) {
+    if (currentUser) saveEditToHistory(currentUser);
+    if (_origSync) _origSync(state);
+  };
 
   // ── Init ──
   connect(projectId);
