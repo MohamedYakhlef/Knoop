@@ -946,7 +946,7 @@ body.keten-visible .node-keten-tags {
   #sw-user-section { display:none; }
   .sw-google-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Syne',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
   .sw-google-btn:hover { border-color:#4285F4; color:#4285F4; background:rgba(66,133,244,0.06); }
-  .sw-user-card { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-bottom:14px; }
+  .sw-user-card { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-bottom:16px; }
   .sw-user-card img { width:38px; height:38px; border-radius:50%; object-fit:cover; }
   .sw-user-initials { width:38px; height:38px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .sw-user-info { flex:1; }
@@ -954,6 +954,136 @@ body.keten-visible .node-keten-tags {
   .sw-user-email { font-size:11px; font-family:'DM Mono',monospace; color:var(--text-dim); margin-top:2px; }
   .sw-logout-btn { font-size:11px; font-family:'DM Mono',monospace; color:var(--text-dim); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; transition:all .15s; white-space:nowrap; }
   .sw-logout-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+
+  /* ── SAMENWERKEN MODAL – GROOT ── */
+  #samenwerken-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(10,10,20,0.6); z-index:3000; }
+  #samenwerken-modal.show { display:flex; }
+  .sw-modal-inner {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    box-shadow:0 24px 64px rgba(0,0,0,0.35);
+    width:min(760px,calc(100vw - 32px)); max-height:90vh;
+    display:flex; flex-direction:column; overflow:hidden; font-family:'Syne',sans-serif;
+  }
+  .sw-modal-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 24px 16px; border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .sw-modal-title { font-size:18px; font-weight:800; letter-spacing:-0.3px; }
+  .sw-modal-close {
+    width:30px; height:30px; border-radius:7px; background:var(--surface2);
+    border:1px solid var(--border); color:var(--text-dim); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:15px; transition:all .15s;
+  }
+  .sw-modal-close:hover { background:var(--accent2); border-color:var(--accent2); color:#fff; }
+  .sw-modal-body { display:flex; gap:0; flex:1; overflow:hidden; }
+
+  /* Login strip bovenaan */
+  .sw-login-bar {
+    padding:16px 24px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:12px; flex-shrink:0;
+    background:var(--surface2);
+  }
+  .sw-login-bar p { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim); flex:1; margin:0; }
+
+  /* Linker kolom: Mijn project delen */
+  .sw-col {
+    flex:1; padding:24px; overflow-y:auto; border-right:1px solid var(--border);
+  }
+  .sw-col:last-child { border-right:none; }
+  .sw-col-title {
+    font-size:13px; font-weight:700; letter-spacing:-0.2px; margin-bottom:4px;
+  }
+  .sw-col-sub {
+    font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim);
+    margin-bottom:18px; line-height:1.6;
+  }
+  .sw-label {
+    display:block; font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; margin-top:14px;
+  }
+  .sw-label:first-of-type { margin-top:0; }
+
+  /* Deelcode badge */
+  .sw-code-box {
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:12px 16px; margin-bottom:4px;
+  }
+  .sw-code-text {
+    font-family:'DM Mono',monospace; font-size:20px; font-weight:700;
+    letter-spacing:3px; color:var(--accent);
+  }
+  .sw-code-copy {
+    background:none; border:1px solid var(--border); border-radius:6px;
+    color:var(--text-dim); font-family:'DM Mono',monospace; font-size:11px;
+    padding:4px 10px; cursor:pointer; transition:all .15s; white-space:nowrap;
+  }
+  .sw-code-copy:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Deel-link invoer */
+  .sw-link-row { display:flex; gap:8px; margin-bottom:4px; }
+  .sw-link-row input {
+    flex:1; padding:9px 12px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace;
+    font-size:12px; outline:none; cursor:pointer;
+  }
+  .sw-link-row input:focus { border-color:var(--accent); }
+
+  /* Deelnemers lijst */
+  .sw-members-list {
+    display:flex; flex-direction:column; gap:8px; margin-top:4px;
+  }
+  .sw-member-row {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 12px; border-radius:8px;
+    background:var(--surface2); border:1px solid var(--border);
+  }
+  .sw-member-avatar {
+    width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0;
+  }
+  .sw-member-initials {
+    width:32px; height:32px; border-radius:50%; background:var(--accent);
+    color:#fff; font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .sw-member-info { flex:1; min-width:0; }
+  .sw-member-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sw-member-status { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .sw-member-dot {
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+    border:1.5px solid rgba(0,0,0,0.1);
+  }
+  .sw-member-dot.online  { background:#22c55e; box-shadow:0 0 6px rgba(34,197,94,0.6); }
+  .sw-member-dot.offline { background:#9ca3af; }
+  .sw-empty-members {
+    font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim);
+    padding:20px 0; text-align:center; line-height:1.8;
+  }
+
+  /* Rechter kolom: Deelnemen input */
+  .sw-join-input-wrap {
+    display:flex; align-items:center; gap:0;
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    overflow:hidden; margin-bottom:12px;
+  }
+  .sw-join-prefix {
+    font-family:'DM Mono',monospace; font-size:13px; color:var(--text-dim);
+    padding:0 10px 0 14px; white-space:nowrap; user-select:none;
+  }
+  .sw-join-input {
+    flex:1; background:none; border:none; outline:none;
+    font-family:'DM Mono',monospace; font-size:16px; font-weight:700;
+    color:var(--text); padding:13px 8px 13px 0; letter-spacing:2px;
+    text-transform:uppercase;
+  }
+  .sw-join-input::placeholder { color:var(--border); font-weight:400; letter-spacing:1px; text-transform:none; }
+  .sw-join-btn {
+    width:100%; padding:12px; border-radius:8px; border:none;
+    background:var(--accent); color:#fff; font-family:'Syne',sans-serif;
+    font-size:14px; font-weight:700; cursor:pointer; transition:all .15s;
+  }
+  .sw-join-btn:hover { background:#6243db; transform:translateY(-1px); }
+  .sw-join-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
 
   /* ── VERSIE BADGE + CHANGELOG ── */
   #version-badge {
@@ -1106,44 +1236,85 @@ body.keten-visible .node-keten-tags {
 </div>
 
 <!-- ── SAMENWERKEN MODAL ── -->
-<div id="samenwerken-modal" style="display:none; position:fixed; inset:0; background:rgba(10,10,20,0.55); z-index:3000; align-items:center; justify-content:center;">
-  <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:24px 24px 20px; width:min(420px,calc(100vw - 32px)); font-family:'Syne',sans-serif;">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-      <div style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">&#x1F91D; Samenwerken</div>
-      <button id="btn-sw-close" style="width:28px;height:28px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">&#x2715;</button>
+<div id="samenwerken-modal">
+  <div class="sw-modal-inner">
+
+    <!-- Header -->
+    <div class="sw-modal-header">
+      <div class="sw-modal-title">🤝 Samenwerken</div>
+      <button class="sw-modal-close" id="btn-sw-close">✕</button>
     </div>
-    <div id="sw-login-section">
-      <p style="font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim); margin-bottom:14px;">Log in om samen te werken en te zien wie er online is.</p>
-      <button class="sw-google-btn" id="btn-google-login">
-        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.4 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.9 0 10.9-2 14.5-5.4l-6.7-5.5C29.9 36.9 27.1 38 24 38c-6 0-10.6-3.9-11.7-9.1l-7 5.4C8.3 41.6 15.5 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.8 2.3-2.3 4.3-4.3 5.6l6.7 5.5C42 35.9 45 30.5 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
+
+    <!-- Login bar (zichtbaar als niet ingelogd) -->
+    <div id="sw-login-section" class="sw-login-bar">
+      <p>Log in met Google om samen te werken, een deelcode te genereren en te zien wie er online is.</p>
+      <button class="sw-google-btn" id="btn-google-login" style="width:auto; white-space:nowrap; flex-shrink:0;">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.4 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.9 0 10.9-2 14.5-5.4l-6.7-5.5C29.9 36.9 27.1 38 24 38c-6 0-10.6-3.9-11.7-9.1l-7 5.4C8.3 41.6 15.5 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.8 2.3-2.3 4.3-4.3 5.6l6.7 5.5C42 35.9 45 30.5 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
         Inloggen met Google
       </button>
     </div>
-    <div id="sw-user-section">
-      <div class="sw-user-card">
-        <div id="sw-avatar-wrap"></div>
-        <div class="sw-user-info">
-          <div class="sw-user-name" id="sw-user-name"></div>
-          <div class="sw-user-email" id="sw-user-email"></div>
+
+    <!-- Ingelogd: twee kolommen -->
+    <div id="sw-user-section" class="sw-modal-body">
+
+      <!-- Linker kolom: Mijn project delen -->
+      <div class="sw-col">
+        <div class="sw-user-card">
+          <div id="sw-avatar-wrap"></div>
+          <div class="sw-user-info">
+            <div class="sw-user-name" id="sw-user-name"></div>
+            <div class="sw-user-email" id="sw-user-email"></div>
+          </div>
+          <button class="sw-logout-btn" id="btn-google-logout">Uitloggen</button>
         </div>
-        <button class="sw-logout-btn" id="btn-google-logout">Uitloggen</button>
+
+        <div class="sw-col-title">① Mijn project delen</div>
+        <div class="sw-col-sub">Geef je deelcode of link aan een collega zodat ze kunnen meedoen.</div>
+
+        <span class="sw-label">Deelcode</span>
+        <div class="sw-code-box">
+          <span class="sw-code-text" id="sw-share-code">–</span>
+          <button class="sw-code-copy" id="btn-sw-copy-code">📋 Kopieer code</button>
+        </div>
+
+        <span class="sw-label">Deel-link</span>
+        <div class="sw-link-row">
+          <input type="text" id="sw-link-input" readonly onclick="this.select()" placeholder="Laden…">
+          <button class="tb-btn" id="btn-sw-copy">📋 Kopieer</button>
+          <button class="tb-btn" id="btn-sw-whatsapp">💬 WA</button>
+        </div>
+
+        <span class="sw-label">Actieve deelnemers</span>
+        <div id="sw-members-list" class="sw-members-list">
+          <div class="sw-empty-members">Nog geen deelnemers.</div>
+        </div>
       </div>
-      <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Projectnaam</label>
-      <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <input type="text" id="sync-project-id" placeholder="bijv. mijn-project-2025" style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace; font-size:13px; outline:none;">
-        <button class="tb-btn" id="btn-sw-connect" style="white-space:nowrap;">Verbinden</button>
+
+      <!-- Rechter kolom: Deelnemen -->
+      <div class="sw-col">
+        <div class="sw-col-title">② Deelnemen aan project</div>
+        <div class="sw-col-sub">Voer de deelcode in die je van een collega hebt ontvangen om aan hun project deel te nemen.</div>
+
+        <span class="sw-label">Deelcode invoeren</span>
+        <div class="sw-join-input-wrap">
+          <span class="sw-join-prefix">VB-</span>
+          <input class="sw-join-input" id="sw-join-input" type="text" maxlength="9" placeholder="____-____" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="sw-join-btn" id="btn-sw-join">Deelnemen →</button>
+
+        <div id="sw-join-feedback" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:10px;min-height:20px;"></div>
+
+        <div style="margin-top:28px; padding-top:20px; border-top:1px solid var(--border);">
+          <div class="sw-col-title" style="font-size:12px; color:var(--text-dim); font-weight:400; margin-bottom:12px;">💡 Hoe werkt het?</div>
+          <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); line-height:1.9;">
+            <div>1. De <strong>eigenaar</strong> deelt zijn deelcode of link.</div>
+            <div>2. De <strong>deelnemer</strong> voert de code in en klikt op Deelnemen.</div>
+            <div>3. Wijzigingen worden <strong>live gesynchroniseerd</strong>.</div>
+            <div style="margin-top:10px;">🟢 Groen = nu actief &nbsp;&nbsp; ⚫ Grijs = eerder deelgenomen</div>
+          </div>
+        </div>
       </div>
-      <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Deel-link</label>
-      <div style="display:flex; gap:8px; margin-bottom:6px;">
-        <input type="text" id="sw-link-input" readonly style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace; font-size:12px; outline:none; cursor:pointer;" onclick="this.select()">
-        <button class="tb-btn" id="btn-sw-copy">&#x1F4CB; Kopieer</button>
-      </div>
-      <p style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); margin:0 0 14px;">Iedereen met deze link werkt live samen op hetzelfde bord.</p>
-      <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Nu online</label>
-      <div id="sw-presence-list" style="display:flex; flex-wrap:wrap; gap:8px; min-height:32px; margin-bottom:16px;"></div>
-      <div style="display:flex; gap:8px; justify-content:flex-end;">
-        <button class="tb-btn" id="btn-sw-whatsapp">&#x1F4AC; WhatsApp</button>
-      </div>
+
     </div>
   </div>
 </div>
@@ -5330,46 +5501,52 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     appId: "1:564462077487:web:768153f72af7eb9779e8da"
   };
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  const db   = firebase.firestore();
   const auth = firebase.auth();
 
   // ── State ──
   const clientId = Math.random().toString(36).slice(2) + Date.now();
-  let lastRemoteState = null;
+  let lastRemoteState  = null;
   let suppressNextPush = false;
-  let unsubscribe = null;
-  let presenceUnsub = null;
-  let currentUser = null;
-  let heartbeatTimer = null;
+  let unsubscribe      = null;
+  let presenceUnsub    = null;
+  let currentUser      = null;
+  let heartbeatTimer   = null;
 
   const params = new URLSearchParams(location.search);
   let projectId = params.get('project') || localStorage.getItem('visualboard_project_id') || 'standaard';
 
   // ── DOM refs ──
-  const idInput       = document.getElementById('sync-project-id');
-  const syncIndicator = document.getElementById('sync-indicator');
-  const presenceBar   = document.getElementById('presence-bar');
-  const swPresenceList= document.getElementById('sw-presence-list');
-  const modal         = document.getElementById('samenwerken-modal');
-  const btnOpen       = document.getElementById('btn-samenwerken');
-  const btnClose      = document.getElementById('btn-sw-close');
-  const btnConnect    = document.getElementById('btn-sw-connect');
-  const btnCopy       = document.getElementById('btn-sw-copy');
-  const btnWA         = document.getElementById('btn-sw-whatsapp');
-  const linkInput     = document.getElementById('sw-link-input');
-  const loginSection  = document.getElementById('sw-login-section');
-  const userSection   = document.getElementById('sw-user-section');
-  const btnGoogleLogin= document.getElementById('btn-google-login');
-  const btnLogout     = document.getElementById('btn-google-logout');
-  const swAvatarWrap  = document.getElementById('sw-avatar-wrap');
-  const swUserName    = document.getElementById('sw-user-name');
-  const swUserEmail   = document.getElementById('sw-user-email');
+  const syncIndicator  = document.getElementById('sync-indicator');
+  const presenceBar    = document.getElementById('presence-bar');
+  const swPresenceList = document.getElementById('sw-presence-list');   // wordt niet meer gebruikt maar blijft voor compat
+  const modal          = document.getElementById('samenwerken-modal');
+  const btnOpen        = document.getElementById('btn-samenwerken');
+  const btnClose       = document.getElementById('btn-sw-close');
+  const btnCopy        = document.getElementById('btn-sw-copy');
+  const btnWA          = document.getElementById('btn-sw-whatsapp');
+  const linkInput      = document.getElementById('sw-link-input');
+  const loginSection   = document.getElementById('sw-login-section');
+  const userSection    = document.getElementById('sw-user-section');
+  const btnGoogleLogin = document.getElementById('btn-google-login');
+  const btnLogout      = document.getElementById('btn-google-logout');
+  const swAvatarWrap   = document.getElementById('sw-avatar-wrap');
+  const swUserName     = document.getElementById('sw-user-name');
+  const swUserEmail    = document.getElementById('sw-user-email');
+  const swShareCode    = document.getElementById('sw-share-code');
+  const btnCopyCode    = document.getElementById('btn-sw-copy-code');
+  const swJoinInput    = document.getElementById('sw-join-input');
+  const btnJoin        = document.getElementById('btn-sw-join');
+  const joinFeedback   = document.getElementById('sw-join-feedback');
+  const membersList    = document.getElementById('sw-members-list');
+  // sync-project-id (hidden input, keep for connect() compat)
+  let idInputValue     = projectId;
 
   // ── Helpers ──
   function setIndicator(text, cls) {
     if (!syncIndicator) return;
     syncIndicator.textContent = text;
-    syncIndicator.className = cls;
+    syncIndicator.className   = cls;
   }
 
   function getInitials(name) {
@@ -5378,7 +5555,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   }
 
   function getCurrentUrl() {
-    const pid = (idInput && idInput.value || projectId).trim() || 'standaard';
+    const pid = (idInputValue || projectId).trim() || 'standaard';
     return location.origin + location.pathname + '?project=' + encodeURIComponent(pid);
   }
 
@@ -5386,60 +5563,115 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     if (linkInput) linkInput.value = getCurrentUrl();
   }
 
-  // ── Presence rendering ──
-  function renderPresence(users) {
-    // Toolbar bar
-    presenceBar.innerHTML = '';
-    // Modal list
-    if (swPresenceList) swPresenceList.innerHTML = '';
+  // ── Deelcode genereren / ophalen ──
+  // Code formaat: VB-XXXX-XXXX (hoofdletters + cijfers)
+  function generateShareCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let part1 = '', part2 = '';
+    for (let i = 0; i < 4; i++) part1 += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 4; i++) part2 += chars[Math.floor(Math.random() * chars.length)];
+    return part1 + '-' + part2;
+  }
 
+  function ensureShareCode(pid) {
+    // Sla deelcode op in Firestore onder het project, haal op als die al bestaat
+    if (!pid) return;
+    const ref = db.collection('projects').doc(pid);
+    ref.get().then(snap => {
+      let code;
+      if (snap.exists && snap.data().shareCode) {
+        code = snap.data().shareCode;
+      } else {
+        code = generateShareCode();
+        ref.set({ shareCode: code }, { merge: true }).catch(() => {});
+      }
+      if (swShareCode) swShareCode.textContent = 'VB-' + code;
+      // Sla mapping code→projectId op voor lookup bij deelnemen
+      db.collection('shareCodes').doc(code).set({ projectId: pid }, { merge: true }).catch(() => {});
+    }).catch(() => {});
+  }
+
+  // ── Presence ──
+  function renderPresence(users) {
+    // Toolbar avatars
+    presenceBar.innerHTML = '';
     users.forEach(u => {
       const isMe = u.uid === (currentUser && currentUser.uid);
-      const label = u.name + (isMe ? ' (jij)' : '');
-
-      // Toolbar avatar
       const wrap = document.createElement('div');
       wrap.className = 'presence-wrap';
+      const label = u.name + (isMe ? ' (jij)' : '');
       if (u.photo) {
         wrap.innerHTML = '<img class="presence-avatar" src="' + u.photo + '" alt="' + u.name + '"><span class="presence-tooltip">' + label + '</span>';
       } else {
         wrap.innerHTML = '<div class="presence-initials">' + getInitials(u.name) + '</div><span class="presence-tooltip">' + label + '</span>';
       }
       presenceBar.appendChild(wrap);
+    });
 
-      // Modal list item
-      if (swPresenceList) {
-        const item = document.createElement('div');
-        item.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;";
-        if (u.photo) {
-          item.innerHTML = '<img src="' + u.photo + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent)"><span>' + label + '</span>';
-        } else {
-          item.innerHTML = '<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;">' + getInitials(u.name) + '</div><span>' + label + '</span>';
-        }
-        swPresenceList.appendChild(item);
+    // Deelnemers in modal
+    renderMembersList(users);
+  }
+
+  function renderMembersList(onlineUsers) {
+    if (!membersList) return;
+    // Haal alle bekende deelnemers op (ook offline) uit Firestore
+    db.collection('presence').doc(projectId).collection('users').get().then(snap => {
+      const now = Date.now();
+      const onlineUids = new Set(onlineUsers.map(u => u.uid));
+      const allMembers = [];
+
+      snap.forEach(doc => {
+        const d = doc.data();
+        const ts = d.ts && d.ts.toMillis ? d.ts.toMillis() : 0;
+        allMembers.push({
+          ...d,
+          isOnline: now - ts < 65000
+        });
+      });
+
+      // Sorteer: online eerst
+      allMembers.sort((a, b) => (b.isOnline ? 1 : 0) - (a.isOnline ? 1 : 0));
+
+      if (allMembers.length === 0) {
+        membersList.innerHTML = '<div class="sw-empty-members">Nog geen deelnemers.</div>';
+        return;
       }
+
+      membersList.innerHTML = '';
+      allMembers.forEach(m => {
+        const isMe = currentUser && m.uid === currentUser.uid;
+        const row = document.createElement('div');
+        row.className = 'sw-member-row';
+        const avatar = m.photo
+          ? '<img class="sw-member-avatar" src="' + m.photo + '" alt="' + m.name + '">'
+          : '<div class="sw-member-initials">' + getInitials(m.name) + '</div>';
+        const statusText = m.isOnline ? 'Nu actief' : 'Eerder deelgenomen';
+        const meTag = isMe ? ' <span style="color:var(--accent);font-size:10px;">(jij)</span>' : '';
+        row.innerHTML = avatar +
+          '<div class="sw-member-info"><div class="sw-member-name">' + m.name + meTag + '</div>' +
+          '<div class="sw-member-status">' + statusText + '</div></div>' +
+          '<div class="sw-member-dot ' + (m.isOnline ? 'online' : 'offline') + '"></div>';
+        membersList.appendChild(row);
+      });
+    }).catch(() => {
+      if (membersList) membersList.innerHTML = '<div class="sw-empty-members">Kon deelnemers niet laden.</div>';
     });
   }
 
-  // ── Presence heartbeat ──
   function startPresence() {
     if (!currentUser || !projectId) return;
     stopPresence();
-
     const ref = db.collection('presence').doc(projectId).collection('users').doc(currentUser.uid);
-
     function beat() {
       ref.set({
-        uid: currentUser.uid,
-        name: currentUser.displayName || currentUser.email,
+        uid:   currentUser.uid,
+        name:  currentUser.displayName || currentUser.email,
         photo: currentUser.photoURL || '',
-        ts: firebase.firestore.FieldValue.serverTimestamp()
+        ts:    firebase.firestore.FieldValue.serverTimestamp()
       }).catch(() => {});
     }
     beat();
     heartbeatTimer = setInterval(beat, 20000);
-
-    // Listen to all online users (active in last 60s)
     presenceUnsub = db.collection('presence').doc(projectId).collection('users')
       .onSnapshot(snap => {
         const now = Date.now();
@@ -5451,40 +5683,39 @@ document.getElementById('json-import').addEventListener('change', (e) => {
         });
         renderPresence(active);
       });
-
-    // Remove on unload
     window.addEventListener('beforeunload', () => ref.delete().catch(() => {}));
   }
 
   function stopPresence() {
     if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-    if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
+    if (presenceUnsub)  { presenceUnsub(); presenceUnsub = null; }
     presenceBar.innerHTML = '';
-    if (swPresenceList) swPresenceList.innerHTML = '';
   }
 
   // ── Auth UI ──
   function showUserUI(user) {
     loginSection.style.display = 'none';
-    userSection.style.display = 'block';
-    swUserName.textContent = user.displayName || 'Gebruiker';
+    userSection.style.display  = 'flex';
+    swUserName.textContent  = user.displayName || 'Gebruiker';
     swUserEmail.textContent = user.email || '';
-    swAvatarWrap.innerHTML = user.photoURL
+    swAvatarWrap.innerHTML  = user.photoURL
       ? '<img src="' + user.photoURL + '" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">'
       : '<div class="sw-user-initials">' + getInitials(user.displayName || user.email) + '</div>';
+    ensureShareCode(projectId);
+    updateLinkInput();
   }
 
   function showLoginUI() {
-    loginSection.style.display = 'block';
-    userSection.style.display = 'none';
+    loginSection.style.display = 'flex';
+    userSection.style.display  = 'none';
     swAvatarWrap.innerHTML = '';
   }
 
-  // ── Firebase sync (board state) ──
+  // ── Firebase sync ──
   function connect(pid) {
-    projectId = (pid || 'standaard').trim() || 'standaard';
+    projectId    = (pid || 'standaard').trim() || 'standaard';
+    idInputValue = projectId;
     localStorage.setItem('visualboard_project_id', projectId);
-    if (idInput) idInput.value = projectId;
     updateLinkInput();
     lastRemoteState = null;
     if (unsubscribe) unsubscribe();
@@ -5494,7 +5725,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
       if (!data || !data.state) { setIndicator('☁️ Wachten op data…', 'saving'); return; }
       if (data.clientId === clientId) { setIndicator('☁️ Gesynchroniseerd', 'saved'); return; }
       if (data.state === lastRemoteState) return;
-      lastRemoteState = data.state;
+      lastRemoteState  = data.state;
       suppressNextPush = true;
       loadState(data.state);
       saveState();
@@ -5503,8 +5734,10 @@ document.getElementById('json-import').addEventListener('change', (e) => {
       console.error('Firestore sync fout:', err);
       setIndicator('⚠️ Sync fout', 'saving');
     });
-
-    if (currentUser) startPresence();
+    if (currentUser) {
+      startPresence();
+      ensureShareCode(projectId);
+    }
   }
 
   window.syncStateToFirebase = function(state) {
@@ -5513,30 +5746,25 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     lastRemoteState = state;
     setIndicator('☁️ Opslaan…', 'saving');
     db.collection('projects').doc(projectId).set({
-      state: state,
-      clientId: clientId,
+      state:     state,
+      clientId:  clientId,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => setIndicator('☁️ Gesynchroniseerd', 'saved'))
       .catch(err => { console.error('Firestore sync fout:', err); setIndicator('⚠️ Sync fout', 'saving'); });
+    if (currentUser) saveEditToHistory(currentUser);
   };
 
-  // ── Auth state listener ──
+  // ── Auth state ──
   auth.onAuthStateChanged(user => {
     currentUser = user;
-    if (user) {
-      showUserUI(user);
-      startPresence();
-    } else {
-      showLoginUI();
-      stopPresence();
-    }
+    if (user) { showUserUI(user); startPresence(); }
+    else      { showLoginUI();    stopPresence();  }
   });
 
-  // ── Google login ──
+  // ── Google login/logout ──
   btnGoogleLogin && btnGoogleLogin.addEventListener('click', () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(err => {
-      console.error('Login fout:', err);
       if (typeof showToast === 'function') showToast('Login mislukt: ' + err.message);
     });
   });
@@ -5547,22 +5775,68 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     auth.signOut();
   });
 
-  // ── Modal ──
+  // ── Deelcode kopiëren ──
+  btnCopyCode && btnCopyCode.addEventListener('click', () => {
+    const code = swShareCode ? swShareCode.textContent : '';
+    navigator.clipboard.writeText(code).then(
+      () => { if (typeof showToast === 'function') showToast('Deelcode gekopieerd!'); },
+      () => {}
+    );
+  });
+
+  // ── Deelnemen via code ──
+  function normalizeCode(raw) {
+    return raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  btnJoin && btnJoin.addEventListener('click', () => {
+    const raw  = swJoinInput ? swJoinInput.value.trim() : '';
+    const code = normalizeCode(raw);
+    if (code.length < 8) {
+      if (joinFeedback) joinFeedback.textContent = '⚠️ Voer een geldige code in (8 tekens).';
+      return;
+    }
+    if (joinFeedback) joinFeedback.textContent = '🔍 Code opzoeken…';
+    btnJoin.disabled = true;
+    db.collection('shareCodes').doc(code).get().then(snap => {
+      if (!snap.exists || !snap.data().projectId) {
+        if (joinFeedback) joinFeedback.textContent = '❌ Deelcode niet gevonden. Controleer de code.';
+        btnJoin.disabled = false;
+        return;
+      }
+      const pid = snap.data().projectId;
+      connect(pid);
+      if (joinFeedback) joinFeedback.textContent = '✅ Verbonden met project!';
+      if (typeof showToast === 'function') showToast('Verbonden met project: ' + pid);
+      btnJoin.disabled = false;
+    }).catch(() => {
+      if (joinFeedback) joinFeedback.textContent = '❌ Fout bij opzoeken. Probeer opnieuw.';
+      btnJoin.disabled = false;
+    });
+  });
+
+  // Formatteer invoer automatisch als ____-____
+  swJoinInput && swJoinInput.addEventListener('input', () => {
+    let val = normalizeCode(swJoinInput.value);
+    if (val.length > 4) val = val.slice(0, 4) + '-' + val.slice(4, 8);
+    swJoinInput.value = val;
+    if (joinFeedback) joinFeedback.textContent = '';
+  });
+
+  // ── Modal open/sluiten ──
   btnOpen && btnOpen.addEventListener('click', e => {
     e.stopPropagation();
     updateLinkInput();
-    modal.style.display = 'flex';
+    if (currentUser) {
+      ensureShareCode(projectId);
+      renderMembersList([]);
+    }
+    modal.classList.add('show');
   });
-  btnClose && btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
-  modal && modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+  btnClose && btnClose.addEventListener('click', () => modal.classList.remove('show'));
+  modal    && modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
 
-  if (idInput) idInput.addEventListener('input', updateLinkInput);
-
-  btnConnect && btnConnect.addEventListener('click', () => {
-    connect(idInput.value);
-    if (typeof showToast === 'function') showToast('Verbonden met project: ' + (idInput.value || 'standaard'));
-  });
-
+  // ── Deel-link kopiëren / WhatsApp ──
   btnCopy && btnCopy.addEventListener('click', () => {
     const url = linkInput ? linkInput.value : getCurrentUrl();
     navigator.clipboard.writeText(url).then(
@@ -5580,9 +5854,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
 
   function saveEditToHistory(user) {
     if (!user || !projectId) return;
-    const histRef = db.collection('projects').doc(projectId)
-                      .collection('history').doc();
-    histRef.set({
+    db.collection('projects').doc(projectId).collection('history').doc().set({
       uid:   user.uid,
       name:  user.displayName || user.email || 'Onbekend',
       photo: user.photoURL || '',
@@ -5592,9 +5864,10 @@ document.getElementById('json-import').addEventListener('change', (e) => {
 
   function formatTs(ts) {
     if (!ts) return '–';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const d   = ts.toDate ? ts.toDate() : new Date(ts);
     const pad = n => String(n).padStart(2, '0');
-    return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}  ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return pad(d.getDate()) + '-' + pad(d.getMonth()+1) + '-' + d.getFullYear() +
+           '  ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
   function getInitialsGesch(name) {
@@ -5602,63 +5875,46 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
 
-function openGeschiedenis() {
+  function openGeschiedenis() {
     if (!projectId) return;
     const body = document.getElementById('gesch-body');
     body.innerHTML = '<div class="gesch-empty">Laden…</div>';
-
     db.collection('projects').doc(projectId).collection('history')
       .orderBy('ts', 'desc').limit(MAX_HISTORY).get()
       .then(snap => {
-        if (snap.empty) {
-          body.innerHTML = '<div class="gesch-empty">Nog geen bewerkingen opgeslagen.</div>';
-          return;
-        }
+        if (snap.empty) { body.innerHTML = '<div class="gesch-empty">Nog geen bewerkingen opgeslagen.</div>'; return; }
         body.innerHTML = '';
         snap.forEach(doc => {
-          const d = doc.data();
+          const d    = doc.data();
           const isMe = currentUser && d.uid === currentUser.uid;
-          const row = document.createElement('div');
+          const row  = document.createElement('div');
           row.className = 'gesch-row' + (isMe ? ' gesch-me' : '');
           const avatar = d.photo
-            ? `<img class="gesch-avatar" src="${d.photo}" alt="${d.name}">`
-            : `<div class="gesch-initials">${getInitialsGesch(d.name)}</div>`;
-          row.innerHTML = `
-            ${avatar}
-            <div class="gesch-info">
-              <div class="gesch-name">${d.name}</div>
-              <div class="gesch-time">${formatTs(d.ts)}</div>
-            </div>`;
+            ? '<img class="gesch-avatar" src="' + d.photo + '" alt="' + d.name + '">'
+            : '<div class="gesch-initials">' + getInitialsGesch(d.name) + '</div>';
+          row.innerHTML = avatar +
+            '<div class="gesch-info">' +
+            '<div class="gesch-name">' + d.name + '</div>' +
+            '<div class="gesch-time">' + formatTs(d.ts) + '</div>' +
+            '</div>';
           body.appendChild(row);
         });
-      })
-      .catch(() => {
+      }).catch(() => {
         body.innerHTML = '<div class="gesch-empty">Kon geschiedenis niet laden.</div>';
       });
   }
 
-const btnGesch = document.getElementById('btn-geschiedenis');
-  const geschPanel = document.getElementById('geschiedenis-panel');
+  const btnGesch     = document.getElementById('btn-geschiedenis');
+  const geschPanel   = document.getElementById('geschiedenis-panel');
   const geschCloseBtn = document.getElementById('gesch-close-btn');
 
-  btnGesch && btnGesch.addEventListener('click', (e) => {
+  btnGesch && btnGesch.addEventListener('click', e => {
     e.stopPropagation();
-    // Sluit het bewerkpaneel als dat open is
-    panel.classList.remove('open');
-    panelTarget = null;
+    if (typeof panel !== 'undefined') panel.classList.remove('open');
     geschPanel.classList.toggle('open');
     if (geschPanel.classList.contains('open')) openGeschiedenis();
   });
-  geschCloseBtn && geschCloseBtn.addEventListener('click', () => {
-    geschPanel.classList.remove('open');
-  });
-
-  // ── Patch syncStateToFirebase om geschiedenis bij te houden ──
-  const _origSync = window.syncStateToFirebase;
-  window.syncStateToFirebase = function(state) {
-    if (currentUser) saveEditToHistory(currentUser);
-    if (_origSync) _origSync(state);
-  };
+  geschCloseBtn && geschCloseBtn.addEventListener('click', () => geschPanel.classList.remove('open'));
 
   // ── Init ──
   connect(projectId);
