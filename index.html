@@ -934,7 +934,17 @@ body.keten-visible .node-keten-tags {
   }
 
   /* ── GOOGLE LOGIN & AANWEZIGHEID ── */
-  #presence-bar { display:flex; align-items:center; gap:5px; }
+ #presence-bar { display:flex; align-items:center; gap:5px; }
+
+  .gesch-changes { margin-top:6px; display:flex; flex-direction:column; gap:3px; }
+  .gesch-change {
+    font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim);
+    background:var(--surface2); border:1px solid var(--border); border-radius:5px;
+    padding:3px 7px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .gesch-change:hover { border-color:var(--accent); color:var(--accent); }
+  .gesch-from { text-decoration:line-through; opacity:0.6; }
+  .gesch-to { color:var(--accent); font-weight:600; }
   .presence-wrap { position:relative; }
   .presence-avatar { width:28px; height:28px; border-radius:50%; border:2px solid var(--accent); object-fit:cover; cursor:default; transition:transform .15s; }
   .presence-avatar:hover { transform:scale(1.15); }
@@ -1324,7 +1334,6 @@ body.keten-visible .node-keten-tags {
               <div>1. De <strong>eigenaar</strong> deelt zijn deelcode of link.</div>
               <div>2. De <strong>deelnemer</strong> voert de code in en klikt op Deelnemen.</div>
               <div>3. Wijzigingen worden <strong>live gesynchroniseerd</strong>.</div>
-              <div style="margin-top:10px;">🟢 Groen = nu actief &nbsp;&nbsp; ⚫ Grijs = eerder deelgenomen</div>
             </div>
           </div>
         </div>
@@ -5766,7 +5775,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => setIndicator('☁️ Gesynchroniseerd', 'saved'))
       .catch(err => { console.error('Firestore sync fout:', err); setIndicator('⚠️ Sync fout', 'saving'); });
-    if (currentUser) saveEditToHistory(currentUser);
+if (currentUser) saveEditToHistory(currentUser, state);
   };
 
   // ── Auth state ──
@@ -5867,13 +5876,40 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   // ── Geschiedenis ──
   const MAX_HISTORY = 20;
 
-  function saveEditToHistory(user) {
+let _lastHistorySave = 0;
+  let _lastHistoryState = null;
+
+  function saveEditToHistory(user, state) {
     if (!user || !projectId) return;
+    const now = Date.now();
+    if (now - _lastHistorySave < 60000) return; // max 1x per minuut
+
+    // Pak gewijzigde nodes t.o.v. vorige opslag
+    let changes = [];
+    try {
+      if (_lastHistoryState && state) {
+        const prev  = JSON.parse(_lastHistoryState);
+        const curr  = JSON.parse(state);
+        const prevMap = {};
+        (prev.nodes || []).forEach(n => { prevMap[n.id] = n; });
+        (curr.nodes || []).forEach(n => {
+          const old = prevMap[n.id];
+          if (old && old.title !== n.title && n.title) {
+            changes.push({ nodeId: n.id, from: old.title || '(leeg)', to: n.title });
+          }
+        });
+      }
+    } catch(e) {}
+
+    _lastHistorySave  = now;
+    _lastHistoryState = state;
+
     db.collection('projects').doc(projectId).collection('history').doc().set({
-      uid:   user.uid,
-      name:  user.displayName || user.email || 'Onbekend',
-      photo: user.photoURL || '',
-      ts:    firebase.firestore.FieldValue.serverTimestamp()
+      uid:     user.uid,
+      name:    user.displayName || user.email || 'Onbekend',
+      photo:   user.photoURL || '',
+      ts:      firebase.firestore.FieldValue.serverTimestamp(),
+      changes: changes
     }).catch(() => {});
   }
 
@@ -5890,7 +5926,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
 
-  function openGeschiedenis() {
+function openGeschiedenis() {
     if (!projectId) return;
     const body = document.getElementById('gesch-body');
     body.innerHTML = '<div class="gesch-empty">Laden…</div>';
@@ -5907,11 +5943,39 @@ document.getElementById('json-import').addEventListener('change', (e) => {
           const avatar = d.photo
             ? '<img class="gesch-avatar" src="' + d.photo + '" alt="' + d.name + '">'
             : '<div class="gesch-initials">' + getInitialsGesch(d.name) + '</div>';
+
+          // Bouw wijzigingen-HTML
+          let changesHtml = '';
+          if (d.changes && d.changes.length > 0) {
+            changesHtml = '<div class="gesch-changes">' +
+              d.changes.map(c =>
+                '<div class="gesch-change" data-nodeid="' + c.nodeId + '">' +
+                '✏️ <span class="gesch-from">' + c.from + '</span>' +
+                ' → <span class="gesch-to">' + c.to + '</span>' +
+                '</div>'
+              ).join('') +
+            '</div>';
+          }
+
           row.innerHTML = avatar +
             '<div class="gesch-info">' +
             '<div class="gesch-name">' + d.name + '</div>' +
             '<div class="gesch-time">' + formatTs(d.ts) + '</div>' +
+            changesHtml +
             '</div>';
+
+          // Klik op een wijziging → highlight het node
+          row.querySelectorAll('.gesch-change[data-nodeid]').forEach(el => {
+            el.addEventListener('click', () => {
+              const nid = parseInt(el.dataset.nodeid);
+              const node = (typeof nodes !== 'undefined') && nodes.find(n => n.id === nid);
+              if (!node || !node.el) return;
+              node.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              node.el.classList.add('highlight');
+              setTimeout(() => node.el.classList.remove('highlight'), 2000);
+            });
+          });
+
           body.appendChild(row);
         });
       }).catch(() => {
