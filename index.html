@@ -958,10 +958,10 @@ body.keten-visible .node-keten-tags {
   /* ── SAMENWERKEN MODAL – GROOT ── */
   #samenwerken-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(10,10,20,0.6); z-index:3000; }
   #samenwerken-modal.show { display:flex; }
-  .sw-modal-inner {
+.sw-modal-inner {
     background:var(--surface); border:1px solid var(--border); border-radius:16px;
     box-shadow:0 24px 64px rgba(0,0,0,0.35);
-    width:min(760px,calc(100vw - 32px)); max-height:90vh;
+    width:min(980px,calc(100vw - 32px)); max-height:92vh;
     display:flex; flex-direction:column; overflow:hidden; font-family:'Syne',sans-serif;
   }
   .sw-modal-header {
@@ -978,12 +978,8 @@ body.keten-visible .node-keten-tags {
   .sw-modal-body { display:flex; gap:0; flex:1; overflow:hidden; }
 
 /* Tabblad-knoppen */
-.sw-tab-bar { display:flex; gap:10px; padding:12px 20px 0; }
-.sw-tab-btn {
-  flex:1; padding:10px 16px; border-radius:8px; border:1px solid var(--border);
-  background:var(--surface2); color:var(--text); font-family:'Syne',sans-serif;
-  font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; text-align:center;
-}
+.sw-tab-bar { display:flex; flex-direction:column; gap:6px; padding:20px 12px; border-right:1px solid var(--border); width:160px; flex-shrink:0; background:var(--surface2); }
+.sw-tab-btn { width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; text-align:left; }
 .sw-tab-btn:hover { border-color:var(--accent); color:var(--accent); }
 .sw-tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
 .sw-col { display:none; }
@@ -1266,8 +1262,8 @@ body.keten-visible .node-keten-tags {
       </button>
     </div>
 
- <!-- Ingelogd: tabbladen -->
-    <div id="sw-user-section">
+<!-- Ingelogd: tabbladen -->
+    <div id="sw-user-section" style="display:flex; flex:1; overflow:hidden;">
       <div class="sw-tab-bar">
         <button class="sw-tab-btn active" id="sw-tab-delen" onclick="swSwitchTab('delen')">📤 Mijn project delen</button>
         <button class="sw-tab-btn" id="sw-tab-deelnemen" onclick="swSwitchTab('deelnemen')">🔗 Deelnemen aan project</button>
