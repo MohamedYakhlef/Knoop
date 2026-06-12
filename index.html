@@ -6,6 +6,9 @@
 <title>Visual Board</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -809,6 +812,11 @@ body.keten-visible .node-keten-tags {
     background: rgba(10,10,20,0.55); z-index: 2500;
   }
   #ketenmon-modal.show { display: flex; }
+  #interface-modal {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,20,0.55); z-index: 2500;
+  }
+  #interface-modal.show { display: flex; }
   .km-card {
     width: min(740px, calc(100vw - 32px)); max-height: 86vh;
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
@@ -925,6 +933,28 @@ body.keten-visible .node-keten-tags {
     padding: 24px; text-align: center;
   }
 
+  /* ── GOOGLE LOGIN & AANWEZIGHEID ── */
+  #presence-bar { display:flex; align-items:center; gap:5px; }
+  .presence-wrap { position:relative; }
+  .presence-avatar { width:28px; height:28px; border-radius:50%; border:2px solid var(--accent); object-fit:cover; cursor:default; transition:transform .15s; }
+  .presence-avatar:hover { transform:scale(1.15); }
+  .presence-initials { width:28px; height:28px; border-radius:50%; border:2px solid var(--accent); background:var(--accent); color:#fff; font-family:'Syne',sans-serif; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:default; transition:transform .15s; }
+  .presence-initials:hover { transform:scale(1.15); }
+  .presence-tooltip { position:absolute; top:34px; left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:11px; font-family:'DM Mono',monospace; white-space:nowrap; box-shadow:var(--shadow); pointer-events:none; display:none; z-index:2000; }
+  .presence-wrap:hover .presence-tooltip { display:block; }
+  #sw-login-section { text-align:center; padding:4px 0; }
+  #sw-user-section { display:none; }
+  .sw-google-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Syne',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
+  .sw-google-btn:hover { border-color:#4285F4; color:#4285F4; background:rgba(66,133,244,0.06); }
+  .sw-user-card { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-bottom:14px; }
+  .sw-user-card img { width:38px; height:38px; border-radius:50%; object-fit:cover; }
+  .sw-user-initials { width:38px; height:38px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sw-user-info { flex:1; }
+  .sw-user-name { font-size:14px; font-weight:700; }
+  .sw-user-email { font-size:11px; font-family:'DM Mono',monospace; color:var(--text-dim); margin-top:2px; }
+  .sw-logout-btn { font-size:11px; font-family:'DM Mono',monospace; color:var(--text-dim); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .sw-logout-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+
   /* ── VERSIE BADGE + CHANGELOG ── */
   #version-badge {
     font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
@@ -1011,6 +1041,8 @@ body.keten-visible .node-keten-tags {
     </div>
   </div>
 
+  <button class="tb-btn" id="btn-interface-monitor" title="Interfaces overzicht">Interface</button>
+
   <button class="tb-btn" id="btn-ketenmon" title="Ketens tonen/verbergen">Ketenmonitoring</button>
 
   <div style="display:flex; align-items:center; gap:6px; margin-left:auto;">
@@ -1024,8 +1056,55 @@ body.keten-visible .node-keten-tags {
     <button class="tb-btn" id="btn-theme" title="Wissel donker/licht modus"><span id="theme-icon">☀️</span></button>
     <button class="tb-btn" id="btn-fullscreen" title="Presentatiemodus (fullscreen)" style="font-size:15px; padding:6px 10px;">⛶</button>
     <span id="autosave-indicator" class="saving">⏳ Opslaan…</span>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="btn-samenwerken" title="Samenwerken met collega's">🤝 Samenwerken</button>
+    <div id="presence-bar"></div>
+    <span id="sync-indicator" class="saving">☁️ ...</span>
   </div>
 
+</div>
+
+<!-- ── SAMENWERKEN MODAL ── -->
+<div id="samenwerken-modal" style="display:none; position:fixed; inset:0; background:rgba(10,10,20,0.55); z-index:3000; align-items:center; justify-content:center;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:24px 24px 20px; width:min(420px,calc(100vw - 32px)); font-family:'Syne',sans-serif;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <div style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">&#x1F91D; Samenwerken</div>
+      <button id="btn-sw-close" style="width:28px;height:28px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">&#x2715;</button>
+    </div>
+    <div id="sw-login-section">
+      <p style="font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim); margin-bottom:14px;">Log in om samen te werken en te zien wie er online is.</p>
+      <button class="sw-google-btn" id="btn-google-login">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.4 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.9 0 10.9-2 14.5-5.4l-6.7-5.5C29.9 36.9 27.1 38 24 38c-6 0-10.6-3.9-11.7-9.1l-7 5.4C8.3 41.6 15.5 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.8 2.3-2.3 4.3-4.3 5.6l6.7 5.5C42 35.9 45 30.5 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
+        Inloggen met Google
+      </button>
+    </div>
+    <div id="sw-user-section">
+      <div class="sw-user-card">
+        <div id="sw-avatar-wrap"></div>
+        <div class="sw-user-info">
+          <div class="sw-user-name" id="sw-user-name"></div>
+          <div class="sw-user-email" id="sw-user-email"></div>
+        </div>
+        <button class="sw-logout-btn" id="btn-google-logout">Uitloggen</button>
+      </div>
+      <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Projectnaam</label>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="sync-project-id" placeholder="bijv. mijn-project-2025" style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace; font-size:13px; outline:none;">
+        <button class="tb-btn" id="btn-sw-connect" style="white-space:nowrap;">Verbinden</button>
+      </div>
+      <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Deel-link</label>
+      <div style="display:flex; gap:8px; margin-bottom:6px;">
+        <input type="text" id="sw-link-input" readonly style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace; font-size:12px; outline:none; cursor:pointer;" onclick="this.select()">
+        <button class="tb-btn" id="btn-sw-copy">&#x1F4CB; Kopieer</button>
+      </div>
+      <p style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); margin:0 0 14px;">Iedereen met deze link werkt live samen op hetzelfde bord.</p>
+      <label style="display:block; font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Nu online</label>
+      <div id="sw-presence-list" style="display:flex; flex-wrap:wrap; gap:8px; min-height:32px; margin-bottom:16px;"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="tb-btn" id="btn-sw-whatsapp">&#x1F4AC; WhatsApp</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="left-toolbar">
@@ -1336,12 +1415,11 @@ body.keten-visible .node-keten-tags {
   </div>
 </div>
 <div id="stakeholder-modal">
-  <div class="np-card" style="width:min(560px, calc(100vw - 32px)); max-height:86vh; overflow-y:auto; position:relative;">
-    <button class="cl-close" id="btn-stakeholder-x" style="position:absolute; top:14px; right:14px;">✕</button>
+  <div class="np-card" style="width:min(560px, calc(100vw - 32px)); max-height:86vh; overflow-y:auto;">
     <div class="np-title">👥 Stakeholders</div>
     <div id="stakeholder-fields"></div>
     <div class="np-actions">
-      <button class="np-btn primary" id="btn-stakeholder-close">Opslaan</button>
+      <button class="np-btn primary" id="btn-stakeholder-close">Sluiten</button>
     </div>
   </div>
 </div>
@@ -1370,6 +1448,22 @@ body.keten-visible .node-keten-tags {
     </div>
     <div class="km-stats-bar" id="km-stats-bar"></div>
     <div class="km-body" id="ketenmon-body"></div>
+  </div>
+</div>
+
+<div id="interface-modal">
+  <div class="km-card">
+    <div class="km-header">
+      <div class="km-title">🔌 Interface</div>
+      <div class="km-search-wrap">
+        <span class="km-search-icon">🔍</span>
+        <input class="km-search-input" id="iface-search-input" type="text" placeholder="Zoek interface…">
+      </div>
+      <div class="km-header-actions">
+        <button class="km-icon-btn" id="interface-close" title="Sluiten" style="font-size:13px;">✕</button>
+      </div>
+    </div>
+    <div class="km-body" id="iface-body"></div>
   </div>
 </div>
 
@@ -1491,6 +1585,7 @@ function triggerAutoSave(state) {
     try {
       localStorage.setItem('visualboard_autosave', state);
       localStorage.setItem('visualboard_autosave_time', Date.now());
+      if (window.syncStateToFirebase) window.syncStateToFirebase(state);
       if (indicator) { indicator.textContent = '✓ Opgeslagen'; indicator.className = 'saved'; }
     } catch(e) {
       if (indicator) { indicator.textContent = '⚠ Opslaan mislukt'; indicator.className = 'saving'; }
@@ -2854,7 +2949,7 @@ titleEl.style.display    = (n.showTitle === false) ? 'none' : '';
   n.el.style.color = n.color || '#1a1a2e';
 
   const linkEl = n.el.querySelector('.node-link');
-  if (n.url && n.showUrl !== false) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
+  if (n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
   else { linkEl.style.display = 'none'; }
 
   const noteEl = document.getElementById('nnote-'+n.id);
@@ -3174,23 +3269,14 @@ else { document.getElementById('text-node-options').style.display = 'none';
     ${n.img && n.showImg ? `<img class="view-img" src="${n.img}">` : ''}
       <div class="view-line"><div class="view-label">Titel</div><div class="view-value">${n.url ? `<a href="${n.url}" target="_blank" style="color:var(--accent);text-decoration:none;">${n.title}</a>` : n.title}</div></div>
       ${n.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${n.note}</div></div>` : ''}
-      ${getNodeKetens(n).length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${getNodeKetens(n).join(', ')}</div></div>` : ''}
-      ${getNodeInterfaces(n).length ? `<div class="view-line"><div class="view-label">Interface</div><div class="view-value">${getNodeInterfaces(n).join(', ')}</div></div>` : ''}
+      ${getNodeKetens(n).length ? `<div class="view-line"><div class="view-label">Keten</div><div class="view-value">${getNodeKetens(n).join('<br>')}</div></div>` : ''}
       ${n.behandelaarsgroep ? `<div class="view-line"><div class="view-label">Behandelaarsgroep</div><div class="view-value">${n.behandelaarsgroep}</div></div>` : ''}
       ${n.bitteam ? `<div class="view-line"><div class="view-label">BIT TEAM</div><div class="view-value">${n.bitteam}</div></div>` : ''}
       ${n.leverancier ? `<div class="view-line"><div class="view-label">Leverancier</div><div class="view-value">${n.leverancier}</div></div>` : ''}
-      ${(() => {
-        const rows = STAKEHOLDER_ROLES.map(role => {
-          const vals = (n.stakeholders && n.stakeholders[role.key] || []).filter(v => v && v.trim());
-          return vals.length ? `<div class="view-line" style="margin-bottom:8px;"><div class="view-label">${role.label}</div><div class="view-value">${vals.join(', ')}</div></div>` : '';
-        }).join('');
-        return rows ? `
-          <div style="margin-top:14px; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background: var(--surface2);">
-            <div style="font-family:'DM Mono', monospace; font-size:11px; font-weight:700; color: var(--accent); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">👥 Stakeholders</div>
-            ${rows}
-          </div>
-        ` : '';
-      })()}
+      ${STAKEHOLDER_ROLES.map(role => {
+        const vals = (n.stakeholders && n.stakeholders[role.key] || []).filter(v => v && v.trim());
+        return vals.length ? `<div class="view-line"><div class="view-label">${role.label}</div><div class="view-value">${vals.join('<br>')}</div></div>` : '';
+      }).join('')}
       ${n.servicelevel ? `<div class="view-line"><div class="view-label">Servicelevel</div><div class="view-value">${n.servicelevel}</div></div>` : ''}
       ${n.ketenmonitoring ? `<div class="view-line"><div class="view-label">Ketenmonitoring</div><div class="view-value">${n.ketenmonitoring}</div></div>` : ''}
       ${n.filterLabel ? `<div class="view-line"><div class="view-label">Filter</div><div class="view-value">${n.filterLabel}</div></div>` : ''}
@@ -3216,8 +3302,8 @@ document.getElementById('panel-view').style.display = 'block';
   document.getElementById('panel-edit').style.display = 'none';
   document.getElementById('btn-view-delete').style.display = 'none';
   document.getElementById('panel-title').childNodes[0].textContent = 'Pijl info';
-  const ketenText = getArrowKetens(a).join(', ');
-  const interfaceText = getArrowInterfaces(a).join(', ');
+  const ketenText = getArrowKetens(a).join('<br>');
+  const interfaceText = getArrowInterfaces(a).join('<br>');
   document.getElementById('view-content').innerHTML = `
    ${a.label ? `<div class="view-line"><div class="view-label">Label</div><div class="view-value">${a.url ? `<a href="${a.url}" target="_blank" style="color:var(--accent);text-decoration:none;">${a.label}</a>` : a.label}</div></div>` : ''}
     ${a.note ? `<div class="view-line"><div class="view-label">Notitie</div><div class="view-value">${a.note}</div></div>` : ''}
@@ -3514,23 +3600,9 @@ function renderStakeholderModal(n) {
   });
 }
 
-function persistAllStakeholderFields() {
-  document.querySelectorAll('#stakeholder-fields input').forEach(inp => inp.blur());
-}
-
-document.getElementById('btn-stakeholder-close').onclick = () => {
-  persistAllStakeholderFields();
-  closeStakeholderModal();
-};
-document.getElementById('btn-stakeholder-x').onclick = () => {
-  persistAllStakeholderFields();
-  closeStakeholderModal();
-};
+document.getElementById('btn-stakeholder-close').onclick = () => closeStakeholderModal();
 document.getElementById('stakeholder-modal').addEventListener('click', (e) => {
-  if (e.target.id === 'stakeholder-modal') {
-    persistAllStakeholderFields();
-    closeStakeholderModal();
-  }
+  if (e.target.id === 'stakeholder-modal') closeStakeholderModal();
 });
 
 function collectNodeKetensFromForm() {
@@ -4411,7 +4483,7 @@ bugfixes: [
   
   
   
-  {
+{
     version: 'v1.3.0',
     date: '03-06-2026',
 nieuw: [
@@ -4434,21 +4506,18 @@ bugfixes: [
 ],
   },
 
+
   {
     version: 'v1.4.0',
     date: '12-06-2026',
 nieuw: [
+  'Interfaces hebben nu een eigen knop in de toolbar, inclusief de functie om direct naar het object op het canvas te springen.',
   'Het is nu mogelijk om ook stakeholders toe te voegen.',
-  '',
-  '',
-  '',
-  '',
 ],
 
 verbeterd: [
-  '',
-  '',
-  '',
+  'In het informatiescherm worden de velden voortaan op afzonderlijke regels weergegeven, in plaats van gescheiden door komma’s op één regel.',
+
   
 ],
 
@@ -4456,7 +4525,26 @@ bugfixes: [
 'Het URL-icoon kwam terug na het verversen van de pagina, ondanks dat deze was uitgeschakeld. Dit probleem is opgelost.',
 ],
   },
+  {
+    version: 'v1.4.0',
+    date: '12-06-2026',
+nieuw: [
+  'Het is nu mogelijk om samen te werken aan een project.',
+  'Interfaces hebben nu een eigen knop in de toolbar, inclusief de functie om direct naar het object op het canvas te springen.',
+  'Het is nu mogelijk om ook stakeholders toe te voegen.',
+],
 
+verbeterd: [
+  'In het informatiescherm worden de velden voortaan op afzonderlijke regels weergegeven, in plaats van gescheiden door komma’s op één regel.',
+  'Aanmelden met Google voor samenwerking aan projecten.',
+
+  
+],
+
+bugfixes: [
+'Het URL-icoon kwam terug na het verversen van de pagina, ondanks dat deze was uitgeschakeld. Dit probleem is opgelost.',
+],
+  },
   
 ];
 
@@ -4642,6 +4730,7 @@ let _kmBlinkTimer = null;
 function navigateToKmObject(item) {
   stopKmBlink();
   document.getElementById('ketenmon-modal').classList.remove('show');
+  document.getElementById('interface-modal').classList.remove('show');
   if (kmHidden) applyKmVisibility(false);
 
   if (item.type === 'node') {
@@ -4838,6 +4927,124 @@ function renderKetenMonitoring() {
     body.appendChild(card);
   });
 }
+
+function renderInterfaceMonitoring() {
+  const body = document.getElementById('iface-body');
+  const searchVal = (document.getElementById('iface-search-input')?.value || '').toLowerCase().trim();
+  body.innerHTML = '';
+
+  const objGroups = [];
+  nodes.forEach(n => {
+    const ifaces = getNodeInterfaces(n);
+    if (ifaces.length > 0) {
+      objGroups.push({
+        type: 'node', obj: n,
+        interfaces: ifaces,
+        name: n.title || '(geen titel)',
+        meta: [n.behandelaarsgroep, n.leverancier, n.servicelevel].filter(Boolean).join(' · ')
+      });
+    }
+  });
+  arrows.forEach(a => {
+    const ifaces = getArrowInterfaces(a);
+    if (ifaces.length > 0) {
+      const fromNode = nodes.find(n => n.id === a.from);
+      const toNode   = nodes.find(n => n.id === a.to);
+      objGroups.push({
+        type: 'arrow', obj: a,
+        interfaces: ifaces,
+        name: a.label || `${fromNode?.title || '?'} → ${toNode?.title || '?'}`,
+        meta: [a.behandelaarsgroep, a.leverancier, a.servicelevel].filter(Boolean).join(' · ')
+      });
+    }
+  });
+
+  if (objGroups.length === 0) {
+    body.innerHTML = `<div class="km-empty"><span class="km-empty-icon"></span>
+      Geen interfaces gevonden.<br>
+      Voeg via het bewerkpaneel een Interface-waarde toe aan vakjes en pijlen.</div>`;
+    return;
+  }
+
+  const filtered = objGroups.filter(g => {
+    if (!searchVal) return true;
+    return g.name.toLowerCase().includes(searchVal)
+      || g.interfaces.some(m => m.toLowerCase().includes(searchVal))
+      || g.meta.toLowerCase().includes(searchVal);
+  });
+
+  if (filtered.length === 0) {
+    body.innerHTML = `<div class="km-no-results">Geen resultaten voor "${searchVal}"</div>`;
+    return;
+  }
+
+  filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+  filtered.forEach(group => {
+    const entryCount = group.interfaces.length;
+    const card = document.createElement('div');
+    card.className = 'km-group';
+
+    const header = document.createElement('div');
+    header.className = 'km-group-header';
+    header.style.cursor = 'default';
+
+    header.innerHTML = `
+      <span class="km-type-badge ${group.type === 'node' ? 'km-type-node' : 'km-type-arrow'}" style="font-size:10px;">${group.type === 'node' ? 'Vakje' : 'Pijl'}</span>
+      <span class="km-group-name">${group.name}</span>
+      <span class="km-group-count">${entryCount} interface${entryCount !== 1 ? 's' : ''}</span>
+      <button class="km-nav-btn" title="Ga naar object op canvas">⟶</button>
+      <span class="km-group-chevron">▾</span>
+    `;
+
+    header.addEventListener('click', e => {
+      if (e.target.classList.contains('km-nav-btn')) return;
+      card.classList.toggle('collapsed');
+    });
+
+    header.querySelector('.km-nav-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      navigateToKmObject(group);
+    });
+
+    const rows = document.createElement('div');
+    rows.className = 'km-group-rows';
+
+    group.interfaces.forEach(iface => {
+      const row = document.createElement('div');
+      row.className = 'km-entry-row';
+      row.innerHTML = `<span class="km-entry-text">${iface}</span>`;
+      rows.appendChild(row);
+    });
+
+    if (group.meta) {
+      const metaRow = document.createElement('div');
+      metaRow.className = 'km-entry-row km-entry-meta';
+      metaRow.innerHTML = `<span class="km-entry-icon">🏷</span><span class="km-entry-text">${group.meta}</span>`;
+      rows.appendChild(metaRow);
+    }
+
+    card.appendChild(header);
+    card.appendChild(rows);
+    body.appendChild(card);
+  });
+}
+
+document.getElementById('btn-interface-monitor').addEventListener('click', () => {
+  document.getElementById('interface-modal').classList.add('show');
+  renderInterfaceMonitoring();
+  requestAnimationFrame(() => document.getElementById('iface-search-input')?.focus());
+});
+
+document.getElementById('iface-search-input').addEventListener('input', renderInterfaceMonitoring);
+
+document.getElementById('interface-close').addEventListener('click', () => {
+  document.getElementById('interface-modal').classList.remove('show');
+});
+document.getElementById('interface-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('interface-modal'))
+    document.getElementById('interface-modal').classList.remove('show');
+});
 
 document.getElementById('btn-ketenmon').addEventListener('click', () => {
   kmStatusFilter = null;
@@ -5062,6 +5269,267 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
+
+// ── GOOGLE AUTH + SAMENWERKEN + PRESENCE ────────────────────────────────────────
+(function() {
+  // ── Firebase init ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZgnntQlx7d6eqqZrjbqjMwW50qz-UomA",
+    authDomain: "visualboard-3b330.firebaseapp.com",
+    projectId: "visualboard-3b330",
+    storageBucket: "visualboard-3b330.firebasestorage.app",
+    messagingSenderId: "564462077487",
+    appId: "1:564462077487:web:768153f72af7eb9779e8da"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+
+  // ── State ──
+  const clientId = Math.random().toString(36).slice(2) + Date.now();
+  let lastRemoteState = null;
+  let suppressNextPush = false;
+  let unsubscribe = null;
+  let presenceUnsub = null;
+  let currentUser = null;
+  let heartbeatTimer = null;
+
+  const params = new URLSearchParams(location.search);
+  let projectId = params.get('project') || localStorage.getItem('visualboard_project_id') || 'standaard';
+
+  // ── DOM refs ──
+  const idInput       = document.getElementById('sync-project-id');
+  const syncIndicator = document.getElementById('sync-indicator');
+  const presenceBar   = document.getElementById('presence-bar');
+  const swPresenceList= document.getElementById('sw-presence-list');
+  const modal         = document.getElementById('samenwerken-modal');
+  const btnOpen       = document.getElementById('btn-samenwerken');
+  const btnClose      = document.getElementById('btn-sw-close');
+  const btnConnect    = document.getElementById('btn-sw-connect');
+  const btnCopy       = document.getElementById('btn-sw-copy');
+  const btnWA         = document.getElementById('btn-sw-whatsapp');
+  const linkInput     = document.getElementById('sw-link-input');
+  const loginSection  = document.getElementById('sw-login-section');
+  const userSection   = document.getElementById('sw-user-section');
+  const btnGoogleLogin= document.getElementById('btn-google-login');
+  const btnLogout     = document.getElementById('btn-google-logout');
+  const swAvatarWrap  = document.getElementById('sw-avatar-wrap');
+  const swUserName    = document.getElementById('sw-user-name');
+  const swUserEmail   = document.getElementById('sw-user-email');
+
+  // ── Helpers ──
+  function setIndicator(text, cls) {
+    if (!syncIndicator) return;
+    syncIndicator.textContent = text;
+    syncIndicator.className = cls;
+  }
+
+  function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  function getCurrentUrl() {
+    const pid = (idInput && idInput.value || projectId).trim() || 'standaard';
+    return location.origin + location.pathname + '?project=' + encodeURIComponent(pid);
+  }
+
+  function updateLinkInput() {
+    if (linkInput) linkInput.value = getCurrentUrl();
+  }
+
+  // ── Presence rendering ──
+  function renderPresence(users) {
+    // Toolbar bar
+    presenceBar.innerHTML = '';
+    // Modal list
+    if (swPresenceList) swPresenceList.innerHTML = '';
+
+    users.forEach(u => {
+      const isMe = u.uid === (currentUser && currentUser.uid);
+      const label = u.name + (isMe ? ' (jij)' : '');
+
+      // Toolbar avatar
+      const wrap = document.createElement('div');
+      wrap.className = 'presence-wrap';
+      if (u.photo) {
+        wrap.innerHTML = '<img class="presence-avatar" src="' + u.photo + '" alt="' + u.name + '"><span class="presence-tooltip">' + label + '</span>';
+      } else {
+        wrap.innerHTML = '<div class="presence-initials">' + getInitials(u.name) + '</div><span class="presence-tooltip">' + label + '</span>';
+      }
+      presenceBar.appendChild(wrap);
+
+      // Modal list item
+      if (swPresenceList) {
+        const item = document.createElement('div');
+        item.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;";
+        if (u.photo) {
+          item.innerHTML = '<img src="' + u.photo + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent)"><span>' + label + '</span>';
+        } else {
+          item.innerHTML = '<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;">' + getInitials(u.name) + '</div><span>' + label + '</span>';
+        }
+        swPresenceList.appendChild(item);
+      }
+    });
+  }
+
+  // ── Presence heartbeat ──
+  function startPresence() {
+    if (!currentUser || !projectId) return;
+    stopPresence();
+
+    const ref = db.collection('presence').doc(projectId).collection('users').doc(currentUser.uid);
+
+    function beat() {
+      ref.set({
+        uid: currentUser.uid,
+        name: currentUser.displayName || currentUser.email,
+        photo: currentUser.photoURL || '',
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(() => {});
+    }
+    beat();
+    heartbeatTimer = setInterval(beat, 20000);
+
+    // Listen to all online users (active in last 60s)
+    presenceUnsub = db.collection('presence').doc(projectId).collection('users')
+      .onSnapshot(snap => {
+        const now = Date.now();
+        const active = [];
+        snap.forEach(doc => {
+          const d = doc.data();
+          const ts = d.ts && d.ts.toMillis ? d.ts.toMillis() : 0;
+          if (now - ts < 65000) active.push(d);
+        });
+        renderPresence(active);
+      });
+
+    // Remove on unload
+    window.addEventListener('beforeunload', () => ref.delete().catch(() => {}));
+  }
+
+  function stopPresence() {
+    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
+    presenceBar.innerHTML = '';
+    if (swPresenceList) swPresenceList.innerHTML = '';
+  }
+
+  // ── Auth UI ──
+  function showUserUI(user) {
+    loginSection.style.display = 'none';
+    userSection.style.display = 'block';
+    swUserName.textContent = user.displayName || 'Gebruiker';
+    swUserEmail.textContent = user.email || '';
+    swAvatarWrap.innerHTML = user.photoURL
+      ? '<img src="' + user.photoURL + '" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">'
+      : '<div class="sw-user-initials">' + getInitials(user.displayName || user.email) + '</div>';
+  }
+
+  function showLoginUI() {
+    loginSection.style.display = 'block';
+    userSection.style.display = 'none';
+    swAvatarWrap.innerHTML = '';
+  }
+
+  // ── Firebase sync (board state) ──
+  function connect(pid) {
+    projectId = (pid || 'standaard').trim() || 'standaard';
+    localStorage.setItem('visualboard_project_id', projectId);
+    if (idInput) idInput.value = projectId;
+    updateLinkInput();
+    lastRemoteState = null;
+    if (unsubscribe) unsubscribe();
+    setIndicator('☁️ Verbinden…', 'saving');
+    unsubscribe = db.collection('projects').doc(projectId).onSnapshot(snap => {
+      const data = snap.data();
+      if (!data || !data.state) { setIndicator('☁️ Wachten op data…', 'saving'); return; }
+      if (data.clientId === clientId) { setIndicator('☁️ Gesynchroniseerd', 'saved'); return; }
+      if (data.state === lastRemoteState) return;
+      lastRemoteState = data.state;
+      suppressNextPush = true;
+      loadState(data.state);
+      saveState();
+      setIndicator('☁️ Bijgewerkt door collega', 'saved');
+    }, err => {
+      console.error('Firestore sync fout:', err);
+      setIndicator('⚠️ Sync fout', 'saving');
+    });
+
+    if (currentUser) startPresence();
+  }
+
+  window.syncStateToFirebase = function(state) {
+    if (suppressNextPush) { suppressNextPush = false; return; }
+    if (state === lastRemoteState) return;
+    lastRemoteState = state;
+    setIndicator('☁️ Opslaan…', 'saving');
+    db.collection('projects').doc(projectId).set({
+      state: state,
+      clientId: clientId,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => setIndicator('☁️ Gesynchroniseerd', 'saved'))
+      .catch(err => { console.error('Firestore sync fout:', err); setIndicator('⚠️ Sync fout', 'saving'); });
+  };
+
+  // ── Auth state listener ──
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      showUserUI(user);
+      startPresence();
+    } else {
+      showLoginUI();
+      stopPresence();
+    }
+  });
+
+  // ── Google login ──
+  btnGoogleLogin && btnGoogleLogin.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+      console.error('Login fout:', err);
+      if (typeof showToast === 'function') showToast('Login mislukt: ' + err.message);
+    });
+  });
+
+  btnLogout && btnLogout.addEventListener('click', () => {
+    const uid = currentUser && currentUser.uid;
+    if (uid) db.collection('presence').doc(projectId).collection('users').doc(uid).delete().catch(() => {});
+    auth.signOut();
+  });
+
+  // ── Modal ──
+  btnOpen && btnOpen.addEventListener('click', e => {
+    e.stopPropagation();
+    updateLinkInput();
+    modal.style.display = 'flex';
+  });
+  btnClose && btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
+  modal && modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+
+  if (idInput) idInput.addEventListener('input', updateLinkInput);
+
+  btnConnect && btnConnect.addEventListener('click', () => {
+    connect(idInput.value);
+    if (typeof showToast === 'function') showToast('Verbonden met project: ' + (idInput.value || 'standaard'));
+  });
+
+  btnCopy && btnCopy.addEventListener('click', () => {
+    const url = linkInput ? linkInput.value : getCurrentUrl();
+    navigator.clipboard.writeText(url).then(
+      () => { if (typeof showToast === 'function') showToast('Link gekopieerd naar klembord!'); },
+      () => { if (linkInput) { linkInput.select(); document.execCommand('copy'); } }
+    );
+  });
+
+  btnWA && btnWA.addEventListener('click', () => {
+    window.open('https://wa.me/?text=' + encodeURIComponent(getCurrentUrl()), '_blank');
+  });
+
+  // ── Init ──
+  connect(projectId);
+})();
 </script>
 </body>
 </html>
