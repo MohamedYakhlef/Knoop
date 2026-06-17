@@ -3192,7 +3192,7 @@ titleEl.style.display    = (n.showTitle === false) ? 'none' : '';
   n.el.style.color = n.color || '#1a1a2e';
 
   const linkEl = n.el.querySelector('.node-link');
-  if (n.url) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
+if (n.url && n.showUrl !== false) { linkEl.href = n.url; linkEl.style.display = 'flex'; }
   else { linkEl.style.display = 'none'; }
 
   const noteEl = document.getElementById('nnote-'+n.id);
@@ -4467,14 +4467,12 @@ function renderLabelFilterDropdown() {
   const list = document.getElementById('lf-list');
   list.innerHTML = '';
   
-  const sections = [
+const sections = [
     { key: 'keten',             icon: '🔗', label: 'Keten',            values: [...new Set([...nodes.flatMap(n => getNodeKetens(n)), ...arrows.flatMap(a => getArrowKetens(a))].filter(Boolean))] },
-    { key: 'interface',         icon: '🔌', label: 'Interface',        values: [...new Set([...nodes.flatMap(n => getNodeInterfaces(n)), ...arrows.flatMap(a => getArrowInterfaces(a))].filter(Boolean))] },
     { key: 'behandelaarsgroep', icon: '👥', label: 'Behandelaarsgroep', values: [...new Set([...nodes.map(n => n.behandelaarsgroep), ...arrows.map(a => a.behandelaarsgroep)].filter(Boolean))] },
     { key: 'bitteam',           icon: '🛠️', label: 'BIT TEAM',          values: [...new Set(nodes.map(n => n.bitteam).filter(Boolean))] },
     { key: 'leverancier',       icon: '🏢', label: 'Leverancier',       values: [...new Set([...nodes.map(n => n.leverancier), ...arrows.map(a => a.leverancier)].filter(Boolean))] },
     { key: 'servicelevel',      icon: '📊', label: 'Servicelevel',      values: [...new Set(nodes.map(n => n.servicelevel).filter(Boolean))] },
-    
     { key: 'label',             icon: '🏷️', label: 'Label',             values: getAllLabels() },
   ];
 
