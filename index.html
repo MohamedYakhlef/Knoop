@@ -5546,7 +5546,8 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     appId: "1:564462077487:web:768153f72af7eb9779e8da"
   };
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  const db   = firebase.firestore();
+const db   = firebase.firestore();
+  window.db  = db;
   const auth = firebase.auth();
 
   // ── State ──
@@ -6106,7 +6107,8 @@ function openGeschiedenis() {
 function renderMijnProjecten() {
     const list = document.getElementById('sw-projecten-list');
     const currentUser = window.currentUser;
-    if (!list || !currentUser) return;
+    const db = window.db;
+    if (!list || !currentUser || !db) return;
     list.innerHTML = '<div class="sw-empty-members">Laden…</div>';
 
     const uid = currentUser.uid;
