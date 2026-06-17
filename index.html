@@ -5536,7 +5536,10 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   let heartbeatTimer   = null;
 
   const params = new URLSearchParams(location.search);
-  let projectId = params.get('project') || localStorage.getItem('visualboard_project_id') || 'standaard';
+  function generateProjectId() {
+    return 'proj-' + Math.random().toString(36).slice(2, 10);
+  }
+  let projectId = params.get('project') || generateProjectId();
 
   // ── DOM refs ──
   const syncIndicator  = document.getElementById('sync-indicator');
@@ -5607,7 +5610,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
         code = generateShareCode();
         ref.set({ shareCode: code }, { merge: true }).catch(() => {});
       }
-      if (swShareCode) swShareCode.textContent = 'VB-' + code;
+      if (swShareCode) swShareCode.textContent = code;
       // Sla mapping code→projectId op voor lookup bij deelnemen
       db.collection('shareCodes').doc(code).set({ projectId: pid }, { merge: true }).catch(() => {});
     }).catch(() => {});
@@ -5737,7 +5740,6 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   function connect(pid) {
     projectId    = (pid || 'standaard').trim() || 'standaard';
     idInputValue = projectId;
-    localStorage.setItem('visualboard_project_id', projectId);
     updateLinkInput();
     lastRemoteState = null;
     if (unsubscribe) unsubscribe();
@@ -5807,14 +5809,16 @@ if (currentUser) saveEditToHistory(currentUser, state);
   });
 
   // ── Deelnemen via code ──
-  function normalizeCode(raw) {
-    return raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+ function normalizeCode(raw) {
+    const stripped = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (stripped.length >= 8) return stripped.slice(0, 4) + '-' + stripped.slice(4, 8);
+    return stripped;
   }
 
   btnJoin && btnJoin.addEventListener('click', () => {
     const raw  = swJoinInput ? swJoinInput.value.trim() : '';
     const code = normalizeCode(raw);
-    if (code.length < 8) {
+    if (code.replace('-', '').length < 8) {
       if (joinFeedback) joinFeedback.textContent = '⚠️ Voer een geldige code in (8 tekens).';
       return;
     }
