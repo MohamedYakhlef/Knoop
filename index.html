@@ -1277,6 +1277,7 @@ body.keten-visible .node-keten-tags {
       <div class="sw-tab-bar">
         <button class="sw-tab-btn active" id="sw-tab-delen" onclick="swSwitchTab('delen')">📤 Mijn project delen</button>
         <button class="sw-tab-btn" id="sw-tab-deelnemen" onclick="swSwitchTab('deelnemen')">🔗 Deelnemen aan project</button>
+        <button class="sw-tab-btn" id="sw-tab-projecten" onclick="swSwitchTab('projecten')">📁 Mijn projecten</button>
       </div>
 
       <div class="sw-modal-body">
@@ -1335,8 +1336,17 @@ body.keten-visible .node-keten-tags {
               <div>2. De <strong>deelnemer</strong> voert de code in en klikt op Deelnemen.</div>
               <div>3. Wijzigingen worden <strong>live gesynchroniseerd</strong>.</div>
             </div>
+          <!-- Tab 3: Mijn projecten -->
+        <div class="sw-col" id="sw-col-projecten">
+          <div class="sw-col-title">Mijn projecten</div>
+          <div class="sw-col-sub">Projecten waar je aan hebt deelgenomen of zelf hebt aangemaakt.</div>
+          <div id="sw-projecten-list" style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+            <div class="sw-empty-members">Laden…</div>
           </div>
         </div>
+
+      </div>
+    </div>
 
       </div>
     </div>
@@ -6001,11 +6011,91 @@ function openGeschiedenis() {
   connect(projectId);
 })();
 
+  function renderMijnProjecten() {
+  const list = document.getElementById('sw-projecten-list');
+  if (!list || !currentUser) return;
+  list.innerHTML = '<div class="sw-empty-members">Laden…</div>';
+
+  // Zoek via history alle projecten waar deze user bewerkingen heeft gedaan
+  db.collectionGroup('history').where('uid', '==', currentUser.uid).get().then(snap => {
+    const projectIds = new Set();
+    snap.forEach(doc => {
+      // pad: projects/{pid}/history/{docId}
+      const parts = doc.ref.path.split('/');
+      if (parts.length === 4 && parts[0] === 'projects') {
+        projectIds.add(parts[1]);
+      }
+    });
+    return projectIds;
+  }).then(async projectIds => {
+    if (projectIds.size === 0) {
+      list.innerHTML = '<div class="sw-empty-members">Geen projecten gevonden.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    for (const pid of projectIds) {
+      const projSnap = await db.collection('projects').doc(pid).get();
+      const shareCode = projSnap.exists && projSnap.data().shareCode ? projSnap.data().shareCode : '–';
+
+      // Eigenaar = eerste entry in history
+      const histSnap = await db.collection('projects').doc(pid).collection('history')
+        .orderBy('ts', 'asc').limit(1).get();
+      let eigenaar = 'Onbekend';
+      let eigenaarPhoto = '';
+      if (!histSnap.empty) {
+        const d = histSnap.docs[0].data();
+        eigenaar = d.name || 'Onbekend';
+        eigenaarPhoto = d.photo || '';
+      }
+
+      const isEigenaar = !histSnap.empty && histSnap.docs[0].data().uid === currentUser.uid;
+
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;';
+
+      const avatar = eigenaarPhoto
+        ? `<img src="${eigenaarPhoto}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;">`
+        : '';
+
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text);">📁 ${pid}</span>
+          ${isEigenaar ? '<span style="font-size:10px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;">Eigenaar</span>' : ''}
+        </div>
+        <div style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text-dim);">
+          ${avatar}Eigenaar: <strong>${eigenaar}</strong>
+        </div>
+        <div style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text-dim);">
+          Deelcode: <strong>${shareCode}</strong>
+        </div>
+        <button style="margin-top:4px;padding:5px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:\'Syne\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;" data-pid="${pid}">
+          → Naar dit project
+        </button>
+      `;
+
+      card.querySelector('button').addEventListener('click', () => {
+        connect(pid);
+        history.replaceState(null, '', location.pathname + '?project=' + encodeURIComponent(pid));
+        document.getElementById('samenwerken-modal').classList.remove('show');
+        if (typeof showToast === 'function') showToast('Verbonden met: ' + pid);
+      });
+
+      list.appendChild(card);
+    }
+  }).catch(() => {
+    list.innerHTML = '<div class="sw-empty-members">Kon projecten niet laden.</div>';
+  });
+}
+  
 function swSwitchTab(tab) {
   document.getElementById('sw-col-delen').classList.toggle('sw-tab-active', tab === 'delen');
   document.getElementById('sw-col-deelnemen').classList.toggle('sw-tab-active', tab === 'deelnemen');
+  document.getElementById('sw-col-projecten').classList.toggle('sw-tab-active', tab === 'projecten');
   document.getElementById('sw-tab-delen').classList.toggle('active', tab === 'delen');
   document.getElementById('sw-tab-deelnemen').classList.toggle('active', tab === 'deelnemen');
+  document.getElementById('sw-tab-projecten').classList.toggle('active', tab === 'projecten');
+  if (tab === 'projecten') renderMijnProjecten();
 }
 </script>
 </body>
