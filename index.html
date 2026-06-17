@@ -6294,13 +6294,13 @@ function verwijderUitMijnProjecten(pid, naam, card) {
       }
 
       list.innerHTML = '';
-      for (const pid of projectIds) {
+ for (const pid of projectIds) {
         const entry = allProjects[pid];
-        const projSnap = await db.collection('projects').doc(pid).get();
-        const projData  = projSnap.exists ? projSnap.data() : {};
-        const naam      = projData.projectName || entry.projectName || pid;
-        const shareCode = projData.shareCode || '–';
-        const eigenaar  = entry.eigenaarNaam || 'Onbekend';
+        const projSnap   = await db.collection('projects').doc(pid).get();
+        const verwijderd = !projSnap.exists;
+        const projData   = verwijderd ? {} : projSnap.data();
+        const naam       = entry.projectName || projData.projectName || pid;
+        const eigenaar   = entry.eigenaarNaam || 'Onbekend';
         const eigenaarPhoto = entry.eigenaarPhoto || '';
         const isEigenaar = entry.isEigenaar === true;
         const toegevoegdOp  = formatDatum(entry.toegevoegdOp  || null);
@@ -6309,6 +6309,31 @@ function verwijderUitMijnProjecten(pid, naam, card) {
         const card = document.createElement('div');
         card.dataset.pid = pid;
         card.dataset.isEigenaar = isEigenaar;
+
+        if (verwijderd) {
+          // ── Grijs uitgevallen kaart: project bestaat niet meer ──
+          card.style.cssText = 'background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;opacity:0.6;position:relative;';
+          card.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text-dim);">🗂️ ${naam}</span>
+              <span style="font-size:10px;background:var(--surface2);color:var(--text-dim);border-radius:4px;padding:2px 6px;border:1px solid var(--border);">Verwijderd</span>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
+              Dit project is verwijderd door de eigenaar.
+            </div>
+            <button class="btn-leave-project" style="margin-top:4px;padding:5px 10px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">
+              🗑️ Verwijder uit mijn lijst
+            </button>
+          `;
+          card.querySelector('.btn-leave-project').addEventListener('click', () => {
+            verwijderUitMijnProjecten(pid, naam, card);
+          });
+          list.appendChild(card);
+          continue;
+        }
+
+        // ── Normale kaart ──
+        const shareCode = projData.shareCode || '–';
         card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;position:relative;';
 
         const avatar = eigenaarPhoto
@@ -6330,7 +6355,7 @@ function verwijderUitMijnProjecten(pid, naam, card) {
               </button>
             </div>
           </div>
-<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
             ${avatar}Eigenaar: <strong>${eigenaar}</strong>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
@@ -6348,7 +6373,7 @@ function verwijderUitMijnProjecten(pid, naam, card) {
           </button>
         `;
 
-    card.querySelector('.btn-open-project').addEventListener('click', () => {
+        card.querySelector('.btn-open-project').addEventListener('click', () => {
           connect(pid);
           history.replaceState(null, '', location.pathname + '?project=' + encodeURIComponent(pid));
           document.getElementById('samenwerken-modal').classList.remove('show');
