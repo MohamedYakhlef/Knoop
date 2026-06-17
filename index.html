@@ -4412,31 +4412,35 @@ function getAllLabels() {
 }
 
 function nodeMatches(n) {
+  // Geen enkel filter actief → alles matcht
+  if (activeFiltersEmpty()) return true;
 
+  // OR-logica: een node matcht zodra hij bij minstens ÉÉN actieve
+  // filtercategorie hoort (Label, Keten, Behandelaarsgroep, enz.)
   if (
     activeFilters.keten.size > 0 &&
-    !getNodeKetens(n).some(k => activeFilters.keten.has(k))
-  ) return false;
+    getNodeKetens(n).some(k => activeFilters.keten.has(k))
+  ) return true;
 
   if (
     activeFilters.behandelaarsgroep.size > 0 &&
-    !activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')
-  ) return false;
+    activeFilters.behandelaarsgroep.has(n.behandelaarsgroep || '')
+  ) return true;
 
   if (
     activeFilters.bitteam.size > 0 &&
-    !activeFilters.bitteam.has(n.bitteam || '')
-  ) return false;
+    activeFilters.bitteam.has(n.bitteam || '')
+  ) return true;
 
   if (
     activeFilters.leverancier.size > 0 &&
-    !activeFilters.leverancier.has(n.leverancier || '')
-  ) return false;
+    activeFilters.leverancier.has(n.leverancier || '')
+  ) return true;
 
   if (
     activeFilters.servicelevel.size > 0 &&
-    !activeFilters.servicelevel.has(n.servicelevel || '')
-  ) return false;
+    activeFilters.servicelevel.has(n.servicelevel || '')
+  ) return true;
 
   if (activeFilters.label.size > 0) {
     const lbls = (n.filterLabel || '')
@@ -4444,14 +4448,17 @@ function nodeMatches(n) {
       .map(l => l.trim())
       .filter(Boolean);
 
-    if (!lbls.some(l => activeFilters.label.has(l))) {
-      return false;
-    }
+    if (lbls.some(l => activeFilters.label.has(l))) return true;
   }
 
-  return true;
+  return false;
 }
 function arrowMatches(a) {
+  // Geen enkel filter actief → alles matcht
+  if (activeFiltersEmpty()) return true;
+
+  // OR-logica: zelfde regel als nodeMatches() — een pijl matcht zodra hij
+  // bij minstens ÉÉN actieve filtercategorie hoort.
   const arrowKetens = getArrowKetens(a);
   if (activeFilters.keten.size > 0 && arrowKetens.some(k => activeFilters.keten.has(k))) return true;
 
@@ -5056,7 +5063,7 @@ function navigateToKmObject(item) {
       item.obj.pathEl.classList.add('km-blinking');
       _kmBlinkTarget = item.obj;
     }
-    openArrowPanelEdit(item.obj.id);
+    openArrowPanel(item.obj.id);
   }
 
   if (_kmBlinkTimer) clearTimeout(_kmBlinkTimer);
