@@ -6320,11 +6320,14 @@ function verwijderUitMijnProjecten(pid, naam, card) {
               </button>
             </div>
           </div>
-          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
+<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
             ${avatar}Eigenaar: <strong>${eigenaar}</strong>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
             Deelcode: <strong>${shareCode}</strong>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
+            Deelnemers: <span class="proj-deelnemers-badge" data-pid="${pid}" data-naam="${naam}">– laden…</span>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--border);padding-top:6px;margin-top:2px;">
             <span>📅 Deelgenomen: <strong>${toegevoegdOp}</strong></span>
@@ -6335,7 +6338,7 @@ function verwijderUitMijnProjecten(pid, naam, card) {
           </button>
         `;
 
-        card.querySelector('.btn-open-project').addEventListener('click', () => {
+    card.querySelector('.btn-open-project').addEventListener('click', () => {
           connect(pid);
           history.replaceState(null, '', location.pathname + '?project=' + encodeURIComponent(pid));
           document.getElementById('samenwerken-modal').classList.remove('show');
@@ -6346,13 +6349,84 @@ function verwijderUitMijnProjecten(pid, naam, card) {
           verwijderUitMijnProjecten(pid, naam, card);
         });
 
+        const deelnemersBadge = card.querySelector('.proj-deelnemers-badge');
+        db.collection('presence').doc(pid).collection('users').get().then(snap => {
+          deelnemersBadge.textContent = snap.size + ' 👤';
+        }).catch(() => {
+          deelnemersBadge.textContent = '? 👤';
+        });
+        deelnemersBadge.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openProjectDeelnemers(pid, naam);
+        });
+
         list.appendChild(card);
       }
-    }).catch(() => {
+}).catch(() => {
       list.innerHTML = '<div class="sw-empty-members">Kon projecten niet laden.</div>';
     });
   }
-  
+
+function openProjectDeelnemers(pid, projectNaam) {
+  const overlay = document.getElementById('proj-deelnemers-overlay');
+  const content = document.getElementById('proj-deelnemers-content');
+  const db = window.db;
+  if (!overlay || !content || !db) return;
+
+  overlay.querySelector('h3 span').textContent = '👥 Deelnemers — ' + projectNaam;
+  content.innerHTML = '<div class="sw-empty-members">Laden…</div>';
+  overlay.classList.add('show');
+
+  function formatDatum(ts) {
+    if (!ts) return '–';
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return pad(d.getDate()) + '-' + pad(d.getMonth()+1) + '-' + d.getFullYear()
+         + '  ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  db.collection('presence').doc(pid).collection('users').get().then(snap => {
+    const now = Date.now();
+    const allMembers = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      const ts = d.ts && d.ts.toMillis ? d.ts.toMillis() : 0;
+      allMembers.push({ ...d, ts, isOnline: now - ts < 65000 });
+    });
+
+    allMembers.sort((a, b) => (b.isOnline ? 1 : 0) - (a.isOnline ? 1 : 0) || b.ts - a.ts);
+
+    if (allMembers.length === 0) {
+      content.innerHTML = '<div class="sw-empty-members">Nog geen deelnemers.</div>';
+      return;
+    }
+
+    content.innerHTML = '';
+    allMembers.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'sw-member-row';
+      const avatar = m.photo
+        ? '<img class="sw-member-avatar" src="' + m.photo + '" alt="' + m.name + '">'
+        : '<div class="sw-member-initials">' + (m.name ? m.name.slice(0,2).toUpperCase() : '?') + '</div>';
+      const statusText = m.isOnline ? 'Nu actief' : 'Laatst gezien: ' + formatDatum(m.ts);
+      row.innerHTML = avatar +
+        '<div class="sw-member-info"><div class="sw-member-name">' + (m.name || 'Onbekend') + '</div>' +
+        '<div class="sw-member-status">' + statusText + '</div></div>' +
+        '<div class="sw-member-dot ' + (m.isOnline ? 'online' : 'offline') + '"></div>';
+      content.appendChild(row);
+    });
+  }).catch(() => {
+    content.innerHTML = '<div class="sw-empty-members">Kon deelnemers niet laden.</div>';
+  });
+}
+
+document.getElementById('proj-deelnemers-close').addEventListener('click', () => {
+  document.getElementById('proj-deelnemers-overlay').classList.remove('show');
+});
+document.getElementById('proj-deelnemers-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'proj-deelnemers-overlay') e.target.classList.remove('show');
+});
+
 function swSwitchTab(tab) {
   document.getElementById('sw-col-delen').classList.toggle('sw-tab-active', tab === 'delen');
   document.getElementById('sw-col-deelnemen').classList.toggle('sw-tab-active', tab === 'deelnemen');
