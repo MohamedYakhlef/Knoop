@@ -1282,7 +1282,7 @@ body.keten-visible .node-keten-tags {
 
       <div class="sw-modal-body">
 
-        <!-- Tab 1: Mijn project delen -->
+<!-- Tab 1: Mijn project delen -->
         <div class="sw-col sw-tab-active" id="sw-col-delen">
           <div class="sw-user-card">
             <div id="sw-avatar-wrap"></div>
@@ -1294,24 +1294,37 @@ body.keten-visible .node-keten-tags {
           </div>
 
           <div class="sw-col-title">Mijn project delen</div>
-          <div class="sw-col-sub">Geef je deelcode of link aan een collega zodat ze kunnen meedoen.</div>
+          <div class="sw-col-sub">Geef je project een naam en genereer een deelcode en deel-link.</div>
 
-          <span class="sw-label">Deelcode</span>
-          <div class="sw-code-box">
-            <span class="sw-code-text" id="sw-share-code">–</span>
-            <button class="sw-code-copy" id="btn-sw-copy-code">📋 Kopieer code</button>
+          <span class="sw-label">Projectnaam</span>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+            <input type="text" id="sw-project-name" placeholder="bijv. Zorgketen 2025" autocomplete="off"
+              style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;">
+            <button class="tb-btn" id="btn-sw-save-name" style="white-space:nowrap;">💾 Opslaan</button>
           </div>
 
-          <span class="sw-label">Deel-link</span>
-          <div class="sw-link-row">
-            <input type="text" id="sw-link-input" readonly onclick="this.select()" placeholder="Laden…">
-            <button class="tb-btn" id="btn-sw-copy">📋 Kopieer</button>
-            <button class="tb-btn" id="btn-sw-whatsapp">💬 WA</button>
+          <div id="sw-share-section" style="display:none;">
+            <span class="sw-label">Deelcode</span>
+            <div class="sw-code-box">
+              <span class="sw-code-text" id="sw-share-code">–</span>
+              <button class="sw-code-copy" id="btn-sw-copy-code">📋 Kopieer code</button>
+            </div>
+
+            <span class="sw-label">Deel-link</span>
+            <div class="sw-link-row">
+              <input type="text" id="sw-link-input" readonly onclick="this.select()" placeholder="Laden…">
+              <button class="tb-btn" id="btn-sw-copy">📋 Kopieer</button>
+              <button class="tb-btn" id="btn-sw-whatsapp">💬 WA</button>
+            </div>
+
+            <span class="sw-label">Actieve deelnemers</span>
+            <div id="sw-members-list" class="sw-members-list">
+              <div class="sw-empty-members">Nog geen deelnemers.</div>
+            </div>
           </div>
 
-          <span class="sw-label">Actieve deelnemers</span>
-          <div id="sw-members-list" class="sw-members-list">
-            <div class="sw-empty-members">Nog geen deelnemers.</div>
+          <div id="sw-no-share-hint" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:8px;display:none;">
+            Sla een projectnaam op om de deelcode en deel-link te genereren.
           </div>
         </div>
 
@@ -1336,7 +1349,10 @@ body.keten-visible .node-keten-tags {
               <div>2. De <strong>deelnemer</strong> voert de code in en klikt op Deelnemen.</div>
               <div>3. Wijzigingen worden <strong>live gesynchroniseerd</strong>.</div>
             </div>
-          <!-- Tab 3: Mijn projecten -->
+          </div>
+        </div>
+
+        <!-- Tab 3: Mijn projecten -->
         <div class="sw-col" id="sw-col-projecten">
           <div class="sw-col-title">Mijn projecten</div>
           <div class="sw-col-sub">Projecten waar je aan hebt deelgenomen of zelf hebt aangemaakt.</div>
@@ -1344,9 +1360,6 @@ body.keten-visible .node-keten-tags {
             <div class="sw-empty-members">Laden…</div>
           </div>
         </div>
-
-      </div>
-    </div>
 
       </div>
     </div>
@@ -5608,21 +5621,47 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     return part1 + '-' + part2;
   }
 
+function loadProjectNameAndShare(pid) {
+    if (!pid) return;
+    const nameInput    = document.getElementById('sw-project-name');
+    const shareSection = document.getElementById('sw-share-section');
+    const noShareHint  = document.getElementById('sw-no-share-hint');
+    db.collection('projects').doc(pid).get().then(snap => {
+      const data = snap.exists ? snap.data() : {};
+      // Vul projectnaam in als die al bestaat
+      if (nameInput) nameInput.value = data.projectName || '';
+      if (data.shareCode) {
+        // Deelcode bestaat al → toon direct
+        if (swShareCode) swShareCode.textContent = data.shareCode;
+        updateLinkInput();
+        if (shareSection) shareSection.style.display = 'block';
+        if (noShareHint)  noShareHint.style.display  = 'none';
+      } else {
+        // Nog geen deelcode → hint tonen
+        if (shareSection) shareSection.style.display = 'none';
+        if (noShareHint)  noShareHint.style.display  = 'block';
+      }
+    }).catch(() => {});
+  }
+
   function ensureShareCode(pid) {
-    // Sla deelcode op in Firestore onder het project, haal op als die al bestaat
+    // Wordt aangeroepen na opslaan projectnaam — genereert code als die er nog niet is
     if (!pid) return;
     const ref = db.collection('projects').doc(pid);
     ref.get().then(snap => {
-      let code;
-      if (snap.exists && snap.data().shareCode) {
-        code = snap.data().shareCode;
-      } else {
+      const data = snap.exists ? snap.data() : {};
+      let code = data.shareCode;
+      if (!code) {
         code = generateShareCode();
         ref.set({ shareCode: code }, { merge: true }).catch(() => {});
+        db.collection('shareCodes').doc(code).set({ projectId: pid }, { merge: true }).catch(() => {});
       }
       if (swShareCode) swShareCode.textContent = code;
-      // Sla mapping code→projectId op voor lookup bij deelnemen
-      db.collection('shareCodes').doc(code).set({ projectId: pid }, { merge: true }).catch(() => {});
+      updateLinkInput();
+      const shareSection = document.getElementById('sw-share-section');
+      const noShareHint  = document.getElementById('sw-no-share-hint');
+      if (shareSection) shareSection.style.display = 'block';
+      if (noShareHint)  noShareHint.style.display  = 'none';
     }).catch(() => {});
   }
 
@@ -5728,7 +5767,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   }
 
   // ── Auth UI ──
-  function showUserUI(user) {
+function showUserUI(user) {
     loginSection.style.display = 'none';
     userSection.style.display  = 'flex';
     swUserName.textContent  = user.displayName || 'Gebruiker';
@@ -5736,8 +5775,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
     swAvatarWrap.innerHTML  = user.photoURL
       ? '<img src="' + user.photoURL + '" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">'
       : '<div class="sw-user-initials">' + getInitials(user.displayName || user.email) + '</div>';
-    ensureShareCode(projectId);
-    updateLinkInput();
+    loadProjectNameAndShare(projectId);
   }
 
   function showLoginUI() {
@@ -5768,9 +5806,9 @@ document.getElementById('json-import').addEventListener('change', (e) => {
       console.error('Firestore sync fout:', err);
       setIndicator('⚠️ Sync fout', 'saving');
     });
-    if (currentUser) {
+   if (currentUser) {
       startPresence();
-      ensureShareCode(projectId);
+      loadProjectNameAndShare(projectId);
     }
   }
 
@@ -5817,7 +5855,23 @@ if (currentUser) saveEditToHistory(currentUser, state);
       () => {}
     );
   });
-
+// ── Projectnaam opslaan + deelcode genereren ──
+  document.getElementById('btn-sw-save-name') && document.getElementById('btn-sw-save-name').addEventListener('click', () => {
+    const nameInput = document.getElementById('sw-project-name');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      if (typeof showToast === 'function') showToast('Voer eerst een projectnaam in.');
+      return;
+    }
+    db.collection('projects').doc(projectId).set({ projectName: name }, { merge: true })
+      .then(() => {
+        if (typeof showToast === 'function') showToast('Projectnaam opgeslagen!');
+        ensureShareCode(projectId);
+      }).catch(() => {
+        if (typeof showToast === 'function') showToast('Opslaan mislukt, probeer opnieuw.');
+      });
+  });
+  
   // ── Deelnemen via code ──
  function normalizeCode(raw) {
     const stripped = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
