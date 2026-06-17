@@ -5949,11 +5949,10 @@ swJoinInput && swJoinInput.addEventListener('input', () => {
   });
 
   // ── Modal open/sluiten ──
-  btnOpen && btnOpen.addEventListener('click', e => {
+btnOpen && btnOpen.addEventListener('click', e => {
     e.stopPropagation();
-    updateLinkInput();
     if (currentUser) {
-      ensureShareCode(projectId);
+      loadProjectNameAndShare(projectId);
       renderMembersList([]);
     }
     modal.classList.add('show');
