@@ -5463,6 +5463,9 @@ document.getElementById('btn-np-export').addEventListener('click', () => {
 });
 document.getElementById('btn-np-create').addEventListener('click', () => {
   createNewCanvas();
+  const nieuwId = generateProjectId();
+  connect(nieuwId);
+  history.replaceState(null, '', location.pathname + '?project=' + encodeURIComponent(nieuwId));
   closeNewProjectModal();
 });
 newProjectModal.addEventListener('click', (e) => {
