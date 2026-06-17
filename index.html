@@ -5807,9 +5807,13 @@ function showUserUI(user) {
       console.error('Firestore sync fout:', err);
       setIndicator('⚠️ Sync fout', 'saving');
     });
-   if (currentUser) {
+if (currentUser) {
       startPresence();
       loadProjectNameAndShare(projectId);
+      // Sla 'laatst geopend' op in userProjects
+      db.collection('userProjects').doc(currentUser.uid).set({
+        projects: { [projectId]: { laatstGeopend: Date.now() } }
+      }, { merge: true }).catch(() => {});
     }
   }
 
@@ -6113,7 +6117,37 @@ function renderMijnProjecten() {
 
     const uid = currentUser.uid;
 
-    // Haal zowel userProjects (deelnemers + opgeslagen eigenaren) als eigen projecten op
+    function formatDatum(ts) {
+      if (!ts) return '–';
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2, '0');
+      return pad(d.getDate()) + '-' + pad(d.getMonth()+1) + '-' + d.getFullYear()
+           + '  ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    function verwijderUitMijnProjecten(pid, naam, card) {
+      const isEigenaar = card.dataset.isEigenaar === 'true';
+      const bevestig = isEigenaar
+        ? `"${naam}" verwijderen uit je projectenlijst?\n\nHet project zelf blijft bestaan in Firestore — deelnemers kunnen er nog bij.`
+        : `"${naam}" verlaten?\n\nJe kunt later opnieuw deelnemen via de deelcode.`;
+      if (!confirm(bevestig)) return;
+      db.collection('userProjects').doc(uid).get().then(snap => {
+        if (!snap.exists) return;
+        const data = snap.data();
+        const projects = { ...(data.projects || {}) };
+        delete projects[pid];
+        return db.collection('userProjects').doc(uid).set({ projects }, { merge: false });
+      }).then(() => {
+        card.remove();
+        if (!list.querySelector('[data-pid]')) {
+          list.innerHTML = '<div class="sw-empty-members">Geen projecten gevonden.<br><small style="opacity:.6">Maak een project aan of neem deel via een deelcode.</small></div>';
+        }
+        if (typeof showToast === 'function') showToast(isEigenaar ? '🗑️ Project verwijderd uit lijst' : '👋 Project verlaten');
+      }).catch(() => {
+        if (typeof showToast === 'function') showToast('⚠️ Kon project niet verwijderen.');
+      });
+    }
+
     Promise.all([
       db.collection('userProjects').doc(uid).get(),
       db.collection('projects').where('eigenaarUid', '==', uid).get()
@@ -6121,7 +6155,6 @@ function renderMijnProjecten() {
       const data = snap.exists ? snap.data() : {};
       const registeredProjects = data.projects || {};
 
-      // Voeg eigenaarprojecten toe die nog niet in userProjects staan
       const extraOwned = {};
       ownedSnap.forEach(doc => {
         if (!registeredProjects[doc.id]) {
@@ -6132,7 +6165,6 @@ function renderMijnProjecten() {
             eigenaarNaam:  currentUser.displayName || currentUser.email || 'Onbekend',
             eigenaarPhoto: currentUser.photoURL || '',
           };
-          // Registreer alsnog in userProjects zodat het volgende keer direct werkt
           db.collection('userProjects').doc(uid).set({
             projects: { [doc.id]: { ...extraOwned[doc.id], toegevoegdOp: Date.now() } }
           }, { merge: true }).catch(() => {});
@@ -6157,9 +6189,13 @@ function renderMijnProjecten() {
         const eigenaar  = entry.eigenaarNaam || 'Onbekend';
         const eigenaarPhoto = entry.eigenaarPhoto || '';
         const isEigenaar = entry.isEigenaar === true;
+        const toegevoegdOp  = formatDatum(entry.toegevoegdOp  || null);
+        const laatstGeopend = formatDatum(entry.laatstGeopend || null);
 
         const card = document.createElement('div');
-        card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;';
+        card.dataset.pid = pid;
+        card.dataset.isEigenaar = isEigenaar;
+        card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;position:relative;';
 
         const avatar = eigenaarPhoto
           ? `<img src="${eigenaarPhoto}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;">`
@@ -6168,24 +6204,42 @@ function renderMijnProjecten() {
         card.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text);">📁 ${naam}</span>
-            ${isEigenaar ? '<span style="font-size:10px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;">Eigenaar</span>' : '<span style="font-size:10px;background:var(--surface);color:var(--text-dim);border-radius:4px;padding:2px 6px;border:1px solid var(--border);">Deelnemer</span>'}
+            <div style="display:flex;align-items:center;gap:6px;">
+              ${isEigenaar
+                ? '<span style="font-size:10px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;">Eigenaar</span>'
+                : '<span style="font-size:10px;background:var(--surface);color:var(--text-dim);border-radius:4px;padding:2px 6px;border:1px solid var(--border);">Deelnemer</span>'}
+              <button class="btn-leave-project" title="${isEigenaar ? 'Verwijderen uit lijst' : 'Project verlaten'}"
+                style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-size:12px;cursor:pointer;padding:1px 6px;line-height:1.6;transition:all .15s;"
+                onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444';"
+                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)';">
+                ${isEigenaar ? '🗑️' : '🚪'}
+              </button>
+            </div>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
             ${avatar}Eigenaar: <strong>${eigenaar}</strong>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);">
-            Deelcode: <strong>${shareCode || '–'}</strong>
+            Deelcode: <strong>${shareCode}</strong>
           </div>
-          <button style="margin-top:4px;padding:5px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--border);padding-top:6px;margin-top:2px;">
+            <span>📅 Deelgenomen: <strong>${toegevoegdOp}</strong></span>
+            <span>🕐 Laatst geopend: <strong>${laatstGeopend}</strong></span>
+          </div>
+          <button class="btn-open-project" style="margin-top:2px;padding:5px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">
             → Naar dit project
           </button>
         `;
 
-        card.querySelector('button').addEventListener('click', () => {
+        card.querySelector('.btn-open-project').addEventListener('click', () => {
           connect(pid);
           history.replaceState(null, '', location.pathname + '?project=' + encodeURIComponent(pid));
           document.getElementById('samenwerken-modal').classList.remove('show');
           if (typeof showToast === 'function') showToast('Verbonden met: ' + naam);
+        });
+
+        card.querySelector('.btn-leave-project').addEventListener('click', () => {
+          verwijderUitMijnProjecten(pid, naam, card);
         });
 
         list.appendChild(card);
