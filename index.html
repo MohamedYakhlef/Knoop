@@ -6161,14 +6161,14 @@ window.renderMijnProjecten = function() {
     });
   }
   
-function swSwitchTab(tab) {
+window.swSwitchTab = function(tab) {
   document.getElementById('sw-col-delen').classList.toggle('sw-tab-active', tab === 'delen');
   document.getElementById('sw-col-deelnemen').classList.toggle('sw-tab-active', tab === 'deelnemen');
   document.getElementById('sw-col-projecten').classList.toggle('sw-tab-active', tab === 'projecten');
   document.getElementById('sw-tab-delen').classList.toggle('active', tab === 'delen');
   document.getElementById('sw-tab-deelnemen').classList.toggle('active', tab === 'deelnemen');
   document.getElementById('sw-tab-projecten').classList.toggle('active', tab === 'projecten');
-  if (tab === 'projecten') renderMijnProjecten();
+  if (tab === 'projecten') window.renderMijnProjecten();
 }
 
 })();
