@@ -6098,9 +6098,8 @@ function openGeschiedenis() {
 
 // ── Init ──
   connect(projectId);
-})();
 
-function renderMijnProjecten() {
+window.renderMijnProjecten = function() {
     const list = document.getElementById('sw-projecten-list');
     if (!list || !currentUser) return;
     list.innerHTML = '<div class="sw-empty-members">Laden…</div>';
@@ -6171,6 +6170,8 @@ function swSwitchTab(tab) {
   document.getElementById('sw-tab-projecten').classList.toggle('active', tab === 'projecten');
   if (tab === 'projecten') renderMijnProjecten();
 }
+
+})();
 </script>
 </body>
 </html>
