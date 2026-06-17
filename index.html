@@ -5838,8 +5838,8 @@ function showUserUI(user) {
     swAvatarWrap.innerHTML = '';
   }
 
-  // ── Firebase sync ──
-  function connect(pid) {
+// ── Firebase sync ──
+  window.connect = function connect(pid) {
     projectId    = (pid || 'standaard').trim() || 'standaard';
     idInputValue = projectId;
     updateLinkInput();
