@@ -5863,8 +5863,9 @@ if (currentUser) saveEditToHistory(currentUser, state);
       if (typeof showToast === 'function') showToast('Voer eerst een projectnaam in.');
       return;
     }
-    db.collection('projects').doc(projectId).set({
+ db.collection('projects').doc(projectId).set({
       projectName:   name,
+      eigenaarUid:   currentUser.uid,
       eigenaarNaam:  currentUser.displayName || currentUser.email || 'Onbekend',
       eigenaarPhoto: currentUser.photoURL || ''
     }, { merge: true })
@@ -6105,9 +6106,36 @@ function renderMijnProjecten() {
     if (!list || !currentUser) return;
     list.innerHTML = '<div class="sw-empty-members">Laden…</div>';
 
-    db.collection('userProjects').doc(currentUser.uid).get().then(async snap => {
+    const uid = currentUser.uid;
+
+    // Haal zowel userProjects (deelnemers + opgeslagen eigenaren) als eigen projecten op
+    Promise.all([
+      db.collection('userProjects').doc(uid).get(),
+      db.collection('projects').where('eigenaarUid', '==', uid).get()
+    ]).then(async ([snap, ownedSnap]) => {
       const data = snap.exists ? snap.data() : {};
-      const projectIds = Object.keys(data.projects || {});
+      const registeredProjects = data.projects || {};
+
+      // Voeg eigenaarprojecten toe die nog niet in userProjects staan
+      const extraOwned = {};
+      ownedSnap.forEach(doc => {
+        if (!registeredProjects[doc.id]) {
+          const d = doc.data();
+          extraOwned[doc.id] = {
+            projectName:   d.projectName || doc.id,
+            isEigenaar:    true,
+            eigenaarNaam:  currentUser.displayName || currentUser.email || 'Onbekend',
+            eigenaarPhoto: currentUser.photoURL || '',
+          };
+          // Registreer alsnog in userProjects zodat het volgende keer direct werkt
+          db.collection('userProjects').doc(uid).set({
+            projects: { [doc.id]: { ...extraOwned[doc.id], toegevoegdOp: Date.now() } }
+          }, { merge: true }).catch(() => {});
+        }
+      });
+
+      const allProjects = { ...registeredProjects, ...extraOwned };
+      const projectIds = Object.keys(allProjects);
 
       if (projectIds.length === 0) {
         list.innerHTML = '<div class="sw-empty-members">Geen projecten gevonden.<br><small style="opacity:.6">Maak een project aan of neem deel via een deelcode.</small></div>';
@@ -6116,7 +6144,7 @@ function renderMijnProjecten() {
 
       list.innerHTML = '';
       for (const pid of projectIds) {
-        const entry = data.projects[pid];
+        const entry = allProjects[pid];
         const projSnap = await db.collection('projects').doc(pid).get();
         const projData  = projSnap.exists ? projSnap.data() : {};
         const naam      = projData.projectName || entry.projectName || pid;
