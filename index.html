@@ -5855,7 +5855,8 @@ if (currentUser) saveEditToHistory(currentUser, state);
     );
   });
 // ── Projectnaam opslaan + deelcode genereren ──
-document.getElementById('btn-sw-save-name') && document.getElementById('btn-sw-save-name').addEventListener('click', () => {
+  document.getElementById('btn-sw-save-name') && document.getElementById('btn-sw-save-name').addEventListener('click', () => {
+    if (!currentUser) { if (typeof showToast === 'function') showToast('Je bent niet ingelogd.'); return; }
     const nameInput = document.getElementById('sw-project-name');
     const name = nameInput ? nameInput.value.trim() : '';
     if (!name) {
@@ -5868,7 +5869,6 @@ document.getElementById('btn-sw-save-name') && document.getElementById('btn-sw-s
       eigenaarPhoto: currentUser.photoURL || ''
     }, { merge: true })
       .then(() => {
-        // Registreer in userProjects als eigenaar
         return db.collection('userProjects').doc(currentUser.uid).set({
           projects: {
             [projectId]: {
@@ -5882,10 +5882,11 @@ document.getElementById('btn-sw-save-name') && document.getElementById('btn-sw-s
         }, { merge: true });
       })
       .then(() => {
-        if (typeof showToast === 'function') showToast('Projectnaam opgeslagen!');
+        if (typeof showToast === 'function') showToast('✅ Projectnaam opgeslagen!');
         ensureShareCode(projectId);
-      }).catch(() => {
-        if (typeof showToast === 'function') showToast('Opslaan mislukt, probeer opnieuw.');
+      }).catch(err => {
+        console.error('Opslaan fout:', err);
+        if (typeof showToast === 'function') showToast('⚠️ Opslaan mislukt: ' + err.message);
       });
   });
   
