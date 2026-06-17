@@ -6125,27 +6125,92 @@ function renderMijnProjecten() {
            + '  ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
     }
 
-    function verwijderUitMijnProjecten(pid, naam, card) {
+function verwijderUitMijnProjecten(pid, naam, card) {
       const isEigenaar = card.dataset.isEigenaar === 'true';
-      const bevestig = isEigenaar
-        ? `"${naam}" verwijderen uit je projectenlijst?\n\nHet project zelf blijft bestaan in Firestore — deelnemers kunnen er nog bij.`
-        : `"${naam}" verlaten?\n\nJe kunt later opnieuw deelnemen via de deelcode.`;
-      if (!confirm(bevestig)) return;
-      db.collection('userProjects').doc(uid).get().then(snap => {
+
+      // Eigenaar krijgt keuze: alleen uit lijst OF volledig verwijderen
+      let keuze = 'verlaten';
+      if (isEigenaar) {
+        keuze = prompt(
+          `Wat wil je doen met "${naam}"?\n\n` +
+          `Typ "verlaten" → verwijder alleen uit jouw lijst (project blijft bestaan voor deelnemers)\n` +
+          `Typ "verwijderen" → verwijder het project volledig voor iedereen\n\n` +
+          `Typ je keuze:`
+        );
+        if (!keuze) return;
+        keuze = keuze.trim().toLowerCase();
+        if (keuze !== 'verlaten' && keuze !== 'verwijderen') {
+          if (typeof showToast === 'function') showToast('⚠️ Ongeldige keuze. Typ "verlaten" of "verwijderen".');
+          return;
+        }
+        if (keuze === 'verwijderen') {
+          if (!confirm(`⚠️ DEFINITIEF VERWIJDEREN\n\n"${naam}" wordt permanent verwijderd voor alle deelnemers.\n\nDit kan niet ongedaan worden gemaakt. Weet je het zeker?`)) return;
+        }
+      } else {
+        if (!confirm(`"${naam}" verlaten?\n\nJe kunt later opnieuw deelnemen via de deelcode.`)) return;
+      }
+
+      const verwijderVolledig = isEigenaar && keuze === 'verwijderen';
+
+      // Stap 1: verwijder uit eigen userProjects
+      const stap1 = db.collection('userProjects').doc(uid).get().then(snap => {
         if (!snap.exists) return;
-        const data = snap.data();
-        const projects = { ...(data.projects || {}) };
+        const projects = { ...(snap.data().projects || {}) };
         delete projects[pid];
         return db.collection('userProjects').doc(uid).set({ projects }, { merge: false });
-      }).then(() => {
-        card.remove();
-        if (!list.querySelector('[data-pid]')) {
-          list.innerHTML = '<div class="sw-empty-members">Geen projecten gevonden.<br><small style="opacity:.6">Maak een project aan of neem deel via een deelcode.</small></div>';
-        }
-        if (typeof showToast === 'function') showToast(isEigenaar ? '🗑️ Project verwijderd uit lijst' : '👋 Project verlaten');
-      }).catch(() => {
-        if (typeof showToast === 'function') showToast('⚠️ Kon project niet verwijderen.');
       });
+
+      if (!verwijderVolledig) {
+        // Alleen uit lijst verwijderen
+        stap1.then(() => {
+          card.remove();
+          if (!list.querySelector('[data-pid]')) {
+            list.innerHTML = '<div class="sw-empty-members">Geen projecten gevonden.<br><small style="opacity:.6">Maak een project aan of neem deel via een deelcode.</small></div>';
+          }
+          if (typeof showToast === 'function') showToast(isEigenaar ? '🗑️ Project verwijderd uit lijst' : '👋 Project verlaten');
+        }).catch(() => {
+          if (typeof showToast === 'function') showToast('⚠️ Kon project niet verwijderen.');
+        });
+        return;
+      }
+
+      // Volledig verwijderen: history, presence, shareCode, project zelf
+      if (typeof showToast === 'function') showToast('🗑️ Project verwijderen…');
+
+      const projRef = db.collection('projects').doc(pid);
+
+      // Verwijder history subcollectie
+      const delHistory = projRef.collection('history').get().then(snap => {
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        return snap.empty ? Promise.resolve() : batch.commit();
+      });
+
+      // Verwijder presence subcollectie
+      const delPresence = db.collection('presence').doc(pid).collection('users').get().then(snap => {
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        return snap.empty ? Promise.resolve() : batch.commit();
+      });
+
+      // Haal shareCode op en verwijder die
+      const delShareCode = projRef.get().then(snap => {
+        const code = snap.exists ? snap.data().shareCode : null;
+        if (code) return db.collection('shareCodes').doc(code).delete();
+      });
+
+      Promise.all([stap1, delHistory, delPresence, delShareCode])
+        .then(() => projRef.delete())
+        .then(() => {
+          card.remove();
+          if (!list.querySelector('[data-pid]')) {
+            list.innerHTML = '<div class="sw-empty-members">Geen projecten gevonden.<br><small style="opacity:.6">Maak een project aan of neem deel via een deelcode.</small></div>';
+          }
+          if (typeof showToast === 'function') showToast('✅ Project volledig verwijderd');
+        }).catch(err => {
+          console.error('Verwijderen mislukt:', err);
+          if (typeof showToast === 'function') showToast('⚠️ Verwijderen gedeeltelijk mislukt. Controleer de console.');
+        });
     }
 
     Promise.all([
