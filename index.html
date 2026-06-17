@@ -5556,6 +5556,7 @@ document.getElementById('json-import').addEventListener('change', (e) => {
   let unsubscribe      = null;
   let presenceUnsub    = null;
   let currentUser      = null;
+  window.currentUser   = null;
   let heartbeatTimer   = null;
 
   const params = new URLSearchParams(location.search);
@@ -5828,6 +5829,7 @@ if (currentUser) saveEditToHistory(currentUser, state);
   // ── Auth state ──
   auth.onAuthStateChanged(user => {
     currentUser = user;
+    window.currentUser = user;
     if (user) { showUserUI(user); startPresence(); }
     else      { showLoginUI();    stopPresence();  }
   });
@@ -6103,6 +6105,7 @@ function openGeschiedenis() {
 
 function renderMijnProjecten() {
     const list = document.getElementById('sw-projecten-list');
+    const currentUser = window.currentUser;
     if (!list || !currentUser) return;
     list.innerHTML = '<div class="sw-empty-members">Laden…</div>';
 
