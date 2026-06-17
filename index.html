@@ -5842,8 +5842,8 @@ if (currentUser) saveEditToHistory(currentUser, state);
   });
 
   // Formatteer invoer automatisch als ____-____
-  swJoinInput && swJoinInput.addEventListener('input', () => {
-    let val = normalizeCode(swJoinInput.value);
+swJoinInput && swJoinInput.addEventListener('input', () => {
+    let val = swJoinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (val.length > 4) val = val.slice(0, 4) + '-' + val.slice(4, 8);
     swJoinInput.value = val;
     if (joinFeedback) joinFeedback.textContent = '';
