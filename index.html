@@ -6098,8 +6098,9 @@ function openGeschiedenis() {
 
 // ── Init ──
   connect(projectId);
+})();
 
-window.renderMijnProjecten = function() {
+function renderMijnProjecten() {
     const list = document.getElementById('sw-projecten-list');
     if (!list || !currentUser) return;
     list.innerHTML = '<div class="sw-empty-members">Laden…</div>';
@@ -6161,7 +6162,7 @@ window.renderMijnProjecten = function() {
     });
   }
   
-window.swSwitchTab = function(tab) {
+function swSwitchTab(tab) {
   document.getElementById('sw-col-delen').classList.toggle('sw-tab-active', tab === 'delen');
   document.getElementById('sw-col-deelnemen').classList.toggle('sw-tab-active', tab === 'deelnemen');
   document.getElementById('sw-col-projecten').classList.toggle('sw-tab-active', tab === 'projecten');
@@ -6170,8 +6171,6 @@ window.swSwitchTab = function(tab) {
   document.getElementById('sw-tab-projecten').classList.toggle('active', tab === 'projecten');
   if (tab === 'projecten') window.renderMijnProjecten();
 }
-
-})();
 </script>
 </body>
 </html>
