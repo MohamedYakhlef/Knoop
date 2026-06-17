@@ -1219,7 +1219,7 @@ body.keten-visible .node-keten-tags {
 
 <div id="toolbar">
 <div class="logo">Visual<span>Board</span></div>
-<span id="version-badge" title="Versie geschiedenis">v1.4</span>
+<span id="version-badge" title="Versie geschiedenis">v1.5</span>
   <div class="tb-sep"></div>
 
   <!-- Acties dropdown -->
@@ -4817,25 +4817,8 @@ bugfixes: [
   },
 
 
-  {
-    version: 'v1.4.0',
-    date: '12-06-2026',
-nieuw: [
-  'Interfaces hebben nu een eigen knop in de toolbar, inclusief de functie om direct naar het object op het canvas te springen.',
-  'Het is nu mogelijk om ook stakeholders toe te voegen.',
-],
 
-verbeterd: [
-  'In het informatiescherm worden de velden voortaan op afzonderlijke regels weergegeven, in plaats van gescheiden door komma’s op één regel.',
-
-  
-],
-
-bugfixes: [
-'Het URL-icoon kwam terug na het verversen van de pagina, ondanks dat deze was uitgeschakeld. Dit probleem is opgelost.',
-],
-  },
-  {
+{
     version: 'v1.4.0',
     date: '12-06-2026',
 nieuw: [
@@ -4856,6 +4839,27 @@ bugfixes: [
 ],
   },
   
+{
+    version: 'v1.5.0',
+    date: '17-06-2026',
+nieuw: [
+  'Je kunt nu zien aan welke projecten je hebt deelgenomen.',
+  'Met de geschiedenisknop zie je wie de laatste wijzigingen heeft uitgevoerd.',
+  '',
+],
+
+verbeterd: [
+  'Wanneer je via Interface naar een lijn navigeert, wordt nu het informatiescherm geopend in plaats van het bewerkscherm.',
+  'Je kunt nu projecten verlaten waarvan je lid bent en projecten verwijderen waarvan je eigenaar bent.',
+ 
+],
+
+bugfixes: [
+'Een probleem opgelost waarbij meerdere filteropties andere objecten verborgen. Alle objecten die aan een label zijn gekoppeld, worden nu correct weergegeven.',
+
+],
+  },
+
 ];
 
 
@@ -6196,7 +6200,7 @@ function verwijderUitMijnProjecten(pid, naam, card) {
           if (!confirm(`⚠️ DEFINITIEF VERWIJDEREN\n\n"${naam}" wordt permanent verwijderd voor alle deelnemers.\n\nDit kan niet ongedaan worden gemaakt. Weet je het zeker?`)) return;
         }
       } else {
-        if (!confirm(`"${naam}" verlaten?\n\nJe kunt later opnieuw deelnemen via de deelcode.`)) return;
+        if (!confirm(`"${naam}" verlaten?\n\n`)) return;
       }
 
       const verwijderVolledig = isEigenaar && keuze === 'verwijderen';
