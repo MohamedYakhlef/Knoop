@@ -5542,6 +5542,12 @@ document.getElementById('btn-open-gdrive').addEventListener('click', () => {
 // ── GOOGLE DRIVE OPSLAAN ──
 const GDRIVE_CLIENT_ID = '902555784344-av5n52ftl8sdet420ifa87469he5o0kl.apps.googleusercontent.com';
 const GDRIVE_API_KEY = 'AIzaSyAa21e2On4_V31Xe77VY85ytPlKAZnEVHg'; // de key die je net hebt aangemaakt
+// Je Google Cloud PROJECTNUMMER (niet de client ID!). Te vinden via:
+// Google Cloud Console → ⚙️ IAM & Admin → Instellingen → "Projectnummer".
+// Zonder dit mag de Picker bestanden tonen, maar niet daadwerkelijk openen
+// namens de gebruiker — dat veroorzaakt precies de "Sign in to your Google
+// Account / You must sign in to access this content" melding.
+const GDRIVE_APP_ID = '902555784344'; // TODO: check of dit klopt met je projectnummer
 const GDRIVE_FOLDER_ID = '';
 
 let gdriveTokenClient = null;
@@ -5603,6 +5609,7 @@ async function openDrivePickerForSave(data) {
   const picker = new google.picker.PickerBuilder()
     .setOAuthToken(gdriveAccessToken)
     .setDeveloperKey(GDRIVE_API_KEY)
+    .setAppId(GDRIVE_APP_ID)
     .addView(view)
     .addView(new google.picker.DocsUploadView()) // laat ook "nieuw uploaden" toe
     .setCallback(async (pickerResp) => {
@@ -5649,6 +5656,7 @@ async function openFromGoogleDrive() {
     const picker = new google.picker.PickerBuilder()
       .setOAuthToken(gdriveAccessToken)
       .setDeveloperKey(GDRIVE_API_KEY)
+      .setAppId(GDRIVE_APP_ID)
       .addView(view)
       .setCallback(async (pickerResp) => {
         if (pickerResp.action !== google.picker.Action.PICKED) return;
