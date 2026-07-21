@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1236,6 +1237,7 @@ body.keten-visible .node-keten-tags {
           <div class="acties-item" id="btn-export-img">🖼️ Opslaan als afbeelding</div>
           <div class="acties-item" id="btn-share-viewer">🔗 Alleen-lezen link delen</div>
           <div class="acties-item" id="btn-export-gdrive">📤 Opslaan naar Google Drive</div>
+<div class="acties-item" id="btn-open-gdrive">📂 Openen vanaf Google Drive</div>
         </div>
       </div>
     </div>
@@ -5531,12 +5533,21 @@ document.getElementById('btn-export-gdrive').addEventListener('click', () => {
   exportSubmenu.classList.remove('show');
 });
 
+document.getElementById('btn-open-gdrive').addEventListener('click', () => {
+  openFromGoogleDrive();
+  actiesMenu.classList.remove('show');
+  exportSubmenu.classList.remove('show');
+});
+
 // ── GOOGLE DRIVE OPSLAAN ──
-const GDRIVE_CLIENT_ID = '902555784344-av5n52ftl8sdet420ifa87469he5o0kl.apps.googleusercontent.com'; // TODO: invullen, zie stappen hieronder
-const GDRIVE_FOLDER_ID = ''; // TODO: optioneel, ID van de gedeelde Drive-map (leeg = 'Mijn Drive' van de ingelogde gebruiker)
+const GDRIVE_CLIENT_ID = '902555784344-av5n52ftl8sdet420ifa87469he5o0kl.apps.googleusercontent.com';
+const GDRIVE_API_KEY = 'AIzaSyAa21e2On4_V31Xe77VY85ytPlKAZnEVHg'; // de key die je net hebt aangemaakt
+const GDRIVE_FOLDER_ID = '';
 
 let gdriveTokenClient = null;
 let gdriveAccessToken = null;
+let pickerApiLoaded = false;
+let currentDriveFileId = null; // onthoudt welk bestand nu gekoppeld is
 
 function downloadFallback(filename, data) {
   const blob = new Blob([data], {type: 'application/json'});
@@ -5547,71 +5558,204 @@ function downloadFallback(filename, data) {
   a.click();
 }
 
+function getExportData() {
+  return JSON.stringify({
+    nodes: nodes.map(n => ({...n, el: null})),
+    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})),
+    nodeId, arrowId
+  }, null, 2);
+}
+
+function requestDriveToken(onSuccess) {
+  if (!gdriveTokenClient) {
+    gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: () => {}
+    });
+  }
+  gdriveTokenClient.callback = async (resp) => {
+    if (resp.error) {
+      showToast('⚠️ Google Drive login mislukt');
+      return;
+    }
+    gdriveAccessToken = resp.access_token;
+    onSuccess();
+  };
+  gdriveTokenClient.requestAccessToken({ prompt: gdriveAccessToken ? '' : 'consent' });
+}
+function loadPickerApi() {
+  return new Promise((resolve) => {
+    if (pickerApiLoaded) { resolve(); return; }
+    gapi.load('picker', () => { pickerApiLoaded = true; resolve(); });
+  });
+}
+
+// Gebruikt wanneer je nog geen gekoppeld bestand hebt en wilt opslaan:
+// gebruiker kiest een BESTAAND bestand om te overschrijven, of maakt een nieuw bestand aan.
+async function openDrivePickerForSave(data) {
+  await loadPickerApi();
+
+  const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+    .setMimeTypes('application/json')
+    .setSelectFolderEnabled(false);
+
+  const picker = new google.picker.PickerBuilder()
+    .setOAuthToken(gdriveAccessToken)
+    .setDeveloperKey(GDRIVE_API_KEY)
+    .addView(view)
+    .addView(new google.picker.DocsUploadView()) // laat ook "nieuw uploaden" toe
+    .setCallback(async (pickerResp) => {
+      if (pickerResp.action === google.picker.Action.PICKED) {
+        const fileId = pickerResp.docs[0].id;
+        currentDriveFileId = fileId;
+        await db.collection('projects').doc(getProjectId()).set({ driveFileId: fileId }, { merge: true });
+
+        // Schrijf direct de huidige data naar het gekozen bestand
+        const res = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer ' + gdriveAccessToken,
+              'Content-Type': 'application/json'
+            },
+            body: data
+          }
+        );
+        if (res.ok) showToast('✅ Gekoppeld en opgeslagen naar gekozen bestand!');
+        else showToast('⚠️ Koppelen gelukt, opslaan mislukt (status ' + res.status + ')');
+      } else if (pickerResp.action === google.picker.Action.CANCEL) {
+        // Gebruiker annuleerde → val terug op nieuw bestand aanmaken
+        if (confirm('Geen bestand gekozen. Wil je een nieuw Drive-bestand aanmaken?')) {
+          await createNewDriveFile(data);
+        }
+      }
+    })
+    .build();
+
+  picker.setVisible(true);
+}
+
+// Gebruikt voor de "Openen vanaf Google Drive"-knop
+async function openFromGoogleDrive() {
+  requestDriveToken(async () => {
+    await loadPickerApi();
+
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+      .setMimeTypes('application/json')
+      .setSelectFolderEnabled(false);
+
+    const picker = new google.picker.PickerBuilder()
+      .setOAuthToken(gdriveAccessToken)
+      .setDeveloperKey(GDRIVE_API_KEY)
+      .addView(view)
+      .setCallback(async (pickerResp) => {
+        if (pickerResp.action !== google.picker.Action.PICKED) return;
+        const fileId = pickerResp.docs[0].id;
+
+        try {
+          const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: { 'Authorization': 'Bearer ' + gdriveAccessToken }
+          });
+          if (!res.ok) throw new Error('Ophalen mislukt (status ' + res.status + ')');
+          const text = await res.text();
+
+          loadState(text);
+          saveState();
+          currentDriveFileId = fileId;
+          await db.collection('projects').doc(getProjectId()).set({ driveFileId: fileId }, { merge: true });
+          showToast('✅ Project geladen en gekoppeld vanaf Google Drive!');
+        } catch (err) {
+          showToast('⚠️ Kon bestand niet laden: ' + err.message);
+        }
+      })
+      .build();
+
+    picker.setVisible(true);
+  });
+}
+
 async function saveToGoogleDrive() {
+  requestDriveToken(async () => {
+    const data = getExportData();
+
+    // Kijk of dit project al een gekoppeld Drive-bestand heeft
+    if (!currentDriveFileId) {
+      const projSnap = await db.collection('projects').doc(getProjectId()).get();
+      currentDriveFileId = projSnap.exists ? (projSnap.data().driveFileId || null) : null;
+    }
+
+    showToast('⏳ Opslaan naar Google Drive…');
+
+    try {
+      if (currentDriveFileId) {
+        // ── Bestaand gekoppeld bestand overschrijven ──
+        const res = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${currentDriveFileId}?uploadType=media`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer ' + gdriveAccessToken,
+              'Content-Type': 'application/json'
+            },
+            body: data
+          }
+        );
+        if (res.status === 404) {
+          // Bestand bestaat niet meer / geen toegang meer → open Picker om opnieuw te koppelen
+          currentDriveFileId = null;
+          showToast('⚠️ Gekoppeld bestand niet gevonden — kies een bestand');
+          openDrivePickerForSave(data);
+          return;
+        }
+        if (!res.ok) throw new Error('Opslaan mislukt (status ' + res.status + ')');
+        showToast('✅ Opgeslagen naar Google Drive!');
+      } else {
+        // ── Nog geen gekoppeld bestand → laat gebruiker kiezen: nieuw of bestaand ──
+        openDrivePickerForSave(data);
+      }
+    } catch (err) {
+      console.warn('Google Drive opslaan mislukt:', err);
+      showToast('⚠️ Opslaan mislukt: ' + err.message);
+    }
+  });
+}
+
+async function createNewDriveFile(data) {
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const datum = `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()}`;
   const tijd = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
   const filename = `VisualBoard_${datum}_${tijd}.json`;
 
-  const data = JSON.stringify({
-    nodes: nodes.map(n => ({...n, el: null})),
-    arrows: arrows.map(a => ({...a, pathEl:null, bgPathEl:null, hitEl:null, dotEl:null, dotEl2:null, labelEl:null, noteEl:null, urlLinkEl:null, urlIconEl:null, markerEl:null, markerPathEl:null, markerStartEl:null, markerStartPathEl:null, _dashPath2:null})),
-    nodeId, arrowId
-  }, null, 2);
-
-  showToast('⏳ Proberen naar Google Drive te schrijven…');
-
-  if (!gdriveTokenClient) {
-    gdriveTokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GDRIVE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      callback: () => {} // wordt hieronder per aanroep overschreven
-    });
-  }
-
-  gdriveTokenClient.callback = async (resp) => {
-    if (resp.error) {
-      console.warn('Google Drive login mislukt:', resp);
-      showToast('⚠️ Google Drive login mislukt — bestand wordt gedownload');
-      downloadFallback(filename, data);
-      return;
-    }
-    gdriveAccessToken = resp.access_token;
-
-    try {
-      const metadata = {
-        name: filename,
-        mimeType: 'application/json',
-        ...(GDRIVE_FOLDER_ID ? { parents: [GDRIVE_FOLDER_ID] } : {})
-      };
-      const boundary = '-------314159265358979323846';
-      const delimiter = `\r\n--${boundary}\r\n`;
-      const closeDelim = `\r\n--${boundary}--`;
-      const body =
-        delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) +
-        delimiter + 'Content-Type: application/json\r\n\r\n' + data +
-        closeDelim;
-
-      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + gdriveAccessToken,
-          'Content-Type': `multipart/related; boundary="${boundary}"`
-        },
-        body
-      });
-      if (!uploadRes.ok) throw new Error('Upload mislukt (status ' + uploadRes.status + ')');
-
-      showToast('✅ Opgeslagen naar Google Drive!');
-    } catch (err) {
-      console.warn('Google Drive opslaan mislukt:', err);
-      showToast('⚠️ Google Drive opslaan mislukt — bestand wordt gedownload');
-      downloadFallback(filename, data);
-    }
+  const metadata = {
+    name: filename,
+    mimeType: 'application/json',
+    ...(GDRIVE_FOLDER_ID ? { parents: [GDRIVE_FOLDER_ID] } : {})
   };
+  const boundary = '-------314159265358979323846';
+  const delimiter = `\r\n--${boundary}\r\n`;
+  const closeDelim = `\r\n--${boundary}--`;
+  const body =
+    delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) +
+    delimiter + 'Content-Type: application/json\r\n\r\n' + data +
+    closeDelim;
 
-  gdriveTokenClient.requestAccessToken({ prompt: gdriveAccessToken ? '' : 'consent' });
+  const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + gdriveAccessToken,
+      'Content-Type': `multipart/related; boundary="${boundary}"`
+    },
+    body
+  });
+  if (!uploadRes.ok) throw new Error('Aanmaken mislukt (status ' + uploadRes.status + ')');
+  const result = await uploadRes.json();
+
+  currentDriveFileId = result.id;
+  await db.collection('projects').doc(getProjectId()).set({ driveFileId: result.id }, { merge: true });
+  showToast('✅ Nieuw Drive-bestand aangemaakt! Deel dit bestand nu met je collega\'s.');
 }
 
 document.getElementById('btn-export-img').addEventListener('click', () => {
@@ -5930,6 +6074,8 @@ function showUserUI(user) {
   }
 
 // ── Firebase sync ──
+  window.getProjectId = function() { return projectId; };
+
   window.connect = function connect(pid) {
     projectId    = (pid || 'standaard').trim() || 'standaard';
     idInputValue = projectId;
